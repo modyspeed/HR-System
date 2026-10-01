@@ -13,3 +13,8 @@
 - إنشاء نواة Electron/Vite/React/TypeScript، قاعدة better-sqlite3 مع migrations مقسمة وبذور، registry للوحدات الأربع وIPC آمن وصفحة RTL أولية.
 - `npm install`, `npm run dev`, `npm run typecheck`, `npm run build`, و`npm test`؛ الاختبارات 4/4 والبناء والأنواع ناجحان. Commit التنفيذ: `c3c8494`؛ tag `P1a` رُفع إلى origin.
 - تقرير الجلسة: `reports/P1a_GitHubCopilot_2026-10-01.md`.
+
+## 2026-10-01 — GitHub Copilot — P1b
+- أُكملت واجهة P1b: shell عربي RTL، ThemeProvider مع نظام Light/Dark/System، Dashboard، ومعرض المكونات، مع تقليل flicker عند غياب bridge preload في المتصفح.
+- `npm run typecheck`, `npm run build`, و`npm test` نجحوا جميعًا؛ التشغيل في dev تم بنجاح. Commit التنفيذ: `d5ae9d5`؛ tag `P1b` رُفع إلى origin.
+- تقرير الجلسة: `reports/P1b_GitHubCopilot_2026-10-01.md`.
