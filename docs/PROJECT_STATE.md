@@ -1,15 +1,15 @@
 # حالة المشروع — LeaveDesk
-آخر تحديث: 2026-10-01 (بواسطة: Claude) — النسخة: v1 (إضافة التصميم والمعمارية المعيارية)
+آخر تحديث: 2026-10-01 (بواسطة: GitHub Copilot) — النسخة: تنفيذ P1a للمراجعة
 
 ## الملخص في سطرين
 برنامج ديسكتوب (Electron + React + SQLite) لحصر أرصدة الإجازات وملفات الموظفين (PDF) والقرارات، عربي RTL، أوفلاين.
-المرحلة الحالية: **التخطيط خلص، التنفيذ لسه ماابتدش.**
+المرحلة الحالية: **P1a تنفيذ مكتمل (مستني مراجعة).** P1b وما بعدها لم تبدأ.
 
 ## جدول المراحل
 | المرحلة | الوصف | الحالة | المنصة | تاريخ | ملاحظات |
 |---|---|---|---|---|---|
 | P0 | الخطة + التوثيق | تم | Claude | 2026-10-01 | |
-| P1a | النواة التقنية: Electron + SQLite + migrations لكل وحدة + registry | لم تبدأ | — | — | |
+| P1a | النواة التقنية: Electron + SQLite + migrations لكل وحدة + registry | تنفيذ مكتمل (مستني مراجعة) | GitHub Copilot | 2026-10-01 | تقرير reports/P1a_GitHubCopilot_2026-10-01.md؛ راجع ملاحظة docs/README.md |
 | P1b | نظام التصميم + Shell + دارك/لايت + لوحة التحكم النهائية | لم تبدأ | — | — | |
 | P2 | الموظفين CRUD + الأقسام + ملف الموظف (تاب البيانات) | لم تبدأ | — | — | |
 | P3 | الإجازات: الحاسبة + الأرصدة + الطلبات + السجل + اللوحة | لم تبدأ | — | — | |
@@ -21,19 +21,33 @@
 الحالات المسموحة: لم تبدأ / جارية / تنفيذ مكتمل (مستني مراجعة) / تم (راجعه Claude) / تحتاج تصحيح
 
 ## الخطوة الجاية بالظبط
-أرسل `RESUME_PROMPT.md` + `SPEC_COMPACT.md` + `PROJECT_STATE.md` + `phases/P1a.md` + `SCHEMA.sql` + `ARCHITECTURE_MODULES.md` لمنصة التنفيذ. (P1b بعدها، ومعاها DESIGN_SYSTEM.md.)
+مراجعة P1a في `reports/P1a_GitHubCopilot_2026-10-01.md` ومراجعة الكود في `code/`. لا تبدأ P1b قبل موافقة المالك. بعد الموافقة أرسل `phases/P1b.md` و`DESIGN_SYSTEM.md` للمنصة المنفذة.
 
 ## تغييرات v1
 اتضاف: معمارية وحدات (D10)، نظام تصميم فخم Light/Dark (D11-D16)، وتقسيم P1 إلى P1a/P1b (D17).
 
 ## مكان الكود
-(يتملأ بعد P1) — مستودع GitHub: https://github.com/modyspeed/HR-System (عام)  | آخر commit: ______ | آخر ZIP: ______
+`code/` — مستودع GitHub: https://github.com/modyspeed/HR-System (عام) | آخر commit: يُحدّث بعد commit الجلسة | آخر ZIP: —
 
 ## الملفات المنفذة (File manifest)
-(يتملأ من تقرير كل جلسة: مسار الملف — غرضه — مكتمل/جزئي)
+- `code/package.json`, `code/package-lock.json` — اعتماديات وأوامر Electron/Vite/React/SQLite — مكتمل.
+- `code/electron.vite.config.ts`, `code/tsconfig.json`, `code/tsconfig.electron.json` — إعداد البناء والأنواع — مكتمل.
+- `code/electron/main.ts`, `code/electron/preload.ts`, `code/electron/raw-imports.d.ts` — نافذة آمنة وواجهة IPC محدودة — مكتمل.
+- `code/electron/core/db.ts`, `ipc.ts`, `migrate.ts`, `moduleTypes.ts` — DB وIPC وrunner وعقد الوحدات — مكتمل.
+- `code/electron/core/migrations/001_core.sql`, `002_seed.sql` — مخطط وبذور core — مكتمل.
+- `code/electron/modules/index.ts` و`code/electron/modules/{employees,leaves,decisions,documents}/index.ts` — registry Electron ووحدات placeholders — مكتمل.
+- `code/electron/modules/{employees,leaves,decisions,documents}/migrations/*.sql` — مخططات الوحدات والبذور — مكتمل.
+- `code/src/index.html`, `main.tsx`, `App.tsx`, `styles.css` — صفحة RTL أساسية — مكتمل لـ P1a.
+- `code/src/core/api/{contracts.ts,global.d.ts,ipcClient.ts}` — عقد وعميل IPC typed — مكتمل.
+- `code/src/modules/index.ts` — registry الواجهة وأسماء/مسارات الوحدات — مكتمل.
+- `code/electron/core/migrate.test.ts`, `code/electron/modules/index.test.ts`, `code/src/modules/index.test.ts` — اختبارات registry وترتيب migrations — مكتمل.
+- `code/README.md` — تثبيت وتشغيل وبناء واختبار — مكتمل.
+- `reports/P1a_GitHubCopilot_2026-10-01.md` — تقرير P1a — مكتمل.
 
 ## مشاكل مفتوحة / ملاحظات المراجعة
-(لا شيء حتى الآن)
+- `npm install` أبلغ عن 4 ثغرات في الاعتماديات (2 متوسطة و2 عالية)؛ لم تُطبّق تحديثات تلقائية.
+- تعارض بين طلب `docs/README.md` في P1a وقيد `AGENTS.md` على ملفات التوثيق خارج الملفات المسموح بها؛ أُنشئ `code/README.md` فقط، والمطلوب مراجعة المالك/Claude.
 
 ## افتراضات اتاخدت أثناء التنفيذ
-(لا شيء حتى الآن)
+- قاعدة البيانات محفوظة في Documents تحت `LeaveDeskData`، وبنية `app.getPath("documents")` هي أساس مسار المستخدم.
+- SQL migrations مستوردة كـ raw assets محلية ليتضمنها build.

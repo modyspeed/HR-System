@@ -1,0 +1,14 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Tahoma, sans-serif;
+}
+
+.employee-count {
+  font-variant-numeric: tabular-nums;
+}
