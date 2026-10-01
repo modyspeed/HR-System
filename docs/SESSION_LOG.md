@@ -16,5 +16,5 @@
 
 ## 2026-10-01 — GitHub Copilot — P1b
 - أُكملت واجهة P1b: shell عربي RTL، ThemeProvider مع نظام Light/Dark/System، Dashboard، ومعرض المكونات، مع تقليل flicker عند غياب bridge preload في المتصفح.
-- `npm run typecheck`, `npm run build`, و`npm test` نجحوا جميعًا؛ التشغيل في dev تم بنجاح. Commit التنفيذ: `d5ae9d5`؛ tag `P1b` رُفع إلى origin.
+- `npm run typecheck`, `npm run build`, و`npm test` نجحوا جميعًا؛ التشغيل في dev تم بنجاح. Commit التنفيذ: `4988980`؛ tag `P1b` رُفع إلى origin.
 - تقرير الجلسة: `reports/P1b_GitHubCopilot_2026-10-01.md`.
