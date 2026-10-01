@@ -27,7 +27,7 @@
 اتضاف: معمارية وحدات (D10)، نظام تصميم فخم Light/Dark (D11-D16)، وتقسيم P1 إلى P1a/P1b (D17).
 
 ## مكان الكود
-`code/` — مستودع GitHub: https://github.com/modyspeed/HR-System (عام) | آخر commit: يُحدّث بعد commit الجلسة | آخر ZIP: —
+`code/` — مستودع GitHub: https://github.com/modyspeed/HR-System (عام) | commit تنفيذ P1a: `c3c8494` (tag مرفوع) | آخر ZIP: —
 
 ## الملفات المنفذة (File manifest)
 - `code/package.json`, `code/package-lock.json` — اعتماديات وأوامر Electron/Vite/React/SQLite — مكتمل.

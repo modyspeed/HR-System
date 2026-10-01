@@ -37,6 +37,7 @@
 - `cd code; npm run build` — نجح.
 - `cd code; npm test` — نجح: 3 ملفات اختبار، 4 اختبارات.
 - lint — غير متاح؛ لا يوجد script له في `package.json`.
+- Git — commit التنفيذ `c3c8494` (`P1a: core done`)، وtag `P1a`، وpush للفرع والـ tag نجح.
 ### فحص الثيمين (Light/Dark) والـ RTL للشاشات المنفذة
 - صفحة P1a الأساسية تستخدم `lang="ar"` و`dir="rtl"` وBootstrap RTL محليًا. لا يوجد نظام ثيم أو Dark mode في هذه المرحلة؛ ذلك خاص بـ P1b ولم يُنفذ أو يُختبر.
 ### نتيجة شروط القبول (من ملف المرحلة)
