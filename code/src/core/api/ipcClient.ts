@@ -1,5 +1,10 @@
 import type { AppSummary } from "./contracts";
 
 export function getAppSummary(): Promise<AppSummary> {
-  return window.leaveDesk.getSummary();
+  const getSummary = window.leaveDesk?.getSummary;
+  if (!getSummary) {
+    return Promise.resolve({ employeeCount: 0, enabledModules: [] });
+  }
+
+  return getSummary();
 }

@@ -19,6 +19,8 @@ npm run dev
 
 The first launch creates `%USERPROFILE%\Documents\LeaveDeskData\leavedesk.db` and the `employee_files`, `backups`, and `imports` folders.
 
+The current shell is the P1b layout: RTL app shell, light/dark/system theme switching, dashboard, and design gallery preview.
+
 ## Build
 ```powershell
 npm run build
