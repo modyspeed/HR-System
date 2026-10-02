@@ -18,3 +18,8 @@
 - أُكملت واجهة P1b: shell عربي RTL، ThemeProvider مع نظام Light/Dark/System، Dashboard، ومعرض المكونات، مع تقليل flicker عند غياب bridge preload في المتصفح.
 - `npm run typecheck`, `npm run build`, و`npm test` نجحوا جميعًا؛ التشغيل في dev تم بنجاح. Commit التنفيذ: `4988980`؛ tag `P1b` رُفع إلى origin.
 - تقرير الجلسة: `reports/P1b_GitHubCopilot_2026-10-01.md`.
+
+## 2026-10-01 — Claude — مراجعة P1a وP1b
+- شغّلت typecheck (✅) وvitest (7/7 ✅) على الكود المرفوع، ونفّذت ملفات migrations فعليًا على SQLite: 13 جدول مطابقة لـ SCHEMA.sql بلا نقص أو زيادة، والبذور صحيحة.
+- P1a = تم. P1b = تم مشروطًا لحين فحص يدوي داخل Electron (الثيم بعد إعادة التشغيل، عدم الوميض، مطابقة الشكل) لأن التقرير تحقق في المتصفح فقط.
+- قرارات جديدة D18-D21 وملاحظات مفتوحة في PROJECT_STATE.md.
