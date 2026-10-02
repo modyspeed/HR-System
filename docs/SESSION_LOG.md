@@ -42,5 +42,5 @@
 
 ## 2026-10-02 — Kilo — مراجعة وإغلاق P2.1
 - درست المشروع كاملًا (توثيق + كود) وشغّلت typecheck و`npm test` (17 ناجحًا) و`npm run build`؛ كلها نجحت.
-- صلحت مساري migration في `service.db.test.ts` فأصبح `npm run test:db` ينجح (2/2) — حل مشكلة P2.1 المفتوحة. Commit: `<يُملأ بعد الرفع>`.
+- صلحت مساري migration في `service.db.test.ts` فأصبح `npm run test:db` ينجح (2/2) — حل مشكلة P2.1 المفتوحة. Commit: `b9388f5`، والرفع نجح.
 - تقرير الجلسة: `reports/P2.1_Kilo_2026-10-02.md`. P3 تنتظر إذن المالك.
