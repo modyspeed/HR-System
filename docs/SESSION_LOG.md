@@ -39,3 +39,8 @@
 - إعادة تنظيم خلفية employee إلى service DB-first وAppError وIPC envelopes، مع Zod schemas وD19 NOT_IN_APP؛ بلا تعديل للمخطط أو الواجهة المرئية.
 - schemas tests نجحت، و`npm install`, `npm run typecheck`, `npm test`, و`npm run build` نجحت. `npm run test:db` فشل مرتين بمسارات migrations وتوقف حسب الحد المحدد. Commit: `b78a210`، والرفع نجح بلا tag.
 - تقرير الجلسة: `reports/P2.1_GitHubCopilot_2026-10-02.md`.
+
+## 2026-10-02 — Kilo — مراجعة وإغلاق P2.1
+- درست المشروع كاملًا (توثيق + كود) وشغّلت typecheck و`npm test` (17 ناجحًا) و`npm run build`؛ كلها نجحت.
+- صلحت مساري migration في `service.db.test.ts` فأصبح `npm run test:db` ينجح (2/2) — حل مشكلة P2.1 المفتوحة. Commit: `<يُملأ بعد الرفع>`.
+- تقرير الجلسة: `reports/P2.1_Kilo_2026-10-02.md`. P3 تنتظر إذن المالك.

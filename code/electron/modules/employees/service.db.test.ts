@@ -21,8 +21,8 @@ describe.skipIf(!isElectronNode)("employee service with real SQLite", () => {
     const database = new DatabaseConstructor(":memory:");
     database.pragma("foreign_keys = ON");
     database.exec(readFileSync(new URL("../../core/migrations/001_core.sql", import.meta.url), "utf8"));
-    database.exec(readFileSync(new URL("../migrations/001_employees.sql", import.meta.url), "utf8"));
-    database.exec(readFileSync(new URL("../../leaves/migrations/001_leaves.sql", import.meta.url), "utf8"));
+    database.exec(readFileSync(new URL("./migrations/001_employees.sql", import.meta.url), "utf8"));
+    database.exec(readFileSync(new URL("../leaves/migrations/001_leaves.sql", import.meta.url), "utf8"));
     return database as Database;
   }
 
