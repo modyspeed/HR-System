@@ -1,48 +1,99 @@
 import type {
+  ApiResult,
   AppSummary,
   DepartmentRecord,
   EmployeeInput,
   EmployeeListFilter,
   EmployeeRecord,
   EmployeeStatus,
+  EmployeeWireInput,
+  EmployeeWireRecord,
   LeaveDeskApi,
 } from "./contracts";
 
 export const DESKTOP_ONLY_MESSAGE = "هذه الوظيفة تعمل داخل التطبيق فقط";
 
-function requireDesktopApi(): LeaveDeskApi {
-  if (!window.leaveDesk) throw new Error(DESKTOP_ONLY_MESSAGE);
-  return window.leaveDesk;
+function failure<T>(code: string, message: string): ApiResult<T> {
+  return { ok: false, error: { code, message } };
 }
 
-export function getAppSummary(): Promise<AppSummary> {
-  return requireDesktopApi().getSummary();
+async function withDesktopApi<T>(
+  operation: (api: LeaveDeskApi) => Promise<ApiResult<T>>,
+): Promise<ApiResult<T>> {
+  const api = window.leaveDesk;
+  if (!api) return failure("NOT_IN_APP", DESKTOP_ONLY_MESSAGE);
+  try {
+    return await operation(api);
+  } catch {
+    return failure("IPC_UNAVAILABLE", "تعذر الاتصال بالتطبيق. حاول مرة أخرى.");
+  }
 }
 
-export function listEmployees(filter: EmployeeListFilter): Promise<EmployeeRecord[]> {
-  return requireDesktopApi().listEmployees(filter);
+function mapResult<Input, Output>(result: ApiResult<Input>, mapper: (value: Input) => Output): ApiResult<Output> {
+  return result.ok ? { ok: true, data: mapper(result.data) } : result;
 }
 
-export function getEmployee(id: number): Promise<EmployeeRecord> {
-  return requireDesktopApi().getEmployee(id);
+export function unwrapApiResult<T>(result: ApiResult<T>): T {
+  if (!result.ok) throw new Error(result.error.message);
+  return result.data;
 }
 
-export function createEmployee(input: EmployeeInput): Promise<EmployeeRecord> {
-  return requireDesktopApi().createEmployee(input);
+function fromWireEmployee(employee: EmployeeWireRecord): EmployeeRecord {
+  return {
+    id: employee.id,
+    code: employee.code,
+    fullName: employee.full_name,
+    departmentId: employee.department_id,
+    departmentName: employee.department_name ?? "",
+    hireDate: employee.hire_date,
+    jobTitle: employee.job_title ?? null,
+    status: employee.status,
+    annualEntitlement: employee.annual_entitlement,
+    casualEntitlement: employee.casual_entitlement,
+  };
 }
 
-export function updateEmployee(id: number, input: EmployeeInput): Promise<EmployeeRecord> {
-  return requireDesktopApi().updateEmployee(id, input);
+function toWireEmployee(input: EmployeeInput): EmployeeWireInput {
+  return {
+    code: input.code,
+    full_name: input.fullName,
+    department_id: input.departmentId,
+    hire_date: input.hireDate,
+    job_title: input.jobTitle,
+  };
 }
 
-export function setEmployeeStatus(id: number, status: EmployeeStatus): Promise<EmployeeRecord> {
-  return requireDesktopApi().setEmployeeStatus(id, status);
+export function getAppSummary(): Promise<ApiResult<AppSummary>> {
+  return withDesktopApi(async (api) => ({ ok: true, data: await api.getSummary() }));
 }
 
-export function listDepartments(): Promise<DepartmentRecord[]> {
-  return requireDesktopApi().listDepartments();
+export function listEmployees(filter: EmployeeListFilter): Promise<ApiResult<EmployeeRecord[]>> {
+  return withDesktopApi(async (api) => mapResult(
+    await api.listEmployees({ search: filter.search, departmentId: filter.departmentId, status: "active" }),
+    (employees) => employees.map(fromWireEmployee),
+  ));
 }
 
-export function createDepartment(name: string): Promise<DepartmentRecord> {
-  return requireDesktopApi().createDepartment(name);
+export function getEmployee(id: number): Promise<ApiResult<EmployeeRecord>> {
+  return withDesktopApi(async (api) => mapResult(await api.getEmployee(id), fromWireEmployee));
+}
+
+export function createEmployee(input: EmployeeInput): Promise<ApiResult<EmployeeRecord>> {
+  return withDesktopApi(async (api) => mapResult(await api.createEmployee(toWireEmployee(input)), fromWireEmployee));
+}
+
+export function updateEmployee(id: number, input: EmployeeInput): Promise<ApiResult<EmployeeRecord>> {
+  return withDesktopApi(async (api) => mapResult(await api.updateEmployee(id, toWireEmployee(input)), fromWireEmployee));
+}
+
+export function setEmployeeStatus(id: number, status: EmployeeStatus): Promise<ApiResult<EmployeeRecord>> {
+  return withDesktopApi(async (api) => mapResult(await api.setEmployeeStatus(id, status), fromWireEmployee));
+}
+
+export function listDepartments(): Promise<ApiResult<DepartmentRecord[]>> {
+  return withDesktopApi((api) => api.listDepartments());
+}
+
+export function createDepartment(name: string): Promise<ApiResult<DepartmentRecord>> {
+  return withDesktopApi((api) => api.createDepartment(name));
 }

@@ -1,9 +1,9 @@
 # حالة المشروع — LeaveDesk
-آخر تحديث: 2026-10-02 (بواسطة: GitHub Copilot) — النسخة: P2 للمراجعة
+آخر تحديث: 2026-10-02 (بواسطة: GitHub Copilot) — النسخة: P2.1 للمراجعة
 
 ## الملخص في سطرين
 برنامج ديسكتوب (Electron + React + SQLite) لحصر أرصدة الإجازات وملفات الموظفين (PDF) والقرارات، عربي RTL، أوفلاين.
-المرحلة الحالية: **P1a مقبولة، P1b مقبولة حسب تأكيد المالك في جلسة P2، وP2 تنفيذ مكتمل (مستني مراجعة).** P3 وما بعدها لم تبدأ.
+المرحلة الحالية: **P1a وP1b مقبولتان حسب توجيه المالك؛ P2 = جارية: P2.1 تنفيذ مكتمل (مستني مراجعة).** P2.2 وP2.3 وP3 لم تبدأ.
 
 ## جدول المراحل
 | المرحلة | الوصف | الحالة | المنصة | تاريخ | ملاحظات |
@@ -11,7 +11,7 @@
 | P0 | الخطة + التوثيق | تم | Claude | 2026-10-01 | |
 | P1a | النواة التقنية: Electron + SQLite + migrations لكل وحدة + registry | تم (راجعه Claude) | GitHub Copilot | 2026-10-01 | تحققنا: 13 جدول مطابقة لـ SCHEMA.sql، البذور صحيحة، typecheck ✅، 7 اختبارات ✅. code/README.md مقبول بدل docs/README.md (D18) |
 | P1b | نظام التصميم + Shell + دارك/لايت + لوحة التحكم النهائية | تم مشروطًا | GitHub Copilot | 2026-10-01 | المالك أكد القبول في رسالة بدء P2؛ حالة المراجعة السابقة بانتظار فحص يدوي لم يحدّثها Claude بعد |
-| P2 | الموظفين CRUD + الأقسام + ملف الموظف (تاب البيانات) | تنفيذ مكتمل (مستني مراجعة) | GitHub Copilot | 2026-10-02 | تقرير `reports/P2_GitHubCopilot_2026-10-02.md`؛ SQLite service tests 3/3 |
+| P2 | الموظفين CRUD + الأقسام + ملف الموظف (تاب البيانات) | جارية: P2.1 تنفيذ مكتمل (مستني مراجعة) | GitHub Copilot | 2026-10-02 | تقرير `reports/P2.1_GitHubCopilot_2026-10-02.md`؛ test:db تعثر بعد محاولتين بسبب مسار migration |
 | P3 | الإجازات: الحاسبة + الأرصدة + الطلبات + السجل + اللوحة | لم تبدأ | — | — | |
 | P4 | ملفات الموظف PDF + الرفع + المسح + استمارة الإجازة | لم تبدأ | — | — | |
 | P5 | القرارات + مرفقاتها | لم تبدأ | — | — | |
@@ -21,13 +21,13 @@
 الحالات المسموحة: لم تبدأ / جارية / تنفيذ مكتمل (مستني مراجعة) / تم (راجعه Claude) / تحتاج تصحيح
 
 ## الخطوة الجاية بالظبط
-مراجعة P2 في `reports/P2_GitHubCopilot_2026-10-02.md` والكود. لا تبدأ P3 قبل موافقة المالك/Claude. يلزم أيضًا مزامنة حالة مراجعة P1b الرسمية مع تأكيد المالك.
+مراجعة P2.1 في `reports/P2.1_GitHubCopilot_2026-10-02.md` والكود، خصوصًا فشل مسارات `test:db`. لا تبدأ P2.2 قبل موافقة المالك. P3 لاحقًا بعد اكتمال P2 ومراجعته.
 
 ## تغييرات v1
 اتضاف: معمارية وحدات (D10)، نظام تصميم فخم Light/Dark (D11-D16)، وتقسيم P1 إلى P1a/P1b (D17).
 
 ## مكان الكود
-`code/` — مستودع GitHub: https://github.com/modyspeed/HR-System (عام) | commit تنفيذ P2: `157c72f` (tag `P2` مرفوع) | tags السابقة: `P1a`, `P1b` | آخر ZIP: —
+`code/` — مستودع GitHub: https://github.com/modyspeed/HR-System (عام) | آخر commit: يُحدّث بعد commit P2.1 | commit P2: `157c72f` (tag `P2` مرفوع) | tags السابقة: `P1a`, `P1b` | آخر ZIP: —
 
 ## الملفات المنفذة (File manifest)
 - `code/package.json`, `code/package-lock.json` — اعتماديات وأوامر Electron/Vite/React/SQLite — مكتمل.
@@ -44,8 +44,8 @@
 - `code/src/core/shell/pages/{DashboardPage.tsx,DesignGalleryPage.tsx}` — لوحة التحكم ومعرض المكونات — مكتمل.
 - `code/src/components/ui/*` — مكونات UI الأساسية — مكتمل.
 - `code/src/modules/index.ts` — registry الواجهة وأسماء/مسارات الوحدات — مكتمل.
-- `code/electron/modules/employees/{schemas.ts,ipc.ts,services/employeeService.ts}` — Zod وخدمات الموظفين/الأقسام والـ IPC — مكتمل.
-- `code/electron/modules/employees/services/employeeService.test.ts` — اختبارات SQLite حقيقية وclose/reopen — مكتمل.
+- `code/electron/modules/employees/{schemas.ts,service.ts,ipc.ts}` — تحقق Zod وخدمات DB-first وAppError وقنوات envelope — مكتمل في P2.1.
+- `code/electron/modules/employees/{schemas.test.ts,service.db.test.ts}` و`code/vitest.db.config.ts` — اختبارات schemas وSQLite حقيقية — schemas مكتملة؛ اختبار DB غير متحقق بسبب مسار migration.
 - `code/src/modules/employees/{index.tsx,validation.ts,employees.css}` — مسارات الموظفين والتحقق والتصميم — مكتمل.
 - `code/src/modules/employees/components/{EmployeeFormModal.tsx,DepartmentFormModal.tsx}` — نماذج الموظف والقسم — مكتمل.
 - `code/src/modules/employees/pages/{EmployeesPage.tsx,EmployeeProfilePage.tsx}` — القائمة وملف الموظف/تاب البيانات — مكتمل.
@@ -55,12 +55,14 @@
 - `reports/P1a_GitHubCopilot_2026-10-01.md` — تقرير P1a — مكتمل.
 - `reports/P1b_GitHubCopilot_2026-10-01.md` — تقرير P1b — مكتمل.
 - `reports/P2_GitHubCopilot_2026-10-02.md` — تقرير P2 — مكتمل.
+- `reports/P2.1_GitHubCopilot_2026-10-02.md` — تقرير P2.1 — مكتمل.
 
 ## مشاكل مفتوحة / ملاحظات المراجعة
 - `npm install` أبلغ عن 4 ثغرات في الاعتماديات (2 متوسطة و2 عالية)؛ لم تُطبّق تحديثات تلقائية.
 - (محلول) تعارض docs/README.md مع AGENTS.md: القرار D18 = code/README.md هو المعتمد.
 - (محلول في P2 — D19) عمليات بيانات الموظفين خارج Electron تفشل برسالة واضحة ولا تستخدم fallback تخزين.
 - (محلول في P2 — D21) services اختُبرت على SQLite حقيقية عبر `ELECTRON_RUN_AS_NODE=1`، مع اختبار close/reopen.
+- P2.1: `npm run test:db` فشل مرتين قبل تنفيذ الاختبارات بسبب مسارات migrations في `service.db.test.ts`؛ توقفنا حسب حد المحاولتين وسُجل الخطأ في التقرير.
 - لا CSP في index.html (السكربت المبكر inline): يُضاف لاحقًا بـ hash.
 - اختلاف مراجعة P1b: الحالة السابقة تشترط فحصًا يدويًا داخل Electron، بينما المالك أكد القبول في طلب P2؛ لم أغيّر قرار مراجعة Claude.
 - ملاحظات P7: single-instance lock، إغلاق قاعدة البيانات عند الخروج، npm audit (4 ثغرات).

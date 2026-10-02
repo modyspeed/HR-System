@@ -6,7 +6,7 @@ import {
 import type { DataColumn } from "../../../components/ui";
 import {
   createEmployee, createDepartment, listDepartments, listEmployees,
-  setEmployeeStatus, updateEmployee,
+  setEmployeeStatus, updateEmployee, unwrapApiResult,
 } from "../../../core/api/ipcClient";
 import type { DepartmentRecord, EmployeeInput, EmployeeRecord } from "../../../core/api/contracts";
 import { EmployeeFormModal } from "../components/EmployeeFormModal";
@@ -35,13 +35,13 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
       setLoading(true);
       setError(null);
       try {
-        const [employeeRows, departmentRows] = await Promise.all([
+        const [employeeResult, departmentResult] = await Promise.all([
           listEmployees({ search, departmentId: departmentId ? Number(departmentId) : null }),
           listDepartments(),
         ]);
         if (!active) return;
-        setEmployees(employeeRows);
-        setDepartments(departmentRows);
+        setEmployees(unwrapApiResult(employeeResult));
+        setDepartments(unwrapApiResult(departmentResult));
       } catch (loadError) {
         if (!active) return;
         setError(loadError instanceof Error ? loadError.message : "تعذر تحميل بيانات الموظفين.");
@@ -58,17 +58,17 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
 
   async function saveEmployee(input: EmployeeInput) {
     if (editingEmployee) {
-      await updateEmployee(editingEmployee.id, input);
+      unwrapApiResult(await updateEmployee(editingEmployee.id, input));
       toast.success("تم تحديث بيانات الموظف.");
     } else {
-      await createEmployee(input);
+      unwrapApiResult(await createEmployee(input));
       toast.success("تمت إضافة الموظف.");
     }
     setReloadKey((key) => key + 1);
   }
 
   async function saveDepartment(name: string) {
-    await createDepartment(name);
+    unwrapApiResult(await createDepartment(name));
     toast.success("تمت إضافة القسم.");
     setReloadKey((key) => key + 1);
   }
@@ -76,7 +76,7 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
   async function suspendEmployee() {
     if (!employeeToSuspend) return;
     try {
-      await setEmployeeStatus(employeeToSuspend.id, "suspended");
+      unwrapApiResult(await setEmployeeStatus(employeeToSuspend.id, "suspended"));
       toast.success("تم إيقاف الموظف.");
       setEmployeeToSuspend(null);
       setReloadKey((key) => key + 1);

@@ -21,7 +21,7 @@ The first launch creates `%USERPROFILE%\Documents\LeaveDeskData\leavedesk.db` an
 
 The current shell is the P1b layout: RTL app shell, light/dark/system theme switching, dashboard, and design gallery preview.
 
-P2 adds SQLite-backed employee/department screens and employee profile data. Employee data is available only in the Electron app; browser preview reports that the feature is app-only.
+P2 provides the employee/department screens and employee profile. P2.1 refactors their backend service and IPC contract to coded result envelopes; employee data is available only in Electron, and browser preview returns `NOT_IN_APP`.
 
 ## Build
 ```powershell
@@ -32,7 +32,9 @@ npm run build
 ```powershell
 npm run typecheck
 npm test
-npm run test:sqlite
+npm run test:db
 ```
 
-`test:sqlite` runs employee service tests under Electron's Node runtime (`ELECTRON_RUN_AS_NODE=1`) because `better-sqlite3` is rebuilt for Electron. Those tests use real temporary SQLite databases and the project migrations.
+`test:db` runs `*.db.test.ts` under Electron's Node runtime (`ELECTRON_RUN_AS_NODE=1`) because `better-sqlite3` is rebuilt for Electron. The tests use a real temporary SQLite database and the project migrations.
+
+P2.1 note: the DB suite currently stops at an `ENOENT` migration path in `electron/modules/employees/service.db.test.ts`; it failed twice and was not retried, per the session limit. See `reports/P2.1_GitHubCopilot_2026-10-02.md`.

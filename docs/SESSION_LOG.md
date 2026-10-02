@@ -34,3 +34,8 @@
 - أُضيفت خدمات الموظفين والأقسام مع Zod وIPC داخل وحدة employees، ونُقل count من core، وأُضيفت قائمة الموظفين وملف الموظف/تاب البيانات.
 - `npm run typecheck`, `npm test` (9 ناجحة)، `npm run test:sqlite` (3 ناجحة على SQLite حقيقية)، و`npm run build` نجحوا. Commit التنفيذ: `157c72f`؛ tag `P2` والرفع نجحا.
 - تقرير الجلسة: `reports/P2_GitHubCopilot_2026-10-02.md`.
+
+## 2026-10-02 — GitHub Copilot — P2.1
+- إعادة تنظيم خلفية employee إلى service DB-first وAppError وIPC envelopes، مع Zod schemas وD19 NOT_IN_APP؛ بلا تعديل للمخطط أو الواجهة المرئية.
+- schemas tests نجحت، و`npm run typecheck`, `npm test`, و`npm run build` سُجلت نتائجها في التقرير. `npm run test:db` فشل مرتين بمسار migrations وتوقف حسب الحد المحدد. Commit: يُحدّث بعد إنشائه.
+- تقرير الجلسة: `reports/P2.1_GitHubCopilot_2026-10-02.md`.

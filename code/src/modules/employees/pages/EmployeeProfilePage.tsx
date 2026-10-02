@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, BriefcaseBusiness, CalendarDays, Pencil, UserRound } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Skeleton, Tabs, toast } from "../../../components/ui";
 import type { DepartmentRecord, EmployeeInput, EmployeeRecord } from "../../../core/api/contracts";
-import { getEmployee, listDepartments, updateEmployee } from "../../../core/api/ipcClient";
+import { getEmployee, listDepartments, updateEmployee, unwrapApiResult } from "../../../core/api/ipcClient";
 import { EmployeeFormModal } from "../components/EmployeeFormModal";
 
 interface EmployeeProfilePageProps {
@@ -23,10 +23,10 @@ export function EmployeeProfilePage({ employeeId, onBack }: EmployeeProfilePageP
       setLoading(true);
       setError(null);
       try {
-        const [record, departmentRows] = await Promise.all([getEmployee(employeeId), listDepartments()]);
+        const [employeeResult, departmentResult] = await Promise.all([getEmployee(employeeId), listDepartments()]);
         if (!active) return;
-        setEmployee(record);
-        setDepartments(departmentRows);
+        setEmployee(unwrapApiResult(employeeResult));
+        setDepartments(unwrapApiResult(departmentResult));
       } catch (loadError) {
         if (active) setError(loadError instanceof Error ? loadError.message : "تعذر تحميل ملف الموظف.");
       } finally {
@@ -38,7 +38,7 @@ export function EmployeeProfilePage({ employeeId, onBack }: EmployeeProfilePageP
   }, [employeeId]);
 
   async function saveEmployee(input: EmployeeInput) {
-    const updated = await updateEmployee(employeeId, input);
+    const updated = unwrapApiResult(await updateEmployee(employeeId, input));
     setEmployee(updated);
     toast.success("تم تحديث بيانات الموظف.");
   }
