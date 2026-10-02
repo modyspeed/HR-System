@@ -15,10 +15,13 @@ import {
   currentYear,
   getAvailableLeave,
   getLeaveTypeById,
+  listLowBalanceAlerts,
   readHolidays,
+  readLowBalanceThreshold,
   readWeekendDays,
   reverseLeave,
   type DistributionEntry,
+  type LowBalanceAlert,
 } from "./balanceService";
 import { countLeaveDays, splitDaysByYear, type HolidayContext } from "./leaveCalculator";
 import {
@@ -360,4 +363,10 @@ export function getEmployeeLeaveSummary(
   });
 
   return { employeeId: parsed.employeeId, year: parsed.year, balances };
+}
+
+export function getLowBalances(database: Database, yearInput?: unknown): LowBalanceAlert[] {
+  const year = yearInput ?? currentYear();
+  const threshold = readLowBalanceThreshold(database);
+  return listLowBalanceAlerts(database, Number(year), threshold);
 }

@@ -1,19 +1,20 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type {
-  ApiResult,
-  AppSummary,
-  DepartmentRecord,
-  EmployeeLeaveSummary,
-  EmployeeStatus,
-  EmployeeQuery,
-  EmployeeWireInput,
-  EmployeeWireRecord,
-  LeaveDecisionInput,
-  LeaveRequestFilter,
-  LeaveRequestInput,
-  LeaveRequestRecord,
-  ThemePreference,
-} from "../src/core/api/contracts";
+  import type {
+    ApiResult,
+    AppSummary,
+    DepartmentRecord,
+    EmployeeLeaveSummary,
+    EmployeeStatus,
+    EmployeeQuery,
+    EmployeeWireInput,
+    EmployeeWireRecord,
+    LeaveDecisionInput,
+    LeaveRequestFilter,
+    LeaveRequestInput,
+    LeaveRequestRecord,
+    LowBalanceAlert,
+    ThemePreference,
+  } from "../src/core/api/contracts";
 
 function readInitialTheme(): ThemePreference {
   const argument = process.argv.find((value) => value.startsWith("--leavedesk-theme="));
@@ -51,6 +52,8 @@ contextBridge.exposeInMainWorld("leaveDesk", {
     ipcRenderer.invoke("leaves:list-requests", filter ?? {}) as Promise<ApiResult<LeaveRequestRecord[]>>,
   getEmployeeLeaveSummary: (employeeId: number, year?: number): Promise<ApiResult<EmployeeLeaveSummary>> =>
     ipcRenderer.invoke("leaves:get-employee-summary", employeeId, year) as Promise<ApiResult<EmployeeLeaveSummary>>,
+  getLowBalances: (year?: number): Promise<ApiResult<LowBalanceAlert[]>> =>
+    ipcRenderer.invoke("leaves:get-low-balances", year) as Promise<ApiResult<LowBalanceAlert[]>>,
   setTheme: (preference: ThemePreference): Promise<ThemePreference> =>
     ipcRenderer.invoke("theme:set", preference) as Promise<ThemePreference>,
   initialTheme,

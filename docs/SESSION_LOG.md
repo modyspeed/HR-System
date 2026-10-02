@@ -44,3 +44,17 @@
 - درست المشروع كاملًا (توثيق + كود) وشغّلت typecheck و`npm test` (17 ناجحًا) و`npm run build`؛ كلها نجحت.
 - صلحت مساري migration في `service.db.test.ts` فأصبح `npm run test:db` ينجح (2/2) — حل مشكلة P2.1 المفتوحة. Commit: `b9388f5`، والرفع نجح.
 - تقرير الجلسة: `reports/P2.1_Kilo_2026-10-02.md`. P3 تنتظر إذن المالك.
+
+## 2026-10-02 — Kilo — P3 (Wave 1: Backend)
+
+- صُمّمت وحدة إجازات كاملة على بنية core+module: `leaveCalculator.ts` (الحسبان النقطي مع العطلات والعطل الأسبوعية والـ countsWeekends)، `balanceService.ts` (الأرصدة المتبقية/المحجوزة/التوزيع العابري للسنوات)، `leaveRequestService.ts` (إنشاء/اعتماد/إلغاء/قائمة مع Zod + AppError عربي + IPC envelope)، و`ipc.ts` + preload + contracts + ipcClient لربط القنوات الخمس.
+- الملف الجديد `schemas.ts` (Zod) و `errors.ts`. اختبارات: `leaveCalculator.test.ts` (19 اختبار)، `balanceService.test.ts`، `schemas.test.ts` (15)، `service.db.test.ts` (6 اختبارات SQLite حقيقية تغطي 7 حالات أعمال).
+- `npm run typecheck` ✅؛ `npm test` (51 ناجحًا، 8 متخطاة DB) ✅؛ `npm run test:db` (8/8) ✅. Commit: `45fb697`، الرفع نجح.
+- تقرير الجلسة: `reports/P3_Kilo_2026-10-02.md`.
+
+## 2026-10-02 — Kilo — P3 (Wave 2: Frontend + low balance)
+
+- شاشات إجازات: `LeaveRequestPage` + `LeaveLogPage`، تسجيل في `src/modules/index.ts` + AppShell. لوحة تحكم حقيقية ببيانات من SQLite (4 كروت + مخطط شهري + دونات حسب النوع + قائمة طلبات). أعمدة أرصدة في `EmployeesPage`.
+- إكمال low-balance alerts: ربط القناة `leaves:get-low-balances` عبر IPC + preload + contracts + ipcClient، استبدال placeholder في DashboardPage بقائمة حقيقية، تحديث كرت "تنبيه أرصدة" للعدد الفعلي، إضافة CSS.
+- `npm run typecheck` ✅؛ `npm run build` ✅؛ `npm test` (51 ناجحًا) ✅؛ `npm run test:db` (8/8) ✅. Commit: `c88a232` + تكملة low-balance، الرفع نجح.
+- تقرير الجلسة: `reports/P3_Kilo_2026-10-02.md`.

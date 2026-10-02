@@ -154,6 +154,14 @@ export interface EmployeeLeaveSummary {
   balances: LeaveBalanceSummary[];
 }
 
+export interface LowBalanceAlert {
+  employeeId: number;
+  employeeCode: string;
+  employeeFullName: string;
+  remaining: number;
+  entitlement: number;
+}
+
 export type ThemePreference = "system" | "light" | "dark";
 
 export interface LeaveDeskApi {
@@ -170,6 +178,7 @@ export interface LeaveDeskApi {
   cancelLeaveRequest(requestId: number): Promise<ApiResult<LeaveRequestRecord>>;
   listLeaveRequests(filter?: LeaveRequestFilter): Promise<ApiResult<LeaveRequestRecord[]>>;
   getEmployeeLeaveSummary(employeeId: number, year?: number): Promise<ApiResult<EmployeeLeaveSummary>>;
+  getLowBalances(year?: number): Promise<ApiResult<LowBalanceAlert[]>>;
   setTheme(preference: ThemePreference): Promise<ThemePreference>;
   initialTheme: ThemePreference;
   initialSystemDark: boolean;

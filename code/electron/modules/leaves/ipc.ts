@@ -7,6 +7,7 @@ import {
   createRequest,
   decideRequest,
   getEmployeeLeaveSummary,
+  getLowBalances,
   listRequests,
 } from "./services/leaveRequestService";
 import {
@@ -62,4 +63,6 @@ export function registerLeavesIpc(database: Database, ipcMain: IpcMain): void {
     listRequests(database, parse(leaveRequestFilterSchema, filter ?? {})));
   registerSafe(ipcMain, "leaves:get-employee-summary", (employeeId, year) =>
     getEmployeeLeaveSummary(database, parse(employeeLeaveSummarySchema, { employeeId, year }).employeeId, year));
+  registerSafe(ipcMain, "leaves:get-low-balances", (year) =>
+    getLowBalances(database, year));
 }

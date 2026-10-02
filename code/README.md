@@ -37,4 +37,4 @@ npm run test:db
 
 `test:db` runs `*.db.test.ts` under Electron's Node runtime (`ELECTRON_RUN_AS_NODE=1`) because `better-sqlite3` is rebuilt for Electron. The tests use a real temporary SQLite database and the project migrations.
 
-P2.1 note: the DB suite currently stops at an `ENOENT` migration path in `electron/modules/employees/service.db.test.ts`; it failed twice and was not retried, per the session limit. See `reports/P2.1_GitHubCopilot_2026-10-02.md`.
+P3 provides the full leave module: day-count calculator, balance service, leave-request lifecycle (create/decide/cancel), IPC surface, Zod schemas, real leave-request and leave-log pages, real dashboard with low-balance alerts, and real balance columns on the Employees page. All screens work in Light and Dark, Arabic RTL. No entitlement numbers are hardcoded — they are read from `leave_types` and `settings` in SQLite.

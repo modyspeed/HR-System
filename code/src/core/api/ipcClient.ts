@@ -6,15 +6,16 @@ import type {
   EmployeeListFilter,
   EmployeeRecord,
   EmployeeStatus,
-  EmployeeWireInput,
-  EmployeeWireRecord,
-  EmployeeLeaveSummary,
-  LeaveDecisionInput,
-  LeaveRequestFilter,
-  LeaveRequestInput,
-  LeaveRequestRecord,
-  LeaveDeskApi,
-} from "./contracts";
+    EmployeeWireInput,
+    EmployeeWireRecord,
+    EmployeeLeaveSummary,
+    LeaveDecisionInput,
+    LeaveRequestFilter,
+    LeaveRequestInput,
+    LeaveRequestRecord,
+    LeaveDeskApi,
+    LowBalanceAlert,
+  } from "./contracts";
 
 export const DESKTOP_ONLY_MESSAGE = "هذه الوظيفة تعمل داخل التطبيق فقط";
 
@@ -121,4 +122,8 @@ export function listLeaveRequests(filter?: LeaveRequestFilter): Promise<ApiResul
 
 export function getEmployeeLeaveSummary(employeeId: number, year?: number): Promise<ApiResult<EmployeeLeaveSummary>> {
   return withDesktopApi((api) => api.getEmployeeLeaveSummary(employeeId, year));
+}
+
+export function getLowBalances(year?: number): Promise<ApiResult<LowBalanceAlert[]>> {
+  return withDesktopApi((api) => api.getLowBalances(year));
 }

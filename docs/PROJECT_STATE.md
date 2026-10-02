@@ -1,5 +1,5 @@
 # حالة المشروع — LeaveDesk
-آخر تحديث: 2026-10-02 (بواسطة: GitHub Copilot) — النسخة: P2.1 مغلقة للمراجعة (test:db يعمل)
+آخر تحديث: 2026-10-02 (بواسطة: GitHub Copilot) — النسخة: P3 تنفيذ مكتمل (مستني مراجعة) — كل الاختبارات+البناء نظيفة
 
 ## الملخص في سطرين
 برنامج ديسكتوب (Electron + React + SQLite) لحصر أرصدة الإجازات وملفات الموظفين (PDF) والقرارات، عربي RTL، أوفلاين.
@@ -56,6 +56,13 @@ P2.1 اكتملت وتعمل `test:db` (2/2). بدء P3 (الإجازات وال
 - `reports/P1b_GitHubCopilot_2026-10-01.md` — تقرير P1b — مكتمل.
 - `reports/P2_GitHubCopilot_2026-10-02.md` — تقرير P2 — مكتمل.
 - `reports/P2.1_GitHubCopilot_2026-10-02.md` — تقرير P2.1 — مكتمل.
+- `reports/P2.1_Kilo_2026-10-02.md` — تقرير مراجعة Kilo لـ P2.1 — مكتمل.
+- `reports/P3_Kilo_2026-10-02.md` — تقرير P3 — مكتمل.
+- `code/electron/modules/leaves/{services/leaveCalculator.ts, services/balanceService.ts, services/leaveRequestService.ts, schemas.ts, errors.ts, ipc.ts, index.ts}` — خدمات الحسبة والأرصدة والطلبات + Zod + IPC + migrations — مكتمل.
+- `code/electron/modules/leaves/services/{leaveCalculator.test.ts, balanceService.test.ts, leaveRequestService.db.test.ts}` — اختبارات وحدة وSQLite — مكتمل.
+- `code/src/modules/leaves/{index.tsx, pages/LeaveRequestPage.tsx, pages/LeaveLogPage.tsx, components/LeaveTypeBadge.tsx, leaves.css}` — شاشات الإجازات — مكتمل.
+- `code/src/core/shell/pages/DashboardPage.tsx` — لوحة تحكم حقيقية ببيانات من SQLite + low-balance alerts — مكتمل.
+- `code/src/modules/employees/pages/EmployeesPage.tsx` — أعمدة أرصدة (مستخدم/متبقي) — مكتمل.
 
 ## مشاكل مفتوحة / ملاحظات المراجعة
 - `npm install` أبلغ عن 4 ثغرات في الاعتماديات (2 متوسطة و2 عالية)؛ لم تُطبّق تحديثات تلقائية.

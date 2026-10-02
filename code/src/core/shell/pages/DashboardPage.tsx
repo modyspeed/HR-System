@@ -8,8 +8,8 @@ import {
   AlertTriangle, CheckCircle2, Clock3, Users,
 } from "lucide-react";
 import { Badge, Card, EmptyState, StatCard } from "../../../components/ui";
-import { getAppSummary, listLeaveRequests, unwrapApiResult } from "../../api/ipcClient";
-import type { LeaveRequestRecord } from "../../api/contracts";
+import { getAppSummary, getLowBalances, listLeaveRequests, unwrapApiResult } from "../../api/ipcClient";
+import type { LeaveRequestRecord, LowBalanceAlert } from "../../api/contracts";
 
 const monthNames = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
@@ -38,6 +38,7 @@ export function DashboardPage() {
   const reducedMotion = useReducedMotion();
   const [employeeCount, setEmployeeCount] = useState(0);
   const [requests, setRequests] = useState<LeaveRequestRecord[]>([]);
+  const [lowBalances, setLowBalances] = useState<LowBalanceAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,10 +48,15 @@ export function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        const [summary, leaveResult] = await Promise.all([getAppSummary(), listLeaveRequests()]);
+        const [summary, leaveResult, lowBalanceResult] = await Promise.all([
+          getAppSummary(),
+          listLeaveRequests(),
+          getLowBalances(),
+        ]);
         if (!active) return;
         setEmployeeCount(unwrapApiResult(summary).employeeCount);
         setRequests(unwrapApiResult(leaveResult));
+        setLowBalances(unwrapApiResult(lowBalanceResult));
       } catch (loadError) {
         if (!active) return;
         setError(loadError instanceof Error ? loadError.message : "تعذر تحميل لوحة التحكم.");
@@ -137,7 +143,7 @@ export function DashboardPage() {
         <StatCard detail="نشطون حاليًا" icon={Users} label="إجمالي الموظفين" tone="accent" value={employeeCount} />
         <StatCard detail="معتمدة هذا العام" icon={Clock3} label="أيام مستهلكة" tone="gold" value={usedDays} />
         <StatCard detail="في انتظار البت" icon={CheckCircle2} label="طلبات معلّقة" tone="success" value={pendingCount} />
-        <StatCard detail="قيد المتابعة" icon={AlertTriangle} label="تنبيه أرصدة" tone="warning" value={0} />
+        <StatCard detail="أرصدة منخفضة" icon={AlertTriangle} label="تنبيه أرصدة" tone="warning" value={lowBalances.length} />
       </section>
 
       <section aria-label="تحليلات الإجازات" className="dashboard-analytics">
@@ -202,7 +208,21 @@ export function DashboardPage() {
         </Card>
 
         <Card className="balance-card" title="أرصدة قربت تخلص">
-          <p className="chart-empty-note">يُفعّل هذا القسم مع بيانات أرصدة الموظفين في مرحلة لاحقة.</p>
+          {lowBalances.length > 0 ? (
+            <ul className="balance-alert-list">
+              {lowBalances.map((alert) => (
+                <li key={alert.employeeId} className="balance-alert-item">
+                  <span className="balance-alert-code">{alert.employeeCode}</span>
+                  <span className="balance-alert-name">{alert.employeeFullName}</span>
+                  <span className="balance-alert-status">
+                    {alert.remaining} / {alert.entitlement} متبقي
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState description="جميع الأرصدة في حدها الأدنى." icon={CheckCircle2} title="بلا تنبيهات" />
+          )}
         </Card>
       </section>
 

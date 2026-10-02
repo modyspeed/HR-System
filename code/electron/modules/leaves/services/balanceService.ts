@@ -227,3 +227,47 @@ export function asBoolean(flag: number): boolean {
 export function currentYear(): number {
   return new Date().getFullYear();
 }
+
+export interface LowBalanceAlert {
+  employeeId: number;
+  employeeCode: string;
+  employeeFullName: string;
+  remaining: number;
+  entitlement: number;
+}
+
+const FALLBACK_LOW_BALANCE_THRESHOLD = 3;
+
+export function readLowBalanceThreshold(database: Database): number {
+  const row = database.prepare("SELECT value FROM settings WHERE key = 'low_balance_threshold'").get() as { value: string } | undefined;
+  if (!row) return FALLBACK_LOW_BALANCE_THRESHOLD;
+  const parsed = Number(row.value.trim());
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : FALLBACK_LOW_BALANCE_THRESHOLD;
+}
+
+export function listLowBalanceAlerts(database: Database, year: number, threshold: number): LowBalanceAlert[] {
+  const annualType = database.prepare("SELECT id FROM leave_types WHERE key = 'annual'").get() as { id: number } | undefined;
+  if (!annualType) return [];
+
+  const employees = database.prepare(`
+    SELECT e.id AS id, e.code AS code, e.full_name AS full_name
+    FROM employees AS e
+    WHERE e.status = 'active'
+    ORDER BY e.full_name COLLATE NOCASE, e.id
+  `).all() as Array<{ id: number; code: string; full_name: string }>;
+
+  const alerts: LowBalanceAlert[] = [];
+  for (const employee of employees) {
+    const available = getAvailableLeave(database, employee.id, annualType.id, year);
+    if (available.remaining <= threshold) {
+      alerts.push({
+        employeeId: employee.id,
+        employeeCode: employee.code,
+        employeeFullName: employee.full_name,
+        remaining: available.remaining,
+        entitlement: available.entitlement + available.carriedOver + available.adjustment,
+      });
+    }
+  }
+  return alerts;
+}
