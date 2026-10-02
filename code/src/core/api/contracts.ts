@@ -83,6 +83,7 @@ export interface EmployeeQuery {
 export interface LeaveRequestFilter {
   search?: string;
   leaveTypeId?: number | null;
+  leaveTypeKey?: string | null;
   status?: LeaveRequestStatus | "all";
   year?: number;
 }

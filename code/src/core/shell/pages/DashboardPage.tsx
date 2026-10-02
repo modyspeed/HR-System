@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
@@ -6,44 +7,120 @@ import { useReducedMotion } from "framer-motion";
 import {
   AlertTriangle, CheckCircle2, Clock3, Users,
 } from "lucide-react";
-import { Badge, Card, StatCard } from "../../../components/ui";
+import { Badge, Card, EmptyState, StatCard } from "../../../components/ui";
+import { getAppSummary, listLeaveRequests, unwrapApiResult } from "../../api/ipcClient";
+import type { LeaveRequestRecord } from "../../api/contracts";
 
-const monthlyLeaves = [
-  { month: "يناير", days: 28 },
-  { month: "فبراير", days: 35 },
-  { month: "مارس", days: 31 },
-  { month: "أبريل", days: 38 },
-  { month: "مايو", days: 34 },
-  { month: "يونيو", days: 48 },
-  { month: "يوليو", days: 53 },
-  { month: "أغسطس", days: 44 },
-  { month: "سبتمبر", days: 37 },
-  { month: "أكتوبر", days: 33 },
-  { month: "نوفمبر", days: 36 },
-  { month: "ديسمبر", days: 30 },
+const monthNames = [
+  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
 ];
 
-const leaveTypes = [
-  { name: "اعتيادي", value: 56, color: "var(--accent)" },
-  { name: "عارضة", value: 27, color: "var(--gold)" },
-  { name: "مرضي", value: 17, color: "var(--success)" },
-];
+const statusLabels: Record<string, string> = {
+  pending: "معلّق",
+  approved: "موافق عليه",
+  rejected: "مرفوض",
+  cancelled: "ملغي",
+};
 
-const lowBalances = [
-  { name: "موظف تجريبي 1", remaining: 2, progress: 12, tone: "danger" },
-  { name: "موظف تجريبي 2", remaining: 3, progress: 18, tone: "warning" },
-  { name: "موظف تجريبي 3", remaining: 3, progress: 18, tone: "warning" },
-];
+const statusTones: Record<string, "success" | "warning" | "danger" | "muted"> = {
+  pending: "warning",
+  approved: "success",
+  rejected: "danger",
+  cancelled: "muted",
+};
 
-const recentRequests = [
-  { id: 1, name: "موظف تجريبي 4", leave: "اعتيادي · 3 أيام", date: "10-01-2024", status: "موافق عليه", tone: "success" as const, initials: "م" },
-  { id: 2, name: "موظف تجريبي 5", leave: "اعتيادي · 5 أيام", date: "28-03-2024", status: "معلّق", tone: "warning" as const, initials: "م" },
-  { id: 3, name: "موظف تجريبي 6", leave: "مرضي · 5 أيام", date: "09-03-2024", status: "موافق عليه", tone: "success" as const, initials: "م" },
-  { id: 4, name: "موظف تجريبي 7", leave: "عارضة · يوم", date: "05-02-2024", status: "موافق عليه", tone: "success" as const, initials: "م" },
-];
+function formatDate(value: string): string {
+  return value.split("-").reverse().join("-");
+}
 
 export function DashboardPage() {
   const reducedMotion = useReducedMotion();
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [requests, setRequests] = useState<LeaveRequestRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function loadDashboard() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [summary, leaveResult] = await Promise.all([getAppSummary(), listLeaveRequests()]);
+        if (!active) return;
+        setEmployeeCount(unwrapApiResult(summary).employeeCount);
+        setRequests(unwrapApiResult(leaveResult));
+      } catch (loadError) {
+        if (!active) return;
+        setError(loadError instanceof Error ? loadError.message : "تعذر تحميل لوحة التحكم.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void loadDashboard();
+    return () => { active = false; };
+  }, []);
+
+  const year = new Date().getFullYear();
+  const yearRequests = useMemo(
+    () => requests.filter((request) => request.startDate.slice(0, 4) === String(year)),
+    [requests, year],
+  );
+
+  const pendingCount = useMemo(
+    () => yearRequests.filter((request) => request.status === "pending").length,
+    [yearRequests],
+  );
+  const usedDays = useMemo(
+    () => yearRequests.filter((request) => request.status === "approved").reduce((sum, request) => sum + request.days, 0),
+    [yearRequests],
+  );
+
+  const monthlyLeaves = useMemo(() => {
+    const buckets = monthNames.map((month) => ({ month, days: 0 }));
+    for (const request of yearRequests) {
+      if (request.status !== "approved") continue;
+      const monthIndex = Number(request.startDate.slice(5, 7)) - 1;
+      if (monthIndex >= 0 && monthIndex < 12) buckets[monthIndex].days += request.days;
+    }
+    return buckets;
+  }, [yearRequests]);
+
+  const leaveTypes = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const request of yearRequests) {
+      if (request.status !== "approved") continue;
+      counts.set(request.leaveTypeName, (counts.get(request.leaveTypeName) ?? 0) + request.days);
+    }
+    return Array.from(counts, ([name, value]) => ({ name, value, color: "var(--accent)" }));
+  }, [yearRequests]);
+
+  const recentRequests = useMemo(() => [...requests].slice(0, 6), [requests]);
+
+  if (loading) {
+    return (
+      <div aria-label="جارٍ تحميل لوحة التحكم" className="dashboard-page" role="status">
+        <div className="page-heading dashboard-heading">
+          <div>
+            <p className="eyebrow">نظرة عامة</p>
+            <h1>لوحة التحكم</h1>
+            <p>جارٍ تحميل ملخص الإجازات وحركة الطلبات.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-page">
+        <div className="leave-page-error" role="alert">
+          <EmptyState description={error} icon={AlertTriangle} title="تعذر تحميل لوحة التحكم" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page">
@@ -51,16 +128,16 @@ export function DashboardPage() {
         <div>
           <p className="eyebrow">نظرة عامة</p>
           <h1>لوحة التحكم</h1>
-          <p>ملخص تجريبي لأرصدة الإجازات وحركة الطلبات.</p>
+          <p>ملخص أرصدة الإجازات وحركة الطلبات للسنة الحالية.</p>
         </div>
-        <span className="dashboard-period">بيانات عرض تجريبية</span>
+        <span className="dashboard-period">سنة {year}</span>
       </div>
 
       <section aria-label="ملخص الإجازات" className="dashboard-stats">
-        <StatCard detail="نشطون حاليًا" icon={Users} label="إجمالي الموظفين" tone="accent" value={128} />
-        <StatCard detail="منذ بداية السنة" icon={Clock3} label="أيام مستهلكة" tone="gold" value={342} />
-        <StatCard detail="اعتيادي + عارضة" icon={CheckCircle2} label="الرصيد المتبقي" tone="success" value={2916} />
-        <StatCard detail="يحتاجون متابعة" icon={AlertTriangle} label="تنبيه أرصدة" tone="warning" value={5} />
+        <StatCard detail="نشطون حاليًا" icon={Users} label="إجمالي الموظفين" tone="accent" value={employeeCount} />
+        <StatCard detail="معتمدة هذا العام" icon={Clock3} label="أيام مستهلكة" tone="gold" value={usedDays} />
+        <StatCard detail="في انتظار البت" icon={CheckCircle2} label="طلبات معلّقة" tone="success" value={pendingCount} />
+        <StatCard detail="قيد المتابعة" icon={AlertTriangle} label="تنبيه أرصدة" tone="warning" value={0} />
       </section>
 
       <section aria-label="تحليلات الإجازات" className="dashboard-analytics">
@@ -107,52 +184,48 @@ export function DashboardPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}
-                  formatter={(value) => [`${value}%`, "النسبة"]}
+                  formatter={(value) => [`${value} يوم`, "الأيام"]}
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div aria-hidden="true" className="donut-center"><strong>342</strong><span>يوم</span></div>
+            <div aria-hidden="true" className="donut-center"><strong>{usedDays}</strong><span>يوم</span></div>
           </div>
-          <ul className="chart-legend">
-            {leaveTypes.map((item) => (
-              <li key={item.name}><span className="legend-dot" style={{ backgroundColor: item.color }} />{item.name}<strong>{item.value}%</strong></li>
-            ))}
-          </ul>
+          {leaveTypes.length > 0 ? (
+            <ul className="chart-legend">
+              {leaveTypes.map((item) => (
+                <li key={item.name}><span className="legend-dot" style={{ backgroundColor: item.color }} />{item.name}<strong>{item.value}</strong></li>
+              ))}
+            </ul>
+          ) : (
+            <p className="chart-empty-note">لا توجد إجازات معتمدة هذا العام بعد.</p>
+          )}
         </Card>
 
         <Card className="balance-card" title="أرصدة قربت تخلص">
-          <ul className="balance-list">
-            {lowBalances.map((item) => (
-              <li key={item.name}>
-                <div className="balance-row"><span>{item.name}</span><strong className={`balance-number tone-${item.tone}`}>{item.remaining} أيام</strong></div>
-                <div
-                  aria-label={`رصيد منخفض، المتبقي ${item.remaining} أيام`}
-                  className="balance-track"
-                  role="meter"
-                  aria-valuenow={item.progress}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuetext={`${item.remaining} أيام متبقية`}
-                >
-                  <span className={`balance-fill tone-${item.tone}`} style={{ width: `${item.progress}%` }} />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <p className="chart-empty-note">يُفعّل هذا القسم مع بيانات أرصدة الموظفين في مرحلة لاحقة.</p>
         </Card>
       </section>
 
       <Card className="recent-card" title="آخر الطلبات">
-        <ul className="recent-list">
-          {recentRequests.map((request) => (
-            <li className="recent-request" key={request.id}>
-              <span aria-hidden="true" className={`request-avatar request-avatar-${request.id}`}>{request.initials}</span>
-              <span className="request-person"><strong>{request.name}</strong><small>{request.leave}</small></span>
-              <time className="request-date">{request.date}</time>
-              <Badge tone={request.tone}>{request.status}</Badge>
-            </li>
-          ))}
-        </ul>
+        {recentRequests.length > 0 ? (
+          <ul className="recent-list">
+            {recentRequests.map((request) => (
+              <li className="recent-request" key={request.id}>
+                <span aria-hidden="true" className="request-avatar">
+                  {request.employeeFullName.trim().charAt(0)}
+                </span>
+                <span className="request-person">
+                  <strong>{request.employeeFullName}</strong>
+                  <small>{request.leaveTypeName} · {request.days} أيام</small>
+                </span>
+                <time className="request-date">{formatDate(request.startDate)}</time>
+                <Badge tone={statusTones[request.status]}>{statusLabels[request.status]}</Badge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState description="ستظهر طلبات الإجازات هنا عند إنشائها." icon={CheckCircle2} title="لا توجد طلبات بعد" />
+        )}
       </Card>
     </div>
   );

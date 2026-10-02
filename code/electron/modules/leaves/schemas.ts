@@ -29,6 +29,7 @@ export const leaveRequestInputSchema = z.object({
 export const leaveRequestFilterSchema = z.object({
   search: z.string().trim().max(200, "عبارة البحث طويلة جدًا.").default(""),
   leaveTypeId: z.number().int().positive("نوع الإجازة غير صحيح.").nullable().optional(),
+  leaveTypeKey: z.string().trim().max(50, "نوع الإجازة غير صحيح.").nullable().optional(),
   status: z.enum(["pending", "approved", "rejected", "cancelled", "all"]).optional(),
   year: z.number().int().min(2000, "السنة غير صحيحة.").max(2100, "السنة غير صحيحة.").optional(),
 });

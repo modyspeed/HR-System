@@ -15,7 +15,7 @@ export const moduleRegistry: RendererModule[] = [
   {
     id: "leaves",
     nameAr: "الإجازات",
-    routes: [],
+    routes: ["/leaves", "/leaves/new"],
     nav: [{ path: "/leaves", labelAr: "الإجازات", icon: "calendar" }],
   },
   {

@@ -8,6 +8,11 @@ import type {
   EmployeeStatus,
   EmployeeWireInput,
   EmployeeWireRecord,
+  EmployeeLeaveSummary,
+  LeaveDecisionInput,
+  LeaveRequestFilter,
+  LeaveRequestInput,
+  LeaveRequestRecord,
   LeaveDeskApi,
 } from "./contracts";
 
@@ -96,4 +101,24 @@ export function listDepartments(): Promise<ApiResult<DepartmentRecord[]>> {
 
 export function createDepartment(name: string): Promise<ApiResult<DepartmentRecord>> {
   return withDesktopApi((api) => api.createDepartment(name));
+}
+
+export function createLeaveRequest(input: LeaveRequestInput): Promise<ApiResult<LeaveRequestRecord>> {
+  return withDesktopApi((api) => api.createLeaveRequest(input));
+}
+
+export function decideLeaveRequest(input: LeaveDecisionInput): Promise<ApiResult<LeaveRequestRecord>> {
+  return withDesktopApi((api) => api.decideLeaveRequest(input));
+}
+
+export function cancelLeaveRequest(requestId: number): Promise<ApiResult<LeaveRequestRecord>> {
+  return withDesktopApi((api) => api.cancelLeaveRequest(requestId));
+}
+
+export function listLeaveRequests(filter?: LeaveRequestFilter): Promise<ApiResult<LeaveRequestRecord[]>> {
+  return withDesktopApi((api) => api.listLeaveRequests(filter));
+}
+
+export function getEmployeeLeaveSummary(employeeId: number, year?: number): Promise<ApiResult<EmployeeLeaveSummary>> {
+  return withDesktopApi((api) => api.getEmployeeLeaveSummary(employeeId, year));
 }

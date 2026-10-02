@@ -5,7 +5,7 @@ import {
 } from "../../../components/ui";
 import type { DataColumn } from "../../../components/ui";
 import {
-  createEmployee, createDepartment, listDepartments, listEmployees,
+  createEmployee, createDepartment, getEmployeeLeaveSummary, listDepartments, listEmployees,
   setEmployeeStatus, updateEmployee, unwrapApiResult,
 } from "../../../core/api/ipcClient";
 import type { DepartmentRecord, EmployeeInput, EmployeeRecord } from "../../../core/api/contracts";
@@ -56,6 +56,8 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
     };
   }, [departmentId, reloadKey, search]);
 
+  const balances = useEmployeeBalances(employees, reloadKey);
+
   async function saveEmployee(input: EmployeeInput) {
     if (editingEmployee) {
       unwrapApiResult(await updateEmployee(editingEmployee.id, input));
@@ -99,8 +101,16 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
     { key: "code", label: "الكود" },
     { key: "departmentName", label: "القسم" },
     { key: "hireDate", label: "تاريخ التعيين", render: (employee) => formatDate(employee.hireDate) },
-    { key: "annualEntitlement", label: "اعتيادي", render: (employee) => formatEntitlement(employee.annualEntitlement) },
-    { key: "casualEntitlement", label: "عارضة", render: (employee) => formatEntitlement(employee.casualEntitlement) },
+    {
+      key: "annualEntitlement",
+      label: "اعتيادي",
+      render: (employee) => formatBalance(balances.get(employee.id)?.annualRemaining ?? null),
+    },
+    {
+      key: "casualEntitlement",
+      label: "عارضة",
+      render: (employee) => formatBalance(balances.get(employee.id)?.casualRemaining ?? null),
+    },
     {
       key: "id",
       label: "إجراءات",
@@ -204,6 +214,51 @@ function formatDate(value: string): string {
   return value.split("-").reverse().join("-");
 }
 
-function formatEntitlement(value: number | null): string {
+function formatBalance(value: number | null): string {
   return value === null ? "—" : value.toLocaleString("en-US");
+}
+
+interface EmployeeBalanceMap {
+  annualRemaining: number | null;
+  casualRemaining: number | null;
+}
+
+function useEmployeeBalances(
+  employees: EmployeeRecord[],
+  reloadKey: number,
+): Map<number, EmployeeBalanceMap> {
+  const [balances, setBalances] = useState<Map<number, EmployeeBalanceMap>>(new Map());
+
+  useEffect(() => {
+    let active = true;
+    async function loadBalances() {
+      if (employees.length === 0) {
+        setBalances(new Map());
+        return;
+      }
+      try {
+        const entries = await Promise.all(
+          employees.map(async (employee) => {
+            const result = unwrapApiResult(await getEmployeeLeaveSummary(employee.id));
+            const annual = result.balances.find((balance) => balance.leaveTypeKey === "annual");
+            const casual = result.balances.find((balance) => balance.leaveTypeKey === "casual");
+            return [
+              employee.id,
+              {
+                annualRemaining: annual ? annual.remaining : null,
+                casualRemaining: casual ? casual.remaining : null,
+              },
+            ] as const;
+          }),
+        );
+        if (active) setBalances(new Map(entries));
+      } catch {
+        if (active) setBalances(new Map());
+      }
+    }
+    void loadBalances();
+    return () => { active = false; };
+  }, [employees, reloadKey]);
+
+  return balances;
 }

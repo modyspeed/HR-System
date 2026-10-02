@@ -1,0 +1,210 @@
+.leaves-page,
+.leave-request-page {
+  width: 100%;
+}
+
+.leaves-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.leaves-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  padding: 16px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.leaves-search-field,
+.leaves-filter-field {
+  display: grid;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.leaves-search-field {
+  width: min(100%, 380px);
+}
+
+.leaves-filter-field {
+  width: min(100%, 200px);
+}
+
+.leave-employee-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leave-employee-cell small {
+  display: block;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.leave-table-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--accent-soft);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.leave-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leave-row-actions .ui-icon-button {
+  width: 34px;
+  height: 34px;
+}
+
+.leave-page-error {
+  display: grid;
+  justify-items: center;
+  padding: 24px;
+  border: 1px solid var(--danger-soft);
+  border-radius: var(--radius-lg);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.leave-page-error .ui-empty-state {
+  color: var(--text);
+}
+
+.leave-form-loading {
+  display: grid;
+  gap: 20px;
+}
+
+.leave-form-skeleton {
+  width: 100%;
+  min-height: 320px;
+}
+
+.leave-request-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.leave-form {
+  display: grid;
+  gap: 16px;
+}
+
+.leave-field {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.leave-date-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.leave-days-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.leave-days-hint svg {
+  color: var(--accent);
+}
+
+.leave-days-note {
+  color: var(--text-muted);
+}
+
+.leave-override-field {
+  padding: 12px;
+  border: 1px solid var(--warning-soft);
+  border-radius: var(--radius);
+  background: var(--warning-soft);
+}
+
+.leave-balance-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.leave-balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.leave-balance-number {
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+}
+
+.leave-balance-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .leave-request-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .leaves-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .leaves-toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .leaves-search-field,
+  .leaves-filter-field {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .leave-date-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

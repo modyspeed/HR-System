@@ -307,12 +307,16 @@ export function listRequests(database: Database, filterInput: unknown = {}): Lea
     JOIN leave_types AS lt ON lt.id = lr.leave_type_id
     WHERE (@status = 'all' OR lr.status = @status)
       AND (@leaveTypeId IS NULL OR lr.leave_type_id = @leaveTypeId)
+      AND (@leaveTypeKey IS NULL OR lr.leave_type_id = (
+        SELECT lt2.id FROM leave_types AS lt2 WHERE lt2.key = @leaveTypeKey
+      ))
       AND (@year IS NULL OR CAST(strftime('%Y', lr.start_date) AS INTEGER) = @year)
       AND (@search = '' OR e.code LIKE @pattern OR e.full_name LIKE @pattern)
     ORDER BY lr.start_date DESC, lr.id DESC
   `).all({
     status,
     leaveTypeId: filter.leaveTypeId ?? null,
+    leaveTypeKey: filter.leaveTypeKey || null,
     year: filter.year ?? null,
     search: filter.search ?? "",
     pattern: `%${filter.search ?? ""}%`,
