@@ -37,5 +37,5 @@
 
 ## 2026-10-02 — GitHub Copilot — P2.1
 - إعادة تنظيم خلفية employee إلى service DB-first وAppError وIPC envelopes، مع Zod schemas وD19 NOT_IN_APP؛ بلا تعديل للمخطط أو الواجهة المرئية.
-- schemas tests نجحت، و`npm run typecheck`, `npm test`, و`npm run build` سُجلت نتائجها في التقرير. `npm run test:db` فشل مرتين بمسار migrations وتوقف حسب الحد المحدد. Commit: يُحدّث بعد إنشائه.
+- schemas tests نجحت، و`npm install`, `npm run typecheck`, `npm test`, و`npm run build` نجحت. `npm run test:db` فشل مرتين بمسارات migrations وتوقف حسب الحد المحدد. Commit: `b78a210`، والرفع نجح بلا tag.
 - تقرير الجلسة: `reports/P2.1_GitHubCopilot_2026-10-02.md`.
