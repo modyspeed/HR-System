@@ -1,6 +1,7 @@
 import leaveSchema from "./migrations/001_leaves.sql?raw";
 import leaveSeed from "./migrations/002_seed.sql?raw";
 import type { ElectronModule } from "../../core/moduleTypes";
+import { registerLeavesIpc } from "./ipc";
 
 export const leavesModule: ElectronModule = {
   id: "leaves",
@@ -14,5 +15,5 @@ export const leavesModule: ElectronModule = {
     { name: "001_leaves.sql", sql: leaveSchema },
     { name: "002_seed.sql", sql: leaveSeed },
   ],
-  registerIpc: () => undefined,
+  registerIpc: ({ database, ipcMain }) => registerLeavesIpc(database, ipcMain),
 };

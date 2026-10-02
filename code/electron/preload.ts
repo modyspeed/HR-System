@@ -3,10 +3,15 @@ import type {
   ApiResult,
   AppSummary,
   DepartmentRecord,
+  EmployeeLeaveSummary,
   EmployeeStatus,
   EmployeeQuery,
   EmployeeWireInput,
   EmployeeWireRecord,
+  LeaveDecisionInput,
+  LeaveRequestFilter,
+  LeaveRequestInput,
+  LeaveRequestRecord,
   ThemePreference,
 } from "../src/core/api/contracts";
 
@@ -36,6 +41,16 @@ contextBridge.exposeInMainWorld("leaveDesk", {
     ipcRenderer.invoke("departments:list") as Promise<ApiResult<DepartmentRecord[]>>,
   createDepartment: (name: string): Promise<ApiResult<DepartmentRecord>> =>
     ipcRenderer.invoke("departments:create", name) as Promise<ApiResult<DepartmentRecord>>,
+  createLeaveRequest: (input: LeaveRequestInput): Promise<ApiResult<LeaveRequestRecord>> =>
+    ipcRenderer.invoke("leaves:create-request", input) as Promise<ApiResult<LeaveRequestRecord>>,
+  decideLeaveRequest: (input: LeaveDecisionInput): Promise<ApiResult<LeaveRequestRecord>> =>
+    ipcRenderer.invoke("leaves:decide-request", input) as Promise<ApiResult<LeaveRequestRecord>>,
+  cancelLeaveRequest: (requestId: number): Promise<ApiResult<LeaveRequestRecord>> =>
+    ipcRenderer.invoke("leaves:cancel-request", requestId) as Promise<ApiResult<LeaveRequestRecord>>,
+  listLeaveRequests: (filter?: LeaveRequestFilter): Promise<ApiResult<LeaveRequestRecord[]>> =>
+    ipcRenderer.invoke("leaves:list-requests", filter ?? {}) as Promise<ApiResult<LeaveRequestRecord[]>>,
+  getEmployeeLeaveSummary: (employeeId: number, year?: number): Promise<ApiResult<EmployeeLeaveSummary>> =>
+    ipcRenderer.invoke("leaves:get-employee-summary", employeeId, year) as Promise<ApiResult<EmployeeLeaveSummary>>,
   setTheme: (preference: ThemePreference): Promise<ThemePreference> =>
     ipcRenderer.invoke("theme:set", preference) as Promise<ThemePreference>,
   initialTheme,

@@ -80,6 +80,79 @@ export interface EmployeeQuery {
   status?: EmployeeStatus | "all";
 }
 
+export interface LeaveRequestFilter {
+  search?: string;
+  leaveTypeId?: number | null;
+  status?: LeaveRequestStatus | "all";
+  year?: number;
+}
+
+export type LeaveRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export type LeaveDecision = "approved" | "rejected";
+
+export interface LeaveTypeRecord {
+  id: number;
+  key: string;
+  nameAr: string;
+  yearlyEntitlement: number | null;
+  deductsBalance: boolean;
+  countsWeekends: boolean;
+  requiresAttachment: boolean;
+  active: boolean;
+}
+
+export interface LeaveRequestRecord {
+  id: number;
+  employeeId: number;
+  employeeCode: string;
+  employeeFullName: string;
+  leaveTypeId: number;
+  leaveTypeKey: string;
+  leaveTypeName: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason: string | null;
+  status: LeaveRequestStatus;
+  decidedAt: string | null;
+  decidedNote: string | null;
+  createdAt: string;
+}
+
+export interface LeaveRequestInput {
+  employeeId: number;
+  leaveTypeId: number;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+  overrideReason?: string;
+}
+
+export interface LeaveDecisionInput {
+  requestId: number;
+  decision: LeaveDecision;
+  note?: string;
+}
+
+export interface LeaveBalanceSummary {
+  leaveTypeId: number;
+  leaveTypeKey: string;
+  leaveTypeName: string;
+  entitlement: number;
+  carriedOver: number;
+  adjustment: number;
+  used: number;
+  pending: number;
+  remaining: number;
+}
+
+export interface EmployeeLeaveSummary {
+  employeeId: number;
+  year: number;
+  balances: LeaveBalanceSummary[];
+}
+
 export type ThemePreference = "system" | "light" | "dark";
 
 export interface LeaveDeskApi {
@@ -91,6 +164,11 @@ export interface LeaveDeskApi {
   setEmployeeStatus(id: number, status: EmployeeStatus): Promise<ApiResult<EmployeeWireRecord>>;
   listDepartments(): Promise<ApiResult<DepartmentRecord[]>>;
   createDepartment(name: string): Promise<ApiResult<DepartmentRecord>>;
+  createLeaveRequest(input: LeaveRequestInput): Promise<ApiResult<LeaveRequestRecord>>;
+  decideLeaveRequest(input: LeaveDecisionInput): Promise<ApiResult<LeaveRequestRecord>>;
+  cancelLeaveRequest(requestId: number): Promise<ApiResult<LeaveRequestRecord>>;
+  listLeaveRequests(filter?: LeaveRequestFilter): Promise<ApiResult<LeaveRequestRecord[]>>;
+  getEmployeeLeaveSummary(employeeId: number, year?: number): Promise<ApiResult<EmployeeLeaveSummary>>;
   setTheme(preference: ThemePreference): Promise<ThemePreference>;
   initialTheme: ThemePreference;
   initialSystemDark: boolean;
