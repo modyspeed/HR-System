@@ -9,7 +9,7 @@ export const moduleRegistry: RendererModule[] = [
   {
     id: "employees",
     nameAr: "الموظفون",
-    routes: [],
+    routes: ["/employees", "/employees/:id"],
     nav: [{ path: "/employees", labelAr: "الموظفون", icon: "users" }],
   },
   {

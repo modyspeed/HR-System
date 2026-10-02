@@ -42,7 +42,7 @@ export function Sidebar({ currentPath, onNavigate }: SidebarProps) {
             const Icon = moduleIcons[item.icon] ?? ClipboardList;
             return (
               <SidebarLink
-                active={currentPath === item.path}
+                active={currentPath === item.path || currentPath.startsWith(`${item.path}/`)}
                 collapsed={collapsed}
                 icon={Icon}
                 key={`${module.id}:${item.path}`}

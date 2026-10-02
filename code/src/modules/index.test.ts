@@ -10,6 +10,9 @@ describe("renderer module registry", () => {
       "decisions",
     ]);
     expect(moduleRegistry.every((module) => module.nav.length === 1)).toBe(true);
-    expect(moduleRegistry.every((module) => module.routes.length === 0)).toBe(true);
+    expect(moduleRegistry.find((module) => module.id === "employees")?.routes).toEqual([
+      "/employees",
+      "/employees/:id",
+    ]);
   });
 });

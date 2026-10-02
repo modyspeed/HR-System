@@ -12,6 +12,7 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import type { CommandItem } from "./CommandPalette";
 import { useTheme } from "../theme/ThemeProvider";
+import { EmployeesModule } from "../../modules/employees";
 
 const moduleIcons = {
   employees: <Users size={16} aria-hidden="true" />,
@@ -72,6 +73,9 @@ export function AppShell() {
   if (currentPath === "/") page = <DashboardPage />;
   if (currentPath === "/design") page = <DesignGalleryPage />;
   if (currentPath === "/settings") page = <SettingsPage />;
+  if (currentPath === "/employees" || /^\/employees\/\d+$/.test(currentPath)) {
+    page = <EmployeesModule path={currentPath} onNavigate={navigate} />;
+  }
 
   return (
     <MotionConfig reducedMotion="user">
