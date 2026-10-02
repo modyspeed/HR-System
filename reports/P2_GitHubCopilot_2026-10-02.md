@@ -41,6 +41,7 @@
 - `npm run dev` — بدأ Electron/Vite بلا أخطاء build/preload؛ أُوقف بعد التحقق.
 - browser preview — تم اختبار D19، البحث/الفلتر، وإضافة/تعديل/إيقاف على bridge mock لأغراض UI فقط.
 - lint — لا يوجد script في `package.json`.
+- Git — commit التنفيذ `157c72f` (`P2: employee management`)، tag `P2`، والرفع إلى `origin` نجح.
 ### فحص الثيمين (Light/Dark) والـ RTL للشاشات المنفذة
 - صفحة القائمة وملف الموظف RTL باستخدام Cairo وtokens فقط.
 - تم عرض صفحة الموظفين والـ profile في Light وDark على 1440px؛ عرض المستند يساوي عرض النافذة، بلا overflow.

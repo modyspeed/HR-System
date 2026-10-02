@@ -32,5 +32,5 @@
 
 ## 2026-10-02 — GitHub Copilot — P2
 - أُضيفت خدمات الموظفين والأقسام مع Zod وIPC داخل وحدة employees، ونُقل count من core، وأُضيفت قائمة الموظفين وملف الموظف/تاب البيانات.
-- `npm run typecheck`, `npm test` (9 ناجحة)، `npm run test:sqlite` (3 ناجحة على SQLite حقيقية)، و`npm run build` نجحوا. Commit: يُسجل بعد إنشائه.
+- `npm run typecheck`, `npm test` (9 ناجحة)، `npm run test:sqlite` (3 ناجحة على SQLite حقيقية)، و`npm run build` نجحوا. Commit التنفيذ: `157c72f`؛ tag `P2` والرفع نجحا.
 - تقرير الجلسة: `reports/P2_GitHubCopilot_2026-10-02.md`.
