@@ -64,3 +64,10 @@
 - الخطوتان 3 و4 (رسائل أخطاء الخلفية العربية في toasts، وقائمة الموظفين نشطين فقط في شاشة طلب الإجازة) مُستوفاتان بالكود الحالي عبر `errorResult`/`unwrapApiResult`/`toast.error` وفلتر `status:"active"` في `ipcClient` — بلا أي تعديل منطق.
 - `npm run typecheck` ✅؛ `npm test` (52 ناجحًا، 14 متخطاة) ✅؛ `npm run test:db` (15/15: employees 2 + leaves 6 + regression 7) ✅؛ `npm run build` ✅. Commit: P3-fix، tag `P3`، والرفع نجح.
 - تقرير الجلسة: `reports/P3-fix_Kilo_2026-10-03.md`. P3 = تنفيذ مكتمل (مستني فحص يدوي من المالك داخل Electron).
+
+## 2026-10-03 — Kilo — P4.1 (ربط خلفية documents بالمضيف)
+- المالك فكّ حزمة Claude الآمنة في `code/electron/modules/documents/` (pathSafety 36 اختبار + fileService 10 اختبارات SQLite وفولدرات حقيقية + ipc/schemas/errors) — لم تُعدّل أبدًا.
+- ربطت الحزمة فقط: `host?: DocumentsHostServices` في `ModuleContext` + بناؤه في `main.ts` (getFilesRoot من settings مع fallback لـ employee_files، dialog.showOpenDialog، shell.openPath) + `registerDocumentsIpc` في documents/index.ts.
+- الجسر: 7 دوال فقط (list/scan/scan-all/ensure-folder/open-folder/pick-and-add/read) في contracts + preload + ipcClient (خارج Electron ترجع NOT_IN_APP بقاعدة D19، ولا دالة تأخذ مسارًا). وشددت كود الموظف برسالة عربية (D28) مع 20 اختبارًا جديدًا.
+- `npm run typecheck` ✅؛ `npm test` (104 ناجحًا، 24 متخطاة) ✅؛ `npm run test:db` (25/25: documents 10) ✅؛ `npm run build` ✅. Commit: P4.1، الرفع نجح (بدون tag).
+- تقرير الجلسة: `reports/P4.1_Kilo_2026-10-03.md`.

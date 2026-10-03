@@ -2,10 +2,13 @@ import type {
   ApiResult,
   AppSummary,
   DepartmentRecord,
+  DocumentReadResult,
+  EmployeeFilesResult,
   EmployeeInput,
   EmployeeListFilter,
   EmployeeRecord,
   EmployeeStatus,
+  EnsureFolderResult,
     EmployeeWireInput,
     EmployeeWireRecord,
     EmployeeLeaveSummary,
@@ -15,6 +18,11 @@ import type {
     LeaveRequestRecord,
     LeaveDeskApi,
     LowBalanceAlert,
+    OpenFolderResult,
+    PickAndAddInput,
+    PickAndAddResult,
+    ScanAllResult,
+    ScanResult,
   } from "./contracts";
 
 export const DESKTOP_ONLY_MESSAGE = "هذه الوظيفة تعمل داخل التطبيق فقط";
@@ -126,4 +134,32 @@ export function getEmployeeLeaveSummary(employeeId: number, year?: number): Prom
 
 export function getLowBalances(year?: number): Promise<ApiResult<LowBalanceAlert[]>> {
   return withDesktopApi((api) => api.getLowBalances(year));
+}
+
+export function listEmployeeFiles(employeeId: number): Promise<ApiResult<EmployeeFilesResult>> {
+  return withDesktopApi((api) => api.listEmployeeFiles(employeeId));
+}
+
+export function scanEmployeeFiles(employeeId: number): Promise<ApiResult<ScanResult>> {
+  return withDesktopApi((api) => api.scanEmployeeFiles(employeeId));
+}
+
+export function scanAllEmployeeFiles(): Promise<ApiResult<ScanAllResult>> {
+  return withDesktopApi((api) => api.scanAllEmployeeFiles());
+}
+
+export function ensureEmployeeFolder(employeeId: number): Promise<ApiResult<EnsureFolderResult>> {
+  return withDesktopApi((api) => api.ensureEmployeeFolder(employeeId));
+}
+
+export function openEmployeeFolder(employeeId: number): Promise<ApiResult<OpenFolderResult>> {
+  return withDesktopApi((api) => api.openEmployeeFolder(employeeId));
+}
+
+export function pickAndAddDocument(input: PickAndAddInput): Promise<ApiResult<PickAndAddResult>> {
+  return withDesktopApi((api) => api.pickAndAddDocument(input));
+}
+
+export function readDocument(documentId: number): Promise<ApiResult<DocumentReadResult>> {
+  return withDesktopApi((api) => api.readDocument(documentId));
 }

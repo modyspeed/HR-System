@@ -3,16 +3,24 @@ import { contextBridge, ipcRenderer } from "electron";
     ApiResult,
     AppSummary,
     DepartmentRecord,
-    EmployeeLeaveSummary,
+    DocumentReadResult,
+    EmployeeFilesResult,
     EmployeeStatus,
     EmployeeQuery,
     EmployeeWireInput,
     EmployeeWireRecord,
+    EnsureFolderResult,
+    EmployeeLeaveSummary,
     LeaveDecisionInput,
     LeaveRequestFilter,
     LeaveRequestInput,
     LeaveRequestRecord,
     LowBalanceAlert,
+    OpenFolderResult,
+    PickAndAddInput,
+    PickAndAddResult,
+    ScanAllResult,
+    ScanResult,
     ThemePreference,
   } from "../src/core/api/contracts";
 
@@ -54,6 +62,20 @@ contextBridge.exposeInMainWorld("leaveDesk", {
     ipcRenderer.invoke("leaves:get-employee-summary", employeeId, year) as Promise<ApiResult<EmployeeLeaveSummary>>,
   getLowBalances: (year?: number): Promise<ApiResult<LowBalanceAlert[]>> =>
     ipcRenderer.invoke("leaves:get-low-balances", year) as Promise<ApiResult<LowBalanceAlert[]>>,
+  listEmployeeFiles: (employeeId: number): Promise<ApiResult<EmployeeFilesResult>> =>
+    ipcRenderer.invoke("documents:list", employeeId) as Promise<ApiResult<EmployeeFilesResult>>,
+  scanEmployeeFiles: (employeeId: number): Promise<ApiResult<ScanResult>> =>
+    ipcRenderer.invoke("documents:scan", employeeId) as Promise<ApiResult<ScanResult>>,
+  scanAllEmployeeFiles: (): Promise<ApiResult<ScanAllResult>> =>
+    ipcRenderer.invoke("documents:scan-all") as Promise<ApiResult<ScanAllResult>>,
+  ensureEmployeeFolder: (employeeId: number): Promise<ApiResult<EnsureFolderResult>> =>
+    ipcRenderer.invoke("documents:ensure-folder", employeeId) as Promise<ApiResult<EnsureFolderResult>>,
+  openEmployeeFolder: (employeeId: number): Promise<ApiResult<OpenFolderResult>> =>
+    ipcRenderer.invoke("documents:open-folder", employeeId) as Promise<ApiResult<OpenFolderResult>>,
+  pickAndAddDocument: (input: PickAndAddInput): Promise<ApiResult<PickAndAddResult>> =>
+    ipcRenderer.invoke("documents:pick-and-add", input) as Promise<ApiResult<PickAndAddResult>>,
+  readDocument: (documentId: number): Promise<ApiResult<DocumentReadResult>> =>
+    ipcRenderer.invoke("documents:read", documentId) as Promise<ApiResult<DocumentReadResult>>,
   setTheme: (preference: ThemePreference): Promise<ThemePreference> =>
     ipcRenderer.invoke("theme:set", preference) as Promise<ThemePreference>,
   initialTheme,

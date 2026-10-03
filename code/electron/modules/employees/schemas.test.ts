@@ -60,4 +60,28 @@ describe("employee input schema", () => {
     });
     expect(invalidBirthDate.success).toBe(false);
   });
+
+  it.each([
+    "EMP/101", "EMP\\101", "EMP:101", "EMP*101", 'EMP?101', 'EMP"101', "EMP<101", "EMP>101",
+    "EMP|101", ".EMP-101", "EMP-101.", "EMP\u0000-101",
+  ])("rejects employee code with unsafe folder characters: %s", (code) => {
+    const result = employeeInputSchema.safeParse({
+      code,
+      full_name: "موظف تجريبي",
+      department_id: 1,
+      hire_date: "2024-01-01",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0]?.message).toBe("كود الموظف يحتوي رموزًا غير مسموحة");
+  });
+
+  it.each(["EMP-101", "EMP_202", "موظف-١", "A.B.C"])("accepts ordinary employee codes: %s", (code) => {
+    const result = employeeInputSchema.safeParse({
+      code,
+      full_name: "موظف تجريبي",
+      department_id: 1,
+      hire_date: "2024-01-01",
+    });
+    expect(result.success).toBe(true);
+  });
 });

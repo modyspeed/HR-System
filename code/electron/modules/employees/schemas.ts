@@ -6,8 +6,21 @@ function isValidIsoDate(value: string): boolean {
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
+const UNSAFE_CODE_CHARS = /[\\/:*?"<>|\u0000-\u001f]/;
+
+function isValidEmployeeCode(value: string): boolean {
+  // نفس قواعد أسماء الفولدرات في documents/pathSafety.ts (قرار D28): الكود اسم فولدر الموظف.
+  if (UNSAFE_CODE_CHARS.test(value)) return false;
+  if (value.startsWith(".") || /[. ]$/.test(value)) return false;
+  return true;
+}
+
 export const employeeInputSchema = z.object({
-  code: z.string().trim().min(1, "كود الموظف مطلوب.").max(50, "كود الموظف طويل جدًا."),
+  code: z.string()
+    .trim()
+    .min(1, "كود الموظف مطلوب.")
+    .max(50, "كود الموظف طويل جدًا.")
+    .refine(isValidEmployeeCode, "كود الموظف يحتوي رموزًا غير مسموحة"),
   full_name: z.string().trim().min(1, "اسم الموظف مطلوب.").max(200, "اسم الموظف طويل جدًا."),
   department_id: z.number({ invalid_type_error: "القسم مطلوب." }).int("القسم غير صحيح.").positive("القسم مطلوب."),
   hire_date: z.string().refine(isValidIsoDate, "تاريخ التعيين يجب أن يكون تاريخًا صحيحًا بصيغة yyyy-mm-dd."),

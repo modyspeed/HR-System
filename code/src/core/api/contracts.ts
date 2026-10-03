@@ -162,6 +162,73 @@ export interface LowBalanceAlert {
   entitlement: number;
 }
 
+export type DocumentCategory = "general" | "leave_form" | "decision" | "import_source";
+export type DocumentUploadCategory = "general" | "leave_form" | "decision";
+export type DocumentMimeType = "application/pdf" | "image/png" | "image/jpeg";
+
+export interface DocumentRecord {
+  id: number;
+  employeeId: number;
+  category: DocumentCategory;
+  relatedLeaveId: number | null;
+  relatedDecisionId: number | null;
+  fileName: string;
+  relativePath: string;
+  fileSize: number | null;
+  addedVia: "upload" | "folder_scan";
+  createdAt: string;
+  exists: boolean;
+}
+
+export interface EmployeeFilesResult {
+  employeeId: number;
+  employeeCode: string;
+  folderName: string;
+  folderExists: boolean;
+  files: DocumentRecord[];
+}
+
+export interface ScanResult {
+  employeeId: number;
+  folderExists: boolean;
+  added: number;
+  alreadyLinked: number;
+  missing: number;
+}
+
+export interface ScanAllResult {
+  scannedEmployees: number;
+  added: number;
+  unknownFolders: string[];
+}
+
+export interface PickAndAddInput {
+  employeeId: number;
+  category: DocumentUploadCategory;
+  relatedLeaveId?: number | null;
+  relatedDecisionId?: number | null;
+}
+
+export interface PickAndAddResult {
+  cancelled: boolean;
+  added: DocumentRecord[];
+  errors: Array<{ fileName: string; code: string; message: string }>;
+}
+
+export interface DocumentReadResult {
+  fileName: string;
+  mimeType: DocumentMimeType;
+  base64: string;
+}
+
+export interface EnsureFolderResult {
+  folderName: string;
+}
+
+export interface OpenFolderResult {
+  opened: boolean;
+}
+
 export type ThemePreference = "system" | "light" | "dark";
 
 export interface LeaveDeskApi {
@@ -179,6 +246,13 @@ export interface LeaveDeskApi {
   listLeaveRequests(filter?: LeaveRequestFilter): Promise<ApiResult<LeaveRequestRecord[]>>;
   getEmployeeLeaveSummary(employeeId: number, year?: number): Promise<ApiResult<EmployeeLeaveSummary>>;
   getLowBalances(year?: number): Promise<ApiResult<LowBalanceAlert[]>>;
+  listEmployeeFiles(employeeId: number): Promise<ApiResult<EmployeeFilesResult>>;
+  scanEmployeeFiles(employeeId: number): Promise<ApiResult<ScanResult>>;
+  scanAllEmployeeFiles(): Promise<ApiResult<ScanAllResult>>;
+  ensureEmployeeFolder(employeeId: number): Promise<ApiResult<EnsureFolderResult>>;
+  openEmployeeFolder(employeeId: number): Promise<ApiResult<OpenFolderResult>>;
+  pickAndAddDocument(input: PickAndAddInput): Promise<ApiResult<PickAndAddResult>>;
+  readDocument(documentId: number): Promise<ApiResult<DocumentReadResult>>;
   setTheme(preference: ThemePreference): Promise<ThemePreference>;
   initialTheme: ThemePreference;
   initialSystemDark: boolean;

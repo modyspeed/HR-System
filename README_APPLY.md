@@ -1,13 +1,9 @@
-# حزمة إصلاح P3 (من Claude)
-فك الـ ZIP **داخل جذر المستودع** (فولدر HR System) ووافق على استبدال الملفات. المسارات داخل الحزمة نفس مسارات المستودع.
+# حزمة P4 (الخلفية الحساسة أمنيًا) — من Claude
+فك الـ ZIP **داخل جذر المستودع** (المسارات جواه نفس مسارات المستودع).
 
-الملفات:
-- code/electron/modules/leaves/migrations/003_request_year_days.sql (جديد)
-- code/electron/modules/leaves/index.ts (تسجيل الـ migration)
-- code/electron/modules/leaves/services/leaveCalculator.ts و balanceService.ts و leaveRequestService.ts (معدّلة)
-- code/electron/modules/leaves/service.db.test.ts (تحميل migration 003)
-- code/electron/modules/leaves/regression.db.test.ts (جديد، اختبارات الانحدار)
-- docs/SCHEMA.sql و docs/DECISIONS.md (D22 إلى D25)
+كلها ملفات جديدة داخل code/electron/modules/documents/ (عدا docs/DECISIONS.md المحدّث بـ D26 إلى D28):
+- pathSafety.ts / pathSafety.test.ts — حماية المسارات وأسماء الملفات (36 اختبار، تغطي ويندوز ولينكس)
+- services/fileService.ts / fileService.db.test.ts — الفولدرات والرفع والمسح والقراءة (10 اختبارات على SQLite وفولدرات حقيقية)
+- ipc.ts / schemas.ts / errors.ts — قنوات IPC (تحتاج ربطها بالمضيف Electron: مهمة المنصة P4.1)
 
-بعد الفك: npm run typecheck ثم npm test ثم npm run test:db ثم npm run build
-المتوقع: test:db = 15 اختبار ناجح (employees 2 + leaves 6 + regression 6 + ...) ، والبناء ناجح.
+لا تعدّل هذه الملفات. اربطها فقط.

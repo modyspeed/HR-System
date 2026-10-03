@@ -1,10 +1,36 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
+import type { Database } from "better-sqlite3";
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { openApplicationDatabase } from "./core/db";
 import { registerApplicationIpc } from "./core/ipc";
 import { readThemePreference, registerThemeIpc } from "./core/theme";
+import type { DocumentsHostServices } from "./modules/documents/ipc";
 import { electronModuleRegistry } from "./modules";
+
+function readEmployeeFilesRoot(database: Database, dataDirectory: string): string {
+  const row = database.prepare("SELECT value FROM settings WHERE key = 'employee_files_root'").get() as
+    | { value: string }
+    | undefined;
+  const configured = row?.value?.trim();
+  return configured && configured !== "" ? configured : join(dataDirectory, "employee_files");
+}
+
+function createDocumentsHost(database: Database, dataDirectory: string): DocumentsHostServices {
+  return {
+    getFilesRoot: () => readEmployeeFilesRoot(database, dataDirectory),
+    pickFiles: async () => {
+      const focused = BrowserWindow.getFocusedWindow();
+      const options = {
+        properties: ["openFile", "multiSelections"] as Array<"openFile" | "multiSelections">,
+        filters: [{ name: "PDF وصور", extensions: ["pdf", "png", "jpg", "jpeg"] }],
+      };
+      const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options);
+      return result.filePaths;
+    },
+    openFolder: (absolutePath: string) => shell.openPath(absolutePath),
+  };
+}
 
 async function createApplicationWindow(): Promise<void> {
   const dataDirectory = join(app.getPath("documents"), "LeaveDeskData");
@@ -15,11 +41,12 @@ async function createApplicationWindow(): Promise<void> {
   );
 
   const database = openApplicationDatabase(dataDirectory);
+  const host = createDocumentsHost(database, dataDirectory);
   let themePreference = readThemePreference(database);
   nativeTheme.themeSource = themePreference;
   registerApplicationIpc(database);
   for (const module of electronModuleRegistry) {
-    module.registerIpc({ database, ipcMain });
+    module.registerIpc({ database, ipcMain, host });
   }
 
   const window = new BrowserWindow({
