@@ -84,4 +84,28 @@ describe("employee input schema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it.each(["CON", "con", "Con.txt", "PRN", "AUX", "NUL", "COM1", "com9", "LPT1", "LPT9.log"])(
+    "rejects Windows-reserved employee codes: %s",
+    (code) => {
+      const result = employeeInputSchema.safeParse({
+        code,
+        full_name: "موظف تجريبي",
+        department_id: 1,
+        hire_date: "2024-01-01",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.issues[0]?.message).toBe("كود الموظف يحتوي رموزًا غير مسموحة");
+    },
+  );
+
+  it.each(["CONSOLE", "COMM", "LPT", "COMPUTER", "NULLIFIED"])("accepts codes that merely contain reserved names: %s", (code) => {
+    const result = employeeInputSchema.safeParse({
+      code,
+      full_name: "موظف تجريبي",
+      department_id: 1,
+      hire_date: "2024-01-01",
+    });
+    expect(result.success).toBe(true);
+  });
 });

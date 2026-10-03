@@ -71,3 +71,10 @@
 - الجسر: 7 دوال فقط (list/scan/scan-all/ensure-folder/open-folder/pick-and-add/read) في contracts + preload + ipcClient (خارج Electron ترجع NOT_IN_APP بقاعدة D19، ولا دالة تأخذ مسارًا). وشددت كود الموظف برسالة عربية (D28) مع 20 اختبارًا جديدًا.
 - `npm run typecheck` ✅؛ `npm test` (104 ناجحًا، 24 متخطاة) ✅؛ `npm run test:db` (25/25: documents 10) ✅؛ `npm run build` ✅. Commit: P4.1، الرفع نجح (بدون tag).
 - تقرير الجلسة: `reports/P4.1_Kilo_2026-10-03.md`.
+
+## 2026-10-03 — Kilo — P4.2a (تاب ملف الموظف PDF + عارض PDF + مزامنة)
+- تشديد كود الموظف: رفض أسماء ويندوز المحجوزة (CON/PRN/... ومع امتداد) برسالة عربية، والتكرار غير الحساس لحالة الأحرف في الإنشاء والتعديل، مع اختبارات schemas (39) وservice.db (3).
+- ثبّت pdfjs-dist@4.10.38 بالضبط والـ worker محلي (?url)، وأنشأت pdfSetup.ts + utils.ts (base64/groupDocuments/formatFileSize) + utils.test.ts (8).
+- بنيت PdfViewer (canvas بـ devicePixelRatio، تنقّل وتكبير وملاءمة، إلغاء رسم وتدمير مستند، الصور بـ img، صفحة بيضاء دائمًا بتوكن --paper-white) وEmployeeFilesTab (عمودان، رفع/مسح/فتح فولدر، حالات تحميل/خطأ/فارغ) وربطه في EmployeeProfilePage، وزر "مزامنة الملفات" في EmployeesPage مع Modal النتيجة.
+- `npm run typecheck` ✅؛ `npm test` (127 ناجحًا) ✅؛ `npm run test:db` (26/26) ✅؛ `npm run build` ✅. Commit: P4.2a، الرفع نجح (بدون tag).
+- **لم يُختبر التفاعل البصري داخل Electron** (لا أستطيع فتح نافذة). تقرير الجلسة: `reports/P4.2a_Kilo_2026-10-03.md`.

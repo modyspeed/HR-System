@@ -56,6 +56,16 @@ function assertDepartmentExists(database: Database, departmentId: number): void 
   if (!department) throw new AppError("DEPARTMENT_NOT_FOUND", "القسم المحدد غير موجود.");
 }
 
+function assertCodeAvailable(database: Database, code: string, excludeEmployeeId?: number): void {
+  // التكرار غير حساس لحالة الأحرف: EMP-01 وemp-01 نفس الكود (قرار D28).
+  const row = database
+    .prepare("SELECT 1 FROM employees WHERE lower(code) = lower(?) AND (? IS NULL OR id != ?)")
+    .get(code, excludeEmployeeId ?? null, excludeEmployeeId ?? null);
+  if (row) {
+    throw new AppError("EMPLOYEE_CODE_EXISTS", "كود الموظف مستخدم بالفعل.");
+  }
+}
+
 function writeAudit(
   database: Database,
   entityId: number,
@@ -191,6 +201,7 @@ export function getEmployee(database: Database, idInput: unknown): EmployeeWireR
 export function createEmployee(database: Database, input: unknown): EmployeeWireRecord {
   const employee: EmployeeWireInput = parseInput(employeeInputSchema, input);
   assertDepartmentExists(database, employee.department_id);
+  assertCodeAvailable(database, employee.code);
   try {
     const id = database.transaction(() => {
       const result = database.prepare(`
@@ -221,6 +232,7 @@ export function updateEmployee(database: Database, idInput: unknown, input: unkn
   const id = parseInput(employeeIdSchema, idInput);
   const employee: EmployeeWireInput = parseInput(employeeInputSchema, input);
   assertDepartmentExists(database, employee.department_id);
+  assertCodeAvailable(database, employee.code, id);
   const oldEmployee = getEmployee(database, id);
 
   try {

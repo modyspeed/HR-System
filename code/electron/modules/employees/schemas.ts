@@ -7,11 +7,14 @@ function isValidIsoDate(value: string): boolean {
 }
 
 const UNSAFE_CODE_CHARS = /[\\/:*?"<>|\u0000-\u001f]/;
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 
 function isValidEmployeeCode(value: string): boolean {
   // نفس قواعد أسماء الفولدرات في documents/pathSafety.ts (قرار D28): الكود اسم فولدر الموظف.
   if (UNSAFE_CODE_CHARS.test(value)) return false;
   if (value.startsWith(".") || /[. ]$/.test(value)) return false;
+  // أسماء ويندوز المحجوزة (CON وPRN و... وسواء بامتداد مثل con.txt أو بدونه).
+  if (WINDOWS_RESERVED.test(value.split(".")[0] ?? "")) return false;
   return true;
 }
 

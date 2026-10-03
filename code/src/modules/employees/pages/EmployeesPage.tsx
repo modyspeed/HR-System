@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { Building2, Pencil, Plus, UserRoundX, UsersRound } from "lucide-react";
+import { Building2, Pencil, Plus, RefreshCw, UserRoundX, UsersRound } from "lucide-react";
 import {
-  Button, ConfirmDialog, DataTable, EmptyState, IconButton, Input, Select, toast,
+  Button, ConfirmDialog, DataTable, EmptyState, IconButton, Input, Modal, Select, toast,
 } from "../../../components/ui";
 import type { DataColumn } from "../../../components/ui";
 import {
   createEmployee, createDepartment, getEmployeeLeaveSummary, listDepartments, listEmployees,
-  setEmployeeStatus, updateEmployee, unwrapApiResult,
+  scanAllEmployeeFiles, setEmployeeStatus, updateEmployee, unwrapApiResult,
 } from "../../../core/api/ipcClient";
-import type { DepartmentRecord, EmployeeInput, EmployeeRecord } from "../../../core/api/contracts";
+import type { DepartmentRecord, EmployeeInput, EmployeeRecord, ScanAllResult } from "../../../core/api/contracts";
 import { EmployeeFormModal } from "../components/EmployeeFormModal";
 import { DepartmentFormModal } from "../components/DepartmentFormModal";
 
@@ -28,6 +28,8 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
   const [editingEmployee, setEditingEmployee] = useState<EmployeeRecord | null>(null);
   const [departmentFormOpen, setDepartmentFormOpen] = useState(false);
   const [employeeToSuspend, setEmployeeToSuspend] = useState<EmployeeRecord | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<ScanAllResult | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -137,6 +139,19 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
     setFormOpen(true);
   }
 
+  async function syncFiles() {
+    setSyncing(true);
+    try {
+      const result = unwrapApiResult(await scanAllEmployeeFiles());
+      setSyncResult(result);
+      setReloadKey((key) => key + 1);
+    } catch (syncError) {
+      toast.error(syncError instanceof Error ? syncError.message : "تعذر مزامنة الملفات.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <div className="employees-page">
       <div className="page-heading employees-heading">
@@ -146,6 +161,7 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
           <p>إدارة بيانات الموظفين والأقسام.</p>
         </div>
         <div className="employees-heading-actions">
+          <Button disabled={syncing} icon={<RefreshCw size={17} />} onClick={() => void syncFiles()}>مزامنة الملفات</Button>
           <Button icon={<Building2 size={17} />} onClick={() => setDepartmentFormOpen(true)}>إضافة قسم</Button>
           <Button icon={<Plus size={17} />} onClick={openCreate} variant="primary">موظف جديد</Button>
         </div>
@@ -206,6 +222,34 @@ export function EmployeesPage({ onOpenEmployee }: EmployeesPageProps) {
         open={employeeToSuspend !== null}
         title="تأكيد إيقاف الموظف"
       />
+      <Modal
+        onOpenChange={(open) => { if (!open) setSyncResult(null); }}
+        open={syncResult !== null}
+        title="نتيجة مزامنة الملفات"
+      >
+        {syncResult && (
+          <div className="files-sync-result">
+            <p className="files-sync-summary">
+              تم مسح <strong>{syncResult.scannedEmployees}</strong> موظف، وإضافة
+              <strong> {syncResult.added}</strong> ملف.
+            </p>
+            {syncResult.unknownFolders.length > 0 ? (
+              <div className="files-sync-unknown">
+                <h3>فولدرات غير معروفة</h3>
+                <p>هذه الفولدرات لا تطابق أي كود موظف:</p>
+                <ul>
+                  {syncResult.unknownFolders.map((folder) => <li key={folder}>{folder}</li>)}
+                </ul>
+              </div>
+            ) : (
+              <p className="files-sync-clean">لا توجد فولدرات غير معروفة.</p>
+            )}
+            <div className="ui-dialog-actions">
+              <Button onClick={() => setSyncResult(null)} variant="primary">حسنًا</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

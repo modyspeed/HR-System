@@ -90,4 +90,56 @@ describe.skipIf(!isElectronNode)("employee service with real SQLite", () => {
       database.close();
     }
   });
+
+  it("rejects duplicate code regardless of letter case on create and update", async () => {
+    const database = await createDatabase();
+    try {
+      const department = createDepartment(database, "قسم التكرار");
+      createEmployee(database, {
+        code: "EMP-TEST-04",
+        full_name: "الأول",
+        department_id: department.id,
+        hire_date: "2024-01-01",
+      });
+
+      expect(() =>
+        createEmployee(database, {
+          code: "emp-test-04",
+          full_name: "الثاني",
+          department_id: department.id,
+          hire_date: "2024-01-01",
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "EMPLOYEE_CODE_EXISTS", message: "كود الموظف مستخدم بالفعل." }),
+      );
+
+      const other = createEmployee(database, {
+        code: "EMP-TEST-05",
+        full_name: "الثالث",
+        department_id: department.id,
+        hire_date: "2024-01-01",
+      });
+      // التعديل: يُرفض الكود المكرر بحروف مختلفة، ويُسمح بالاحتفاظ بالكود نفسه للموظف نفسه.
+      expect(() =>
+        updateEmployee(database, other.id, {
+          code: "emp-TEST-04",
+          full_name: "الثالث",
+          department_id: department.id,
+          hire_date: "2024-01-01",
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "EMPLOYEE_CODE_EXISTS", message: "كود الموظف مستخدم بالفعل." }),
+      );
+      expect(() =>
+        updateEmployee(database, other.id, {
+          code: "emp-test-05",
+          full_name: "الثالث المعدل",
+          department_id: department.id,
+          hire_date: "2024-01-01",
+        }),
+      ).not.toThrow();
+    } finally {
+      database.close();
+    }
+  });
 });

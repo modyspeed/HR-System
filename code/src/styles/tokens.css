@@ -1,5 +1,7 @@
 :root {
   --text-on-accent: #FFFFFF;
+  /* صفحة الـ PDF تبقى بيضاء دائمًا حتى في Dark (قرار D16) */
+  --paper-white: #FFFFFF;
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;

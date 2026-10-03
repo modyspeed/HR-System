@@ -4,6 +4,8 @@ import { Badge, Button, Card, EmptyState, Skeleton, Tabs, toast } from "../../..
 import type { DepartmentRecord, EmployeeInput, EmployeeRecord } from "../../../core/api/contracts";
 import { getEmployee, listDepartments, updateEmployee, unwrapApiResult } from "../../../core/api/ipcClient";
 import { EmployeeFormModal } from "../components/EmployeeFormModal";
+import { EmployeeFilesTab } from "../../../modules/documents/components/EmployeeFilesTab";
+import "../../../modules/documents/documents.css";
 
 interface EmployeeProfilePageProps {
   employeeId: number;
@@ -65,7 +67,7 @@ export function EmployeeProfilePage({ employeeId, onBack }: EmployeeProfilePageP
       label: "البيانات",
       content: <EmployeeData employee={employee} />,
     },
-    { id: "files", label: "الملفات — قريبًا", content: <ComingSoon title="ملف الموظف PDF" /> },
+    { id: "files", label: "ملف الموظف PDF", content: <EmployeeFilesTab employeeId={employee.id} /> },
     { id: "leaves", label: "الإجازات — قريبًا", content: <ComingSoon title="الإجازات والاستمارات" /> },
     { id: "decisions", label: "القرارات — قريبًا", content: <ComingSoon title="القرارات" /> },
   ];
