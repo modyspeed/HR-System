@@ -58,3 +58,9 @@
 - إكمال low-balance alerts: ربط القناة `leaves:get-low-balances` عبر IPC + preload + contracts + ipcClient، استبدال placeholder في DashboardPage بقائمة حقيقية، تحديث كرت "تنبيه أرصدة" للعدد الفعلي، إضافة CSS.
 - `npm run typecheck` ✅؛ `npm run build` ✅؛ `npm test` (51 ناجحًا) ✅؛ `npm run test:db` (8/8) ✅. Commit: `c88a232` + تكملة low-balance، الرفع نجح.
 - تقرير الجلسة: `reports/P3_Kilo_2026-10-02.md`.
+
+## 2026-10-03 — Kilo — P3-fix (التحقق من إصلاح مراجعة Claude + توثيق + رفع)
+- المالك فكّ حزمة إصلاح Claude (D22–D25) داخل المستودع؛ تحققت من وجود وتحديث كل ملفاتها (migration 003 + تسجيله، الخدمات الثلاث، الاختبارين، SCHEMA، DECISIONS) — لا ملف ناقص ولا قديم.
+- الخطوتان 3 و4 (رسائل أخطاء الخلفية العربية في toasts، وقائمة الموظفين نشطين فقط في شاشة طلب الإجازة) مُستوفاتان بالكود الحالي عبر `errorResult`/`unwrapApiResult`/`toast.error` وفلتر `status:"active"` في `ipcClient` — بلا أي تعديل منطق.
+- `npm run typecheck` ✅؛ `npm test` (52 ناجحًا، 14 متخطاة) ✅؛ `npm run test:db` (15/15: employees 2 + leaves 6 + regression 7) ✅؛ `npm run build` ✅. Commit: P3-fix، tag `P3`، والرفع نجح.
+- تقرير الجلسة: `reports/P3-fix_Kilo_2026-10-03.md`. P3 = تنفيذ مكتمل (مستني فحص يدوي من المالك داخل Electron).

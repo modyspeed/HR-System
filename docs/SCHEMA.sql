@@ -137,3 +137,14 @@ INSERT INTO app_modules (key,enabled) VALUES ('employees',1),('leaves',1),('docu
 INSERT INTO settings (key,value) VALUES ('theme','system'),('sidebar_collapsed','0'),('language','ar');
 -- ملحوظة: عند التنفيذ تُوزَّع الجداول على migrations كل وحدة حسب ARCHITECTURE_MODULES.md
 -- (schema_migrations/app_modules/settings/audit_log/import_batches = core)
+
+-- === إضافة D23 (وحدة leaves، migration 003_request_year_days.sql) ===
+-- يثبّت توزيع أيام كل طلب على السنوات وقت إنشائه، فلا يتغير الرصيد المستهلك بأثر رجعي
+-- لو تغيّرت العطلة الأسبوعية أو أُضيفت عطلة رسمية بعد الاعتماد.
+CREATE TABLE leave_request_year_days (
+  request_id INTEGER NOT NULL REFERENCES leave_requests(id) ON DELETE CASCADE,
+  year INTEGER NOT NULL,
+  days REAL NOT NULL,
+  PRIMARY KEY (request_id, year)
+);
+CREATE INDEX idx_lryd_year ON leave_request_year_days(year);

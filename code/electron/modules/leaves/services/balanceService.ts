@@ -1,6 +1,6 @@
 import type { Database } from "better-sqlite3";
 import { AppError } from "../errors";
-import { splitDaysByYear, type HolidayContext, type YearDays } from "./leaveCalculator";
+import type { YearDays } from "./leaveCalculator";
 
 export type { YearDays };
 
@@ -98,31 +98,16 @@ function sumRequestDaysByStatus(
   year: number,
   status: "approved" | "pending",
 ): number {
-  const requests = database
+  // الأيام مثبّتة وقت إنشاء الطلب في leave_request_year_days، فلا تتأثر بتغيير العطلات لاحقًا.
+  const row = database
     .prepare(`
-      SELECT lr.start_date AS start_date, lr.end_date AS end_date, lt.counts_weekends AS counts_weekends
-      FROM leave_requests AS lr
-      JOIN leave_types AS lt ON lt.id = lr.leave_type_id
-      WHERE lr.employee_id = ? AND lr.leave_type_id = ? AND lr.status = ?
+      SELECT COALESCE(SUM(y.days), 0) AS total
+      FROM leave_request_year_days AS y
+      JOIN leave_requests AS lr ON lr.id = y.request_id
+      WHERE lr.employee_id = ? AND lr.leave_type_id = ? AND lr.status = ? AND y.year = ?
     `)
-    .all(employeeId, leaveTypeId, status) as Array<{ start_date: string; end_date: string; counts_weekends: number }>;
-
-  const weekendDays = readWeekendDays(database);
-  const holidays = readHolidays(database);
-
-  let total = 0;
-  for (const request of requests) {
-    const context: HolidayContext = {
-      weekendDays,
-      holidays,
-      countsWeekends: request.counts_weekends === 1,
-    };
-    const distribution = splitDaysByYear(request.start_date, request.end_date, context);
-    total += distribution
-      .filter((entry) => entry.year === year)
-      .reduce((sum, entry) => sum + entry.days, 0);
-  }
-  return total;
+    .get(employeeId, leaveTypeId, status, year) as { total: number };
+  return row.total;
 }
 
 export function getUsedDays(

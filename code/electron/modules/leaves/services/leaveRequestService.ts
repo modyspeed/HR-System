@@ -102,6 +102,14 @@ function assertEmployeeExists(database: Database, employeeId: number): void {
   if (!employee) throw new AppError("EMPLOYEE_NOT_FOUND", "الموظف غير موجود.");
 }
 
+function assertEmployeeActive(database: Database, employeeId: number): void {
+  const employee = database.prepare("SELECT status FROM employees WHERE id = ?").get(employeeId) as { status: string } | undefined;
+  if (!employee) throw new AppError("EMPLOYEE_NOT_FOUND", "الموظف غير موجود.");
+  if (employee.status !== "active") {
+    throw new AppError("EMPLOYEE_INACTIVE", "لا يمكن تسجيل إجازة لموظف غير نشط.");
+  }
+}
+
 function computeDistribution(
   database: Database,
   startDate: string,
@@ -137,10 +145,12 @@ function assertBalanceCoversRequest(
   if (!deductsBalance) return;
   for (const entry of distribution) {
     const available = getAvailableLeave(database, employeeId, leaveTypeId, entry.year);
-    if (entry.days > available.remaining) {
+    // الطلبات المعلقة محجوزة: تُخصم من المتاح عند فحص أي طلب جديد.
+    const free = available.remaining - available.pending;
+    if (entry.days > free) {
       throw new AppError(
         "INSUFFICIENT_BALANCE",
-        `رصيد الإجازات غير كافٍ لسنة ${entry.year}: المطلوب ${entry.days} يوم والمتبقي ${available.remaining} يوم.`,
+        `رصيد الإجازات غير كافٍ لسنة ${entry.year}: المطلوب ${entry.days} يوم والمتاح ${free} يوم (بعد حجز الطلبات المعلقة).`,
       );
     }
   }
@@ -161,7 +171,7 @@ function writeRequestAudit(
 
 export function createRequest(database: Database, input: unknown): LeaveRequestRecord {
   const request = parseInput(leaveRequestInputSchema, input);
-  assertEmployeeExists(database, request.employeeId);
+  assertEmployeeActive(database, request.employeeId);
   const leaveType = getLeaveTypeById(database, request.leaveTypeId);
   if (!asBoolean(leaveType.active)) throw new AppError("LEAVE_TYPE_INACTIVE", "نوع الإجازة غير مفعل.");
   assertNoOverlap(database, request.employeeId, request.startDate, request.endDate);
@@ -178,7 +188,7 @@ export function createRequest(database: Database, input: unknown): LeaveRequestR
     assertBalanceCoversRequest(database, request.employeeId, request.leaveTypeId, distribution, asBoolean(leaveType.deducts_balance));
   }
 
-  database.transaction(() => {
+  const requestId = database.transaction(() => {
     const result = database.prepare(`
       INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, days, reason, status)
       VALUES (?, ?, ?, ?, ?, ?, 'pending')
@@ -190,8 +200,12 @@ export function createRequest(database: Database, input: unknown): LeaveRequestR
       days,
       request.reason ? request.reason.trim() : null,
     );
-    const requestId = Number(result.lastInsertRowid);
-    writeRequestAudit(database, requestId, "create", null, {
+    const newRequestId = Number(result.lastInsertRowid);
+    const insertYearDays = database.prepare(
+      "INSERT INTO leave_request_year_days (request_id, year, days) VALUES (?, ?, ?)",
+    );
+    for (const entry of distribution) insertYearDays.run(newRequestId, entry.year, entry.days);
+    writeRequestAudit(database, newRequestId, "create", null, {
       leave_type_id: request.leaveTypeId,
       start_date: request.startDate,
       end_date: request.endDate,
@@ -200,16 +214,12 @@ export function createRequest(database: Database, input: unknown): LeaveRequestR
       override: hasOverride,
     });
     if (hasOverride) {
-      writeRequestAudit(database, requestId, "override", null, { reason: request.overrideReason!.trim(), days });
+      writeRequestAudit(database, newRequestId, "override", null, { reason: request.overrideReason!.trim(), days });
     }
+    return newRequestId;
   })();
 
-  const created = fetchRequestById(
-    database,
-    (database.prepare("SELECT id FROM leave_requests WHERE employee_id = ? AND start_date = ? AND end_date = ? ORDER BY id DESC LIMIT 1")
-      .get(request.employeeId, request.startDate, request.endDate) as { id: number }).id,
-  );
-  return mapRequestRow(created);
+  return mapRequestRow(fetchRequestById(database, requestId));
 }
 
 function assertAttachmentPresent(database: Database, requestId: number): void {
@@ -231,6 +241,10 @@ export function decideRequest(database: Database, input: unknown): LeaveRequestR
   if (decision.decision === "approved" && asBoolean(leaveType.requires_attachment)) {
     assertAttachmentPresent(database, decision.requestId);
   }
+  if (decision.decision === "approved" && asBoolean(leaveType.deducts_balance)
+      && !hasOverrideRecord(database, decision.requestId)) {
+    assertApprovalWithinBalance(database, existing);
+  }
 
   database.transaction(() => {
     database.prepare(`
@@ -243,7 +257,7 @@ export function decideRequest(database: Database, input: unknown): LeaveRequestR
       note: decision.note ? decision.note.trim() : null,
     });
     if (decision.decision === "approved") {
-      const { distribution } = splitDaysByYearToDistribution(database, existing);
+      const distribution = loadFrozenDistribution(database, existing.id);
       applyLeave(
         database,
         decision.requestId,
@@ -259,16 +273,30 @@ export function decideRequest(database: Database, input: unknown): LeaveRequestR
   return mapRequestRow(fetchRequestById(database, decision.requestId));
 }
 
-function splitDaysByYearToDistribution(
-  database: Database,
-  existing: LeaveRequestDbRow,
-): { distribution: DistributionEntry[] } {
-  const context: HolidayContext = {
-    weekendDays: readWeekendDays(database),
-    holidays: readHolidays(database),
-    countsWeekends: asBoolean(getLeaveTypeById(database, existing.leave_type_id).counts_weekends),
-  };
-  return { distribution: splitDaysByYear(existing.start_date, existing.end_date, context) };
+function loadFrozenDistribution(database: Database, requestId: number): DistributionEntry[] {
+  return database
+    .prepare("SELECT year, days FROM leave_request_year_days WHERE request_id = ? ORDER BY year")
+    .all(requestId) as DistributionEntry[];
+}
+
+function hasOverrideRecord(database: Database, requestId: number): boolean {
+  const row = database.prepare(
+    "SELECT 1 FROM audit_log WHERE entity = 'leave_request' AND entity_id = ? AND action = 'override'",
+  ).get(requestId);
+  return Boolean(row);
+}
+
+// عند الاعتماد: أعد فحص الرصيد المعتمد فعليًا، إلا لو سُجّل تجاوز بسبب وقت الإنشاء.
+function assertApprovalWithinBalance(database: Database, existing: LeaveRequestDbRow): void {
+  for (const entry of loadFrozenDistribution(database, existing.id)) {
+    const available = getAvailableLeave(database, existing.employee_id, existing.leave_type_id, entry.year);
+    if (entry.days > available.remaining) {
+      throw new AppError(
+        "INSUFFICIENT_BALANCE",
+        `لا يمكن الاعتماد: رصيد سنة ${entry.year} غير كافٍ (المطلوب ${entry.days} يوم والمتبقي ${available.remaining} يوم).`,
+      );
+    }
+  }
 }
 
 export function cancelRequest(database: Database, requestIdInput: unknown): LeaveRequestRecord {
@@ -285,7 +313,7 @@ export function cancelRequest(database: Database, requestIdInput: unknown): Leav
       WHERE id = ?
     `).run("تم الإلغاء", requestId);
     writeRequestAudit(database, requestId, "cancel", { status: "approved" }, { status: "cancelled" });
-    const { distribution } = splitDaysByYearToDistribution(database, existing);
+    const distribution = loadFrozenDistribution(database, existing.id);
     reverseLeave(
       database,
       requestId,

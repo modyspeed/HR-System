@@ -21,6 +21,7 @@ async function createDatabase(): Promise<Database> {
   database.exec(readFileSync(new URL("../employees/migrations/001_employees.sql", import.meta.url), "utf8"));
   database.exec(readFileSync(new URL("./migrations/001_leaves.sql", import.meta.url), "utf8"));
   database.exec(readFileSync(new URL("./migrations/002_seed.sql", import.meta.url), "utf8"));
+  database.exec(readFileSync(new URL("./migrations/003_request_year_days.sql", import.meta.url), "utf8"));
   database.exec(readFileSync(new URL("../decisions/migrations/001_decisions.sql", import.meta.url), "utf8"));
   database.exec(readFileSync(new URL("../documents/migrations/001_documents.sql", import.meta.url), "utf8"));
   return database as Database;

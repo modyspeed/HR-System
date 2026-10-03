@@ -6,12 +6,9 @@
  * احتساب العطلات) تأتي من المتصل/الإعدادات.
  */
 
-export class AppError extends Error {
-  constructor(public readonly code: string, message: string) {
-    super(message);
-    this.name = "AppError";
-  }
-}
+import { AppError } from "../errors";
+
+export { AppError };
 
 export interface HolidayContext {
   /** أرقام أيام العطلة الأسبوعية وفق ترقيم JS Date#getDay (0=الأحد ... 6=السبت). */
