@@ -1,0 +1,43 @@
+appId: com.hr-system.desktop
+productName: HR System
+copyright: Copyright © 2026 HR System
+# asar is disabled so the Prisma SQLite query engine (.node binary) and the
+# generated client load from a real path instead of a virtual asar archive.
+asar: false
+directories:
+  buildResources: build
+  output: dist-electron-builder
+files:
+  - out/**/*
+  - package.json
+  # Runtime Node deps — everything else is bundled into out/ or is a devDependency.
+  - node_modules/@prisma/**/*
+  - node_modules/bcryptjs/**/*
+  - '!**/*.{ts,tsx,map,d.ts}'
+  - '!{.eslintignore,.eslintrc.cjs,.gitignore}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tailwind.config.js,postcss.config.js,electron.vite.config.ts,electron-builder.yml}'
+  - '!{prisma/dev.db,prisma/dev.db-journal}'
+  - '!src/**'
+  - '!electron/**'
+  - '!scripts/**'
+  - '!docs/**'
+# The generated Prisma client lives in node_modules/.prisma, which electron-builder
+# prunes as a non-package folder. Copy it in after packaging.
+afterPack: ./scripts/after-pack.cjs
+extraMetadata:
+  main: ./out/main/index.js
+win:
+  target:
+    # dir is produced first so a runnable app always exists; nsis then yields the
+    # installer. NB: the nsis step extracts the winCodeSign archive, which needs
+    # the Windows symlink privilege (Developer Mode / admin) to succeed.
+    - dir
+    - nsis
+  artifactName: ${productName}-${version}-Setup.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: HR System

@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+out/
+dist/
+dist-electron-builder/
+build/
+
+# Vite / electron-vite cache
+.vite/
+
+# Prisma — local development database only
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db
+prisma/*.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Agent / tooling state (plan content lives in README.md)
+.kilo/
+
+# TypeScript build info
+*.tsbuildinfo

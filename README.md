@@ -1,0 +1,345 @@
+# نظام إدارة الموارد البشرية — HR System
+
+تطبيق سطح مكتب لإدارة الموارد البشرية مبني بـ **Electron + React + TypeScript + Prisma**، بواجهة فاخرة داكنة (glassmorphism + soft 3D) وثنائي اللغة (عربي/إنجليزي) مع دعم كامل لـ RTL.
+
+> **الحالة الحالية:** المرحلة 1 — وحدة **إدارة المستخدمين والصلاحيات** مكتملة. الوحدات الأخرى (الموظفون، الحضور والانصراف، الإجازات، الرواتب، تقييم الأداء، التوظيف، الأقسام، التقارير) مخططة كإضافات لاحقة — النظام مصمم من الأساس ليكون قابلاً للامتداد.
+
+---
+
+## جدول المحتويات
+
+- [نظرة عامة والقرارات المعتمدة](#نظرة-عامة-والقرارات-المعتمدة)
+- [المتطلبات](#المتطلبات)
+- [البدء السريع](#البدء-السريع)
+- [أوامر التطوير](#أوامر-التطوير)
+- [معمارية المشروع](#معمارية-المشروع)
+- [قاعدة البيانات](#قاعدة-البيانات)
+- [نظام التصميم](#نظام-التصميم)
+- [الأمان والصلاحيات](#الأمان-والصلاحيات)
+- [التعدد اللغوي و RTL](#التعدد-اللغوي-و-rtl)
+- [بناء وتغليف التطبيق](#بناء-وتغليف-التطبيق)
+- [التحقق والجودة](#التحقق-والجودة)
+- [إضافة وحدة جديدة](#إضافة-وحدة-جديدة)
+- [استكشاف الأخطاء](#استكشاف-الأخطاء)
+
+---
+
+## نظرة عامة والقرارات المعتمدة
+
+| القرار | الاختيار |
+|---|---|
+| المنصة | Electron (تطبيق سطح مكتب، Windows أولاً) |
+| الواجهة | React 18 + TypeScript + Vite (عبر `electron-vite`) |
+| قاعدة البيانات | SQLite محلية + Prisma (تعمل في الـ main process فقط) |
+| الهوية البصرية | داكن فاخر + glassmorphism + soft 3D + motion tokens |
+| اللغات | العربية (RTL) افتراضياً + الإنجليزية (LTR)، تبديل فوري |
+| الصلاحيات | أدوار (Roles) + صلاحيات لكل وحدة (per-module permissions) |
+| أول تشغيل | حساب افتراضي جاهز (`admin` / `admin123`) |
+| مستوى الـ 3D | CSS transforms + ظلال طبقية + Framer Motion (أداء خفيف) |
+
+## المتطلبات
+
+- **Node.js** >= 18 (مُختبر على Node 24)
+- **npm** (يُستخدم package-lock.json)
+- نظام Windows لتشغيل أمر التغليف `build:win`
+
+## البدء السريع
+
+```bash
+npm install
+npm run prisma:generate   # توليد عميل Prisma (مرة بعد التثبيت)
+npm run dev               # تشغيل التطبيق في وضع التطوير
+```
+
+عند أول تشغيل يُنشئ التطبيق قاعدة البيانات تلقائياً في مجلد بيانات المستخدم، ويُجهِّز الأدوار الأساسية وحساب المدير الافتراضي:
+
+```
+اسم المستخدم: admin
+كلمة المرور:  admin123
+```
+
+> **تنبيه:** غيِّر كلمة مرور المدير الافتراضي من شاشة "ملفي الشخصي" فور أول دخول في بيئة الإنتاج.
+
+## أوامر التطوير
+
+| الأمر | الوصف |
+|---|---|
+| `npm run dev` | تشغيل التطبيق الكامل (Electron + Vite + Prisma) في وضع التطوير |
+| `npm run build` | بناء main + preload + renderer عبر `electron-vite build` |
+| `npm run preview` | معاينة ناتج البناء |
+| `npm run typecheck` | فحص أنواع TypeScript (`tsconfig.node.json` + `tsconfig.web.json`) |
+| `npm run lint` | فحص ESLint (صفر تحذيرات مسموحة) |
+| `npm run prisma:generate` | توليد عميل Prisma |
+| `npm run prisma:snapshot` | تحديث لقطة DDL بعد أي تعديل على `schema.prisma` |
+| `npm run build:win` | بناء + تغليف نسخة Windows (مجلد غير مضغوط + مثبّت NSIS) |
+
+---
+
+## معمارية المشروع
+
+```
+HR-System/
+├── electron/
+│   ├── main/
+│   │   ├── index.ts          # دورة حياة التطبيق + إنشاء النافذة
+│   │   ├── window.ts         # إعدادات BrowserWindow (contextIsolation)
+│   │   ├── prisma.ts         # تهيئة PrismaClient + مسار DB + تطبيق لقطة DDL
+│   │   ├── db-snapshot.ts    # لقطة SQLite DDL (مُولَّدة تلقائياً — لا تُعدَّل يدوياً)
+│   │   ├── seed.ts           # seeding أول تشغيل (أدوار + admin)
+│   │   ├── auth.ts           # تسجيل الدخول + bcryptjs + جلسة في الذاكرة
+│   │   └── ipc/
+│   │       ├── index.ts      # تسجيل كل الـ handlers
+│   │       ├── registry.ts   # مجمِّع الحماية بالصلاحيات
+│   │       ├── auth.ipc.ts   # auth:login / auth:logout / auth:me
+│   │       ├── users.ipc.ts  # مستخدمو النظام
+│   │       ├── roles.ipc.ts  # الأدوار والصلاحيات
+│   │       └── settings.ipc.ts
+│   └── preload/
+│       └── index.ts          # contextBridge → window.api (مُنمَّق بالكامل)
+├── shared/                   # كود مشترك بين main و renderer
+│   ├── permissions.ts        # كتالوج الصلاحيات + hasPermission() الموحَّد
+│   └── types.ts              # الأنواع المشتركة
+├── src/                      # React renderer
+│   ├── main.tsx
+│   ├── App.tsx               # Router + AnimatePresence + guards
+│   ├── components/
+│   │   ├── ui/               # GlassCard, SoftButton, Badge, Input, Modal, Table, Checkbox, Select, Toggle, Avatar, ConfirmDialog, RowActions, Skeleton
+│   │   ├── layout/           # AppShell, Sidebar, Topbar, CommandSearch, Aurora, PageHeader
+│   │   └── feedback/         # EmptyState, NoAccess, ConfirmDialog, Toaster, BootScreen
+│   ├── modules/
+│   │   ├── auth/             # شاشة تسجيل الدخول
+│   │   ├── dashboard/        # لوحة مبسطة (إحصائيات المستخدمين/الأدوار)
+│   │   ├── users/            # قائمة + نموذج مستخدم
+│   │   ├── roles/            # قائمة الأدوار + محرر مصفوفة الصلاحيات
+│   │   ├── profile/          # ملفي الشخصي (تغيير كلمة المرور)
+│   │   └── settings/         # الإعدادات (تبديل اللغة)
+│   ├── lib/
+│   │   ├── permissions.ts    # إعادة تصدير hasPermission (منطق موحد للطبقتين)
+│   │   ├── ipc.ts            # طبقة window.api + الأنواع
+│   │   ├── motion.ts         # motion tokens (spring/variants/durations)
+│   │   ├── errors.ts         # معالجة أخطاء IPC
+│   │   └── utils.ts          # cn() وغيرها
+│   ├── store/                # Zustand: authStore, uiStore
+│   ├── i18n/                 # index.ts + locales/ar.json + locales/en.json
+│   ├── hooks/                # useTilt (3D), useDebounce, usePermission
+│   └── styles/
+│       ├── tokens.css        # ألوان/ظلال/حركة
+│       ├── glass.css         # أدوات الزجاج والـ 3D
+│       └── index.css
+├── prisma/
+│   ├── schema.prisma         # مخطط قاعدة البيانات (مصدر الحقيقة)
+│   └── migrations/           # ترحيلات Prisma (للتطوير)
+├── scripts/
+│   ├── after-pack.cjs        # hook لتغليف electron-builder (نسخ Prisma client)
+│   ├── prisma-snapshot.mjs   # توليد db-snapshot.ts من المخطط
+│   └── smoke-db.mjs          # اختبار دقيقي لطبقة البيانات
+├── electron.vite.config.ts
+├── electron-builder.yml
+├── tailwind.config.js
+└── package.json
+```
+
+### قاعدة هندسية صارمة
+
+Prisma و bcrypt وأي كود Node يعمل **في الـ main process فقط**. الـ renderer يصل للبيانات حصرياً عبر `ipcMain.handle` + `contextBridge`، مع:
+
+```ts
+nodeIntegration: false
+contextIsolation: true
+```
+
+هذا يضمن أن قاعدة البيانات وكلمات المرور لا يمكن الوصول إليها من كود الواجهة، وأن كل عملية تمر عبر طبقة الصلاحيات الموثوقة في الـ main process.
+
+---
+
+## قاعدة البيانات
+
+المخطط في `prisma/schema.prisma` يحتوي على أربعة نماذج:
+
+- **User** — المستخدمون (اسم المستخدم، البريد، الاسم الكامل، hash كلمة المرور، الدور، الحالة).
+- **Role** — الأدوار (`key` فريد مثل `super_admin`، أسماء عربية/إنجليزية، علامة `isSystem` للأدوار المحمية).
+- **RolePermission** — ربط دور بمفاتيح الصلاحيات (علاقة كثير-لكثير، حذف متسلسل مع الدور).
+- **Setting** — إعدادات عامة بقيمة مفتاحية (اللغة، علامة التهيئة...).
+
+### مسار قاعدة البيانات
+
+تُخزَّن في `app.getPath('userData')/hr-system.db` — أي **خارج مجلد التطبيق**، فتبقى محفوظة بعد التحديثات ولا تُفقد عند إعادة التثبيت.
+
+### آلية التهيئة (لماذا لقطة DDL؟)
+
+التطبيق المُغلَّف لا يستطيع تشغيل `prisma migrate` (محرّكات Prisma غير مضمّنة بالكامل في حزمة Electron). لذلك:
+
+1. `npm run prisma:snapshot` يولِّد `electron/main/db-snapshot.ts` — لقطة DDL خام بصيغة SQLite من المخطط.
+2. عند أول تشغيل، `electron/main/prisma.ts` يطبِّق هذه الـ DDL مباشرة على قاعدة البيانات الجديدة.
+3. بعدها يعمل `seed.ts` لإنشاء الأدوار الأساسية وحساب المدير.
+
+> **بعد أي تعديل على `schema.prisma`:** شغِّل `npm run prisma:snapshot` ثم `npm run prisma:generate`، وارتِقِ برقم إصدار التطبيق في `package.json` لتطبيق الترقية على قواعد البيانات الموجودة.
+
+---
+
+## نظام التصميم
+
+### لوحة الألوان (داكن فاخر)
+
+```css
+--bg-900:#08080C;  --bg-800:#0D0D14;  --bg-700:#14141D;
+--glass:rgba(255,255,255,.045);  --glass-strong:rgba(255,255,255,.075);
+--border:rgba(255,255,255,.09);  --border-strong:rgba(255,255,255,.14);
+--accent-400:#F6C453; --accent-500:#E0A437; --accent-600:#B97E1E;  /* ذهبي فاخر */
+--violet-400:#8B7CF6;                                                /* ثانوي */
+--teal-400:#3FD0A7;  --rose-400:#F26D8B;
+--text-high:#F5F3EF; --text-med:rgba(245,243,239,.66); --text-low:rgba(245,243,239,.40);
+```
+
+خلفية حية: تدرّجات قطبية شفافة (aurora) بطيئة الحركة + حبيبات ناعمة (noise) لإحساس العمق الفاخر.
+
+### وصفة الزجاج (glassmorphism)
+
+```css
+background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+backdrop-filter: blur(20px) saturate(140%);
+border: 1px solid var(--border);
+border-radius: 20px;
+box-shadow: 0 24px 60px -20px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08);
+```
+
+### وصفة الـ Soft 3D
+
+- **ظلال طبقية ثلاثية:** ambient (كبير/ناعم) + key (اتجاهي من أعلى-يسار) + rim (inset من أسفل-يمين) = إحساس إضاءة ثلاثية.
+- **شريط إضاءة** متدرّج عند الحافة العلوية للبطاقات يحاكي انعكاس الضوء.
+- **التفاعل:** `transform: perspective(1000px) rotateX(2deg) translateY(-4px)` عند hover + hook `useTilt` يميل البطاقة تتبعاً لمؤشر الفأرة.
+- **الحالة المضغوطة:** ظل inset عميق للأزرار (neumorphism داكن).
+
+### Motion tokens (Framer Motion)
+
+```ts
+export const spring = { type: 'spring', stiffness: 260, damping: 24, mass: 0.8 }
+export const variants = { fadeUp, listItem, pageTransition }
+export const durations = { fast: 0.18, base: 0.26, slow: 0.40 }
+```
+
+تُستخدم في: انتقال الصفحات (AnimatePresence)، ظهور الجداول متدرّجاً، micro-interactions للأزرار، القوائم المنسدلة.
+
+### الخطوط
+
+`@fontsource-variable/tajawal` و `cairo` (عربي) + `@fontsource/plus-jakarta-sans` و `playfair-display` (إنجليزي)، تُبدَّل عبر class على `<html>` حسب اللغة. **محلية بالكامل** (تُحمَّل من الحزمة) ليعمل التطبيق دون اتصال بالإنترنت.
+
+---
+
+## الأمان والصلاحيات
+
+نظام حماية مزدوج:
+
+**الطبقة 1 — الـ main process (المصدر الموثوق):** كل IPC handler مُغلَّف بطبقة تتحقق من الجلسة والدور قبل تنفيذ أي عملية. لا يمكن تجاوزها من الواجهة.
+
+**الطبقة 2 — الـ renderer (طبقة UX):** مكوِّن `<Protected permission="users.edit">`، حرس المسارات في React Router، وعناصر الـ sidebar تُفلتر حسب الصلاحيات (**إخفاء وليس تعطيل فقط**).
+
+**منطق موحَّد:** `hasPermission(role, key)` مُصدَّر من `shared/permissions.ts` ويُستخدم في الطبقتين، فلا يمكن أن تختلف القاعدة بين الواجهة والخادم.
+
+### مفاتيح الصلاحيات (المرحلة 1)
+
+```
+users.view | users.create | users.edit | users.delete | users.manage_status
+roles.view | roles.create | roles.edit | roles.delete
+settings.view | settings.edit
+```
+
+### الأدوار المُجهَّزة (seeded)
+
+| الدور | الصلاحيات | ملاحظات |
+|---|---|---|
+| `super_admin` | تجاوز ضمني لكل الصلاحيات | لا يحتاج تعيين كل المفاتيح يدوياً |
+| `hr_manager` | كل ما سبق عدا `roles.delete` | |
+| `employee` | `settings.view` فقط | قاعدة للوحدات القادمة |
+
+### الحمايات
+
+- لا يمكن حذف `super_admin` ولا تعطيله (مرفوض من الـ main process نفسه).
+- كلمات المرور تُخزَّن عبر `bcryptjs` بكلفة 10 — اخترنا النسخة JS الصافية لتجنب مشاكل التجميع (node-gyp) في Electron.
+- الجلسة في ذاكرة الـ main process فقط (`auth:login` / `auth:logout` / `auth:me`).
+
+---
+
+## التعدد اللغوي و RTL
+
+- `react-i18next` + ملفا `ar.json` / `en.json` (كل النصوص بما فيها أسماء الأدوار ومصفوفة الصلاحيات).
+- عند التبديل: `i18n.changeLanguage` → `document.dir = 'rtl'|'ltr'` → تبديل الخط → حفظ في جدول `Setting`.
+- تُستخدم **CSS logical properties** (`ps-`, `pe-`, `ms-`, `me-`) و variants من Tailwind `rtl:`/`ltr:` لقلب الأيقونات والهوامش تلقائياً.
+- **قاعدة صارمة:** لا قيم `left`/`right` صريحة في CSS — logical properties فقط.
+- الافتراضي عربي RTL.
+
+---
+
+## بناء وتغليف التطبيق
+
+```bash
+npm run build:win
+```
+
+ينتج مجلدين في `dist-electron-builder/`:
+- `win-unpacked/` — التطبيق جاهز التشغيل مباشرة.
+- مثبّت NSIS (`HR System-1.0.0-Setup.exe`).
+
+### لماذا `asar: false`؟
+
+المعامل `asar` مُعطَّل في `electron-builder.yml` عمداً: حتى يتمكّن عميل Prisma (محرك `.node` الثنائي) من التحميل من مسار حقيقي بدلاً من أرشيف asar افتراضي.
+
+### afterPack hook
+
+سكربت `scripts/after-pack.cjs` ينسخ `node_modules/.prisma` (العميل المُولَّد) إلى داخل الحزمة، لأن electron-builder يحذفه باعتباره ليس حزمة npm حقيقية. بدون هذا، سيفشل التطبيق المُغلَّف في الاتصال بقاعدة البيانات.
+
+---
+
+## التحقق والجودة
+
+**أوامر تلقائية:**
+
+```bash
+npm run typecheck   # tsc --noEmit — يجب أن تعود نظيفة
+npm run lint        # ESLint — صفر تحذيرات
+npm run build       # electron-vite build
+npm run build:win   # التأكد من نسخ Prisma engines في الحزمة النهائية
+node scripts/smoke-db.mjs   # اختبار دقيقي لطبقة البيانات
+```
+
+**قائمة التحقق اليدوية:**
+
+- [ ] أول تشغيل ينشئ DB + أدوار + `admin/admin123`.
+- [ ] تسجيل دخول ناجح؛ فشل بكلمة خاطئة → رسالة + اهتزاز الحقل.
+- [ ] تبديل اللغة يقلب كامل الواجهة (RTL↔LTR + الخط) ويُحفظ.
+- [ ] إنشاء مستخدم، تعيين دور، تعطيله، حذفه (مع تأكيد).
+- [ ] محاولة حذف/تعطيل `super_admin` → ممنوع.
+- [ ] دخول بحساب `employee` → عناصر المستخدمين/الأدوار مخفية + المسارات محجوبة + IPC يرفض.
+- [ ] تعديل صلاحيات `hr_manager` ينعكس فوراً عند المستخدمين المرتبطين.
+
+---
+
+## إضافة وحدة جديدة
+
+النظام مصمم ليكون قابلاً للامتداد. لإضافة وحدة (مثلاً "الموظفون"):
+
+1. **الصلاحيات:** أضِف مفاتيح الوحدة إلى `MODULE_PERMISSIONS` في `shared/permissions.ts` (هذا هو المصدر، كل المستهلكين يُشتقون منه).
+2. **الـ main:** أضِف `employees.ipc.ts` مع تجميع كل handler بالصلاحيات المناسبة، وسجِّله في `ipc/index.ts`.
+3. **الـ preload:** أضِف الدوال إلى `window.api` في `electron/preload/index.ts` مع الأنواع.
+4. **الواجهة:** أنشئ `src/modules/employees/` (قائمة + نماذج)، أضِف مساراً محمياً في `App.tsx`، وعنصراً في `src/components/layout/nav.ts` (يُفلتر تلقائياً حسب الصلاحية).
+5. **قاعدة البيانات:** عدِّل `prisma/schema.prisma` → `npm run prisma:snapshot` → `npm run prisma:generate`.
+6. **اللغات:** أضِف الترجمات إلى `ar.json` و `en.json`.
+
+---
+
+## استكشاف الأخطاء
+
+| المشكلة | السبب والحل |
+|---|---|
+| خطأ "Prisma did not produce any DDL" | شغِّل `npm run prisma:generate` أولاً، تأكد من صحة `schema.prisma` |
+| التطبيق المُغلَّف لا يتصل بقاعدة البيانات | `node_modules/.prisma` غير منسوخ — تأكد أن `scripts/after-pack.cjs` يعمل، وأنك شغّلت `prisma:generate` قبل `build:win` |
+| فشل تجميع bcrypt | المشروع يستخدم `bcryptjs` (JS صافٍ) — لا تستبدله بـ `bcrypt` الذي يحتاج node-gyp |
+| بطء في blur/3D | حصر `backdrop-filter` على عناصر محدودة + استخدم `will-change` باعتدال |
+| RTL يكسر التخطيط | توجد قيمة `left`/`right` صريحة — استبدلها بـ logical properties |
+| فقدان DB بعد التحديث | تأكد أن قاعدة البيانات في `userData` وليست داخل مجلد التطبيق |
+
+---
+
+## الترخيص
+
+MIT — راجع `package.json`.

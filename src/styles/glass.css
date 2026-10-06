@@ -1,0 +1,314 @@
+/* ==========================================================================
+   Glassmorphism + Soft 3D
+   All surfaces read from the token variables in tokens.css so a single
+   `.light` class on <html> re-skins the whole app.
+   ========================================================================== */
+
+@layer components {
+  /* ---------------------------- Aurora background --------------------------- */
+  .aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 12% 4%, var(--aurora-wash-a), transparent 60%),
+      radial-gradient(110% 80% at 88% 96%, var(--aurora-wash-b), transparent 62%),
+      var(--bg-900);
+  }
+  .aurora::before,
+  .aurora::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    will-change: transform;
+  }
+  .aurora::before {
+    width: 46vw;
+    height: 46vw;
+    inset-block-start: -12vw;
+    inset-inline-start: -8vw;
+    background: radial-gradient(circle, var(--aurora-a), transparent 68%);
+    animation: auroraDrift 24s ease-in-out infinite;
+  }
+  .aurora::after {
+    width: 52vw;
+    height: 52vw;
+    inset-block-end: -16vw;
+    inset-inline-end: -10vw;
+    background: radial-gradient(circle, var(--aurora-b), transparent 68%);
+    animation: auroraDrift2 30s ease-in-out infinite;
+  }
+  @keyframes auroraDrift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(5%, -7%, 0) scale(1.14);
+    }
+  }
+  @keyframes auroraDrift2 {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1.06);
+    }
+    50% {
+      transform: translate3d(-6%, 5%, 0) scale(1);
+    }
+  }
+
+  /* fine grain noise for depth */
+  .noise {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    opacity: var(--noise-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ------------------------------ Glass surfaces ----------------------------- */
+  .glass {
+    background: var(--glass-grad);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--border);
+  }
+  .glass-strong {
+    background: var(--glass-grad-strong);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid var(--border-strong);
+  }
+
+  .glass-card {
+    position: relative;
+    border-radius: var(--r-2xl);
+    box-shadow: var(--shadow-raised), var(--shadow-rim);
+    overflow: hidden;
+  }
+
+  /* top light bar — simulates a light source grazing the card edge */
+  .light-bar::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--light-bar-hi), transparent);
+    pointer-events: none;
+  }
+  :root .light-bar::before {
+    --light-bar-hi: rgba(255, 255, 255, 0.22);
+  }
+  :root.light .light-bar::before {
+    --light-bar-hi: rgba(255, 255, 255, 0.9);
+  }
+
+  /* --------------------------------- Soft 3D -------------------------------- */
+  .soft-3d {
+    box-shadow:
+      var(--shadow-raised),
+      var(--shadow-rim);
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+    will-change: transform;
+  }
+  .lift {
+    transform: perspective(1000px) rotateX(1.6deg) translateY(-4px);
+    box-shadow:
+      var(--shadow-lift),
+      0 0 0 1px var(--border-strong),
+      var(--shadow-rim);
+  }
+
+  /* embossed / debossed neumorphic plates */
+  .emboss {
+    box-shadow: var(--shadow-raised), var(--shadow-rim);
+  }
+  .deboss {
+    box-shadow: var(--shadow-inset);
+  }
+
+  /* --------------------------------- Buttons -------------------------------- */
+  .btn-3d {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--r-pill);
+    transition:
+      transform var(--dur-fast) var(--ease-spring),
+      box-shadow var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
+  }
+  .btn-3d:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+  .btn-3d:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: var(--shadow-inset);
+  }
+  .btn-3d:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* light sweep across the face on hover */
+  .btn-sheen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    transform: translateX(-130%) skewX(-18deg);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--c-accent-ink) / 0.22),
+      transparent
+    );
+    pointer-events: none;
+  }
+  .btn-sheen:hover:not(:disabled)::after {
+    animation: sheen 0.9s var(--ease-out);
+  }
+  @keyframes sheen {
+    0% {
+      transform: translateX(-130%) skewX(-18deg);
+    }
+    100% {
+      transform: translateX(230%) skewX(-18deg);
+    }
+  }
+
+  /* ------------------------------ Field surfaces ----------------------------- */
+  .field {
+    background: var(--well);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    box-shadow: var(--shadow-inset);
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .field:hover {
+    border-color: var(--border-strong);
+  }
+  .field:focus-within {
+    border-color: var(--border-accent);
+    box-shadow: var(--shadow-focus);
+  }
+  .field-invalid {
+    border-color: rgb(var(--c-rose-400) / 0.6) !important;
+  }
+
+  /* ----------------------------------- Misc --------------------------------- */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+  }
+  .scroll-area {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+  .scroll-area::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-area::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+    border-radius: 99px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scroll-area::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover);
+    background-clip: padding-box;
+  }
+  :root {
+    --scroll-thumb: rgb(var(--c-line) / 0.16);
+    --scroll-thumb-hover: rgb(var(--c-line) / 0.26);
+  }
+
+  .shimmer-surface {
+    position: relative;
+    overflow: hidden;
+    background: var(--shimmer-bg);
+  }
+  .shimmer-surface::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-200%);
+    background: linear-gradient(90deg, transparent, var(--shimmer-hi), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+  @keyframes shimmer {
+    100% {
+      transform: translateX(200%);
+    }
+  }
+  :root {
+    --shimmer-bg: rgb(var(--c-surface) / 0.05);
+    --shimmer-hi: rgb(var(--c-surface) / 0.12);
+  }
+  :root.light {
+    --shimmer-bg: rgb(var(--c-surface) / 0.07);
+    --shimmer-hi: rgb(var(--c-surface) / 0.16);
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(120deg, var(--accent-300), var(--accent-500) 55%, var(--accent-300));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* focus ring for keyboard users */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+
+  /* ------------------------------ Toggle switch ----------------------------- */
+  .switch {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    flex: none;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: var(--track);
+    box-shadow: var(--shadow-inset);
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 3px;
+    cursor: pointer;
+    transition: background var(--dur-base) var(--ease-out);
+  }
+  .switch::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--switch-knob);
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.35);
+    transition: background var(--dur-base) var(--ease-out);
+  }
+  .switch[aria-checked='true'] {
+    background: linear-gradient(180deg, rgb(var(--c-accent-300)), rgb(var(--c-accent-500)));
+    justify-content: flex-end;
+  }
+  .switch[aria-checked='true']::after {
+    background: var(--switch-knob-on);
+  }
+  :root {
+    --switch-knob: #3a3a40;
+    --switch-knob-on: rgb(var(--c-ink));
+  }
+  :root.light {
+    --switch-knob: #ffffff;
+    --switch-knob-on: #ffffff;
+  }
+}

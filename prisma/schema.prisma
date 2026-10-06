@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  email        String?   @unique
+  fullName     String
+  passwordHash String
+  role         Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  roleId       String
+  isActive     Boolean   @default(true)
+  avatarPath   String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  nameAr      String
+  nameEn      String
+  isSystem    Boolean          @default(false)
+  permissions RolePermission[]
+  users       User[]
+
+  @@index([key])
+}
+
+model RolePermission {
+  roleId        String
+  permissionKey String
+  role          Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionKey])
+  @@index([permissionKey])
+}
+
+model Setting {
+  key   String @id
+  value String
+}

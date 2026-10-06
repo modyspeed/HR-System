@@ -1,0 +1,58 @@
+@import './tokens.css';
+@import './glass.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg-900);
+    color: var(--text-high);
+    font-family: var(--font-ar), 'Cairo', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+    transition: background-color var(--dur-slow) var(--ease-out), color var(--dur-slow) var(--ease-out);
+  }
+
+  body.font-arabic {
+    font-family: 'Cairo', system-ui, sans-serif;
+  }
+
+  /* numbers stay readable in both directions */
+  :root[dir='rtl'] body {
+    letter-spacing: 0;
+  }
+
+  ::selection {
+    background: var(--accent-glow);
+    color: var(--text-high);
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* hide the native number spinners */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}

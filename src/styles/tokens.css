@@ -1,0 +1,224 @@
+/* ==========================================================================
+   Design tokens
+   Dark theme is the default (:root). Light theme overrides under :root.light.
+   Colors are stored as raw RGB channels so Tailwind opacity modifiers work:
+   rgb(var(--c-accent-500) / <alpha-value>)
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+
+  /* ---------- fonts ---------- */
+  --font-ar: 'Cairo', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Cairo', system-ui, sans-serif;
+
+  /* ---------- surfaces (charcoal, faintly warm) ---------- */
+  --c-bg-900: 11 11 12;
+  --c-bg-800: 16 16 18;
+  --c-bg-700: 22 22 26;
+  --c-bg-600: 30 30 34;
+  --c-bg-500: 42 42 46;
+
+  /* ---------- accent: caramel / coffee tan (hue ~30deg) ---------- */
+  --c-accent-300: 233 200 152;
+  --c-accent-400: 201 160 122;
+  --c-accent-500: 176 134 90;
+  --c-accent-600: 133 102 66;
+  --c-accent-ink: 26 20 8;
+  --accent-glow: rgba(224, 176, 112, 0.35);
+  --border-accent: rgba(201, 152, 90, 0.6);
+
+  /* ---------- secondary accents ---------- */
+  --c-teal-400: 63 208 167;
+  --c-violet-400: 139 124 246;
+  --c-rose-400: 242 109 139;
+
+  /* ---------- text (warm off-white) ---------- */
+  --c-ink: 242 237 228;
+  --c-muted: 154 150 142;
+
+  /* ---------- panel / well (soft 3D plates) ---------- */
+  --panel-grad: linear-gradient(145deg, #1e1e22, #16161a);
+  --c-well: 18 18 21;
+  --c-track: 12 12 14;
+
+  /* ---------- translucent fills: white lifts the dark canvas ---------- */
+  --c-surface: 255 255 255;
+  --sa-soft: 0.025;
+  --sa-base: 0.045;
+  --sa-strong: 0.07;
+  --sa-hi: 0.1;
+
+  /* ---------- hairlines ---------- */
+  --c-line: 255 255 255;
+  --la-base: 0.07;
+  --la-strong: 0.12;
+
+  /* ---------- frosted glass ---------- */
+  --c-glass: 255 255 255;
+  --ga-base: 0.05;
+  --ga-strong: 0.085;
+  --glass-grad: linear-gradient(145deg, rgba(30, 30, 34, 0.98), rgba(22, 22, 26, 0.98));
+  --glass-grad-strong: linear-gradient(145deg, rgba(36, 36, 41, 1), rgba(20, 20, 23, 1));
+
+  /* ---------- field surfaces ---------- */
+  --field-bg: rgba(0, 0, 0, 0.28);
+  --field-bg-focus: rgba(0, 0, 0, 0.38);
+  --topbar-bg: rgba(15, 15, 18, 0.55);
+  --glass-toast: rgba(24, 24, 30, 0.92);
+
+  /* ---------- modal scrim ---------- */
+  --c-scrim: 0 0 0;
+  --scrim-a: 0.55;
+
+  /* ---------- soft 3D shadows ---------- */
+  --shadow-raised: -6px -6px 14px rgba(255, 255, 255, 0.04), 8px 8px 20px rgba(0, 0, 0, 0.7);
+  --shadow-inset: inset 4px 4px 10px rgba(0, 0, 0, 0.6), inset -3px -3px 8px rgba(255, 255, 255, 0.03);
+  --shadow-rim: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --shadow-glow: 0 0 0 1px #c9985a, 0 0 18px rgba(201, 152, 90, 0.35);
+  --shadow-cta: 0 12px 30px rgba(201, 152, 90, 0.25);
+  --shadow-ambient: 0 34px 70px -26px rgba(0, 0, 0, 0.78);
+  --shadow-key: 0 14px 28px -14px rgba(0, 0, 0, 0.62);
+  --shadow-rim-deep: inset 0 -1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pressed: inset 4px 4px 10px rgba(0, 0, 0, 0.6), inset -3px -3px 8px rgba(255, 255, 255, 0.03);
+  --shadow-focus: 0 0 0 2px #c9985a, 0 0 18px rgba(201, 152, 90, 0.35);
+  --shadow-pop: 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+  --shadow-modal: 0 50px 100px -30px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 40px 80px -28px rgba(0, 0, 0, 0.85);
+
+  /* ---------- aurora ambient glows ---------- */
+  --aurora-a: rgba(224, 176, 112, 0.13);
+  --aurora-b: rgba(63, 208, 167, 0.1);
+  --aurora-wash-a: rgba(224, 176, 112, 0.07);
+  --aurora-wash-b: rgba(63, 208, 167, 0.06);
+  --noise-opacity: 0.03;
+
+  /* ---------- radii ---------- */
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-2xl: 32px;
+  --r-pill: 999px;
+
+  /* ---------- motion ---------- */
+  --dur-fast: 0.18s;
+  --dur-base: 0.26s;
+  --dur-slow: 0.4s;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* ---------- layout ---------- */
+  --sidebar-w: 260px;
+  --sidebar-w-collapsed: 76px;
+  --topbar-h: 66px;
+}
+
+/* ==========================================================================
+   Light theme — warm ivory canvas with deeper caramel accents
+   ========================================================================== */
+:root.light {
+  color-scheme: light;
+
+  /* ---------- surfaces (warm ivory) ---------- */
+  --c-bg-900: 232 223 211;
+  --c-bg-800: 238 228 214;
+  --c-bg-700: 226 213 194;
+  --c-bg-600: 210 193 169;
+  --c-bg-500: 190 170 144;
+
+  /* ---------- accent: deeper caramel for contrast on ivory ---------- */
+  --c-accent-300: 216 158 93;
+  --c-accent-400: 194 133 68;
+  --c-accent-500: 164 108 52;
+  --c-accent-600: 128 83 36;
+  --c-accent-ink: 42 20 5;
+  --accent-glow: rgba(240, 127, 79, 0.45);
+  --border-accent: rgba(240, 127, 79, 0.65);
+
+  /* ---------- secondary accents (darkened for light backgrounds) ---------- */
+  --c-teal-400: 62 138 126;
+  --c-violet-400: 121 105 196;
+  --c-rose-400: 205 74 95;
+
+  /* ---------- text (deep warm brown) ---------- */
+  --c-ink: 27 27 27;
+  --c-muted: 95 90 82;
+
+  /* ---------- panel / well (soft 3D plates) ---------- */
+  --panel-grad: linear-gradient(145deg, rgba(247, 241, 232, 0.9), rgba(239, 232, 222, 0.7));
+  --c-well: 228 220 207;
+  --c-track: 207 198 184;
+
+  /* ---------- translucent fills: a warm dark tint shades the ivory ---------- */
+  --c-surface: 74 52 32;
+  --sa-soft: 0.04;
+  --sa-base: 0.06;
+  --sa-strong: 0.09;
+  --sa-hi: 0.13;
+
+  /* ---------- hairlines ---------- */
+  --c-line: 74 52 32;
+  --la-base: 0.1;
+  --la-strong: 0.18;
+
+  /* ---------- frosted glass ---------- */
+  --c-glass: 255 255 255;
+  --ga-base: 0.55;
+  --ga-strong: 0.75;
+  --glass-grad: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(247, 241, 232, 0.5));
+  --glass-grad-strong: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(247, 241, 232, 0.68));
+
+  /* ---------- field surfaces ---------- */
+  --field-bg: rgba(255, 255, 255, 0.62);
+  --field-bg-focus: rgba(255, 255, 255, 0.85);
+  --topbar-bg: rgba(255, 255, 255, 0.6);
+  --glass-toast: rgba(255, 255, 255, 0.92);
+
+  /* ---------- modal scrim ---------- */
+  --c-scrim: 58 43 30;
+  --scrim-a: 0.34;
+
+  /* ---------- soft 3D shadows (warm neumorphism) ---------- */
+  --shadow-raised: -6px -6px 14px rgba(255, 255, 255, 0.75), 8px 8px 20px rgba(110, 90, 70, 0.28);
+  --shadow-inset: inset 4px 4px 9px rgba(110, 90, 70, 0.25), inset -3px -3px 8px rgba(255, 255, 255, 0.8);
+  --shadow-rim: inset 0 2px 0 rgba(255, 255, 255, 0.9);
+  --shadow-glow: 0 0 0 1.5px #f07f4f, 0 0 20px rgba(240, 127, 79, 0.45);
+  --shadow-cta: 0 10px 22px rgba(240, 127, 79, 0.4);
+  --shadow-ambient: 0 26px 50px -20px rgba(74, 52, 32, 0.34);
+  --shadow-key: 0 12px 22px -12px rgba(74, 52, 32, 0.22);
+  --shadow-rim-deep: inset 0 -2px 4px rgba(74, 52, 32, 0.08);
+  --shadow-pressed: inset 4px 4px 9px rgba(110, 90, 70, 0.25), inset -3px -3px 8px rgba(255, 255, 255, 0.8);
+  --shadow-focus: 0 0 0 2px #f07f4f, 0 0 20px rgba(240, 127, 79, 0.45);
+  --shadow-pop: 0 26px 50px -18px rgba(74, 52, 32, 0.32);
+  --shadow-modal: 0 44px 90px -30px rgba(74, 52, 32, 0.38);
+  --shadow-lift: 0 34px 64px -26px rgba(74, 52, 32, 0.4);
+
+  /* ---------- aurora ambient glows ---------- */
+  --aurora-a: rgba(239, 143, 80, 0.18);
+  --aurora-b: rgba(62, 138, 126, 0.13);
+  --aurora-wash-a: rgba(239, 143, 80, 0.1);
+  --aurora-wash-b: rgba(62, 138, 126, 0.08);
+  --noise-opacity: 0.045;
+}
+
+/* ---------- resolved solid colors for plain CSS (non-Tailwind contexts) ---------- */
+:root {
+  --bg-900: rgb(var(--c-bg-900));
+  --bg-800: rgb(var(--c-bg-800));
+  --bg-700: rgb(var(--c-bg-700));
+  --bg-600: rgb(var(--c-bg-600));
+  --text-high: rgb(var(--c-ink));
+  --text-muted: rgb(var(--c-muted));
+  --well: rgb(var(--c-well));
+  --track: rgb(var(--c-track));
+  --border: rgb(var(--c-line) / var(--la-base));
+  --border-strong: rgb(var(--c-line) / var(--la-strong));
+}
+
+:root[dir='ltr'] {
+  --signal-from: -14%;
+}
+:root[dir='rtl'] {
+  --signal-from: 114%;
+}
