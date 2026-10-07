@@ -19,19 +19,37 @@ const EMPLOYEE = {
   nameEn: 'Employee'
 }
 
+/**
+ * Baseline permission set for every system role. Kept in one place so the
+ * first-run seed and the recurring sync below never drift apart.
+ *
+ * Keys derived from the current catalogue land here automatically, so
+ * permissions added in a later release (e.g. `departments.*`) reach existing
+ * installs without an admin having to re-edit each role by hand.
+ */
+const SYSTEM_ROLE_PERMISSIONS: Record<string, (keys: readonly string[]) => string[]> = {
+  [SUPER_ADMIN.key]: (keys) => [...keys],
+  [HR_MANAGER.key]: (keys) => keys.filter((key) => key !== 'roles.delete'),
+  [EMPLOYEE.key]: () => ['settings.view']
+}
+
 export async function seedIfNeeded(prisma: PrismaClient): Promise<void> {
   const flag = await prisma.setting.findUnique({ where: { key: SEED_FLAG } })
-  if (flag) return
+  if (!flag) {
+    await seedRoles(prisma)
+    await seedAdmin(prisma)
 
-  await seedRoles(prisma)
-  await seedAdmin(prisma)
+    await prisma.setting.upsert({
+      where: { key: 'app.language' },
+      create: { key: 'app.language', value: 'ar' },
+      update: {}
+    })
+    await prisma.setting.create({ data: { key: SEED_FLAG, value: new Date().toISOString() } })
+  }
 
-  await prisma.setting.upsert({
-    where: { key: 'app.language' },
-    create: { key: 'app.language', value: 'ar' },
-    update: {}
-  })
-  await prisma.setting.create({ data: { key: SEED_FLAG, value: new Date().toISOString() } })
+  // Always reconcile system roles with the catalogue — adds missing baseline
+  // permissions only, never revokes, so manual tweaks by an admin survive.
+  await syncSystemRolePermissions(prisma)
 }
 
 async function seedRoles(prisma: PrismaClient): Promise<void> {
@@ -42,7 +60,11 @@ async function seedRoles(prisma: PrismaClient): Promise<void> {
       nameAr: SUPER_ADMIN.nameAr,
       nameEn: SUPER_ADMIN.nameEn,
       isSystem: true,
-      permissions: { create: ALL_PERMISSION_KEYS.map((permissionKey) => ({ permissionKey })) }
+      permissions: {
+        create: SYSTEM_ROLE_PERMISSIONS[SUPER_ADMIN.key](ALL_PERMISSION_KEYS).map(
+          (permissionKey) => ({ permissionKey })
+        )
+      }
     },
     update: {}
   })
@@ -55,9 +77,9 @@ async function seedRoles(prisma: PrismaClient): Promise<void> {
       nameEn: HR_MANAGER.nameEn,
       isSystem: true,
       permissions: {
-        create: ALL_PERMISSION_KEYS.filter((k) => k !== 'roles.delete').map((permissionKey) => ({
-          permissionKey
-        }))
+        create: SYSTEM_ROLE_PERMISSIONS[HR_MANAGER.key](ALL_PERMISSION_KEYS).map(
+          (permissionKey) => ({ permissionKey })
+        )
       }
     },
     update: {}
@@ -70,10 +92,39 @@ async function seedRoles(prisma: PrismaClient): Promise<void> {
       nameAr: EMPLOYEE.nameAr,
       nameEn: EMPLOYEE.nameEn,
       isSystem: true,
-      permissions: { create: [{ permissionKey: 'settings.view' }] }
+      permissions: {
+        create: SYSTEM_ROLE_PERMISSIONS[EMPLOYEE.key](ALL_PERMISSION_KEYS).map(
+          (permissionKey) => ({ permissionKey })
+        )
+      }
     },
     update: {}
   })
+}
+
+/**
+ * Grants every system role the baseline permissions it is still missing.
+ * Runs on each launch, so new permission keys reach roles that were seeded
+ * before those keys existed.
+ */
+async function syncSystemRolePermissions(prisma: PrismaClient): Promise<void> {
+  for (const roleKey of Object.keys(SYSTEM_ROLE_PERMISSIONS)) {
+    const role = await prisma.role.findUnique({ where: { key: roleKey } })
+    if (!role) continue
+
+    const wantedKeys = SYSTEM_ROLE_PERMISSIONS[roleKey](ALL_PERMISSION_KEYS)
+    const granted = await prisma.rolePermission.findMany({
+      where: { roleId: role.id },
+      select: { permissionKey: true }
+    })
+    const held = new Set(granted.map((row) => row.permissionKey))
+    const missing = wantedKeys.filter((permissionKey) => !held.has(permissionKey))
+    if (missing.length === 0) continue
+
+    await prisma.rolePermission.createMany({
+      data: missing.map((permissionKey) => ({ roleId: role.id, permissionKey }))
+    })
+  }
 }
 
 async function seedAdmin(prisma: PrismaClient): Promise<void> {
