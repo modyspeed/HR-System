@@ -40,7 +40,7 @@ export function Topbar() {
 
   return (
     <header
-      className="glass glass-card relative z-30 flex h-[66px] shrink-0 items-center gap-3 px-4"
+      className="glass glass-card relative z-30 flex h-[66px] shrink-0 items-center gap-3 overflow-visible px-4"
     >
       <button
         type="button"
