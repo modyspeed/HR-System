@@ -26,6 +26,15 @@ const api: ApiShape = {
     remove: (id) => ipcRenderer.invoke('roles:remove', id),
     setPermissions: (id, keys) => ipcRenderer.invoke('roles:setPermissions', id, keys)
   },
+  departments: {
+    list: (query) => ipcRenderer.invoke('departments:list', query),
+    getById: (id) => ipcRenderer.invoke('departments:getById', id),
+    create: (input) => ipcRenderer.invoke('departments:create', input),
+    update: (id, input) => ipcRenderer.invoke('departments:update', id, input),
+    remove: (id) => ipcRenderer.invoke('departments:remove', id),
+    parseImportFile: (payload) => ipcRenderer.invoke('departments:parseImportFile', payload),
+    importRows: (rows) => ipcRenderer.invoke('departments:importRows', rows)
+  },
   settings: {
     getAll: () => ipcRenderer.invoke('settings:getAll'),
     setLanguage: (language) => ipcRenderer.invoke('settings:setLanguage', language),

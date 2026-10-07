@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS "Setting" (
     "value" TEXT NOT NULL
 );
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Department" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "natureAllowancePct" REAL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
 
@@ -52,3 +63,6 @@ CREATE INDEX IF NOT EXISTS "Role_key_idx" ON "Role"("key");
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "RolePermission_permissionKey_idx" ON "RolePermission"("permissionKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Department_code_key" ON "Department"("code");

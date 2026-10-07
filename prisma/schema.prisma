@@ -47,3 +47,15 @@ model Setting {
   key   String @id
   value String
 }
+
+model Department {
+  id                 String   @id @default(cuid())
+  code               String   @unique
+  name               String
+  natureAllowancePct Float?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // future relation columns (employees, branches, …) slot in here
+}

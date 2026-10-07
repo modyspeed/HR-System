@@ -77,6 +77,58 @@ export interface RoleUpsertInput {
   permissions: string[]
 }
 
+/* ------------------------------- Departments ------------------------------- */
+
+export interface DepartmentRecord {
+  id: string
+  code: string
+  name: string
+  natureAllowancePct: number | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ListDepartmentsQuery {
+  search?: string
+  isActive?: boolean | null
+  sort?: 'code' | 'name' | 'natureAllowancePct' | 'createdAt'
+  order?: 'asc' | 'desc'
+}
+
+export interface DepartmentUpsertInput {
+  code: string
+  name: string
+  natureAllowancePct?: number | null
+  isActive?: boolean
+}
+
+/** One normalized row coming out of the Excel/PDF importer. */
+export interface DepartmentImportRow {
+  code: string
+  name: string
+  natureAllowancePct: number | null
+}
+
+export interface DepartmentParseResult {
+  rows: DepartmentImportRow[]
+  /** Rows that could not be understood, with a human readable reason. */
+  issues: DepartmentImportIssue[]
+  source: 'excel' | 'pdf' | 'csv'
+}
+
+export interface DepartmentImportIssue {
+  line: number
+  raw: string
+  reason: string
+}
+
+export interface DepartmentImportSummary {
+  created: number
+  updated: number
+  skipped: number
+}
+
 export interface UniquenessCheck {
   username?: string
   email?: string
@@ -121,6 +173,18 @@ export interface ApiShape {
     update(id: string, input: RoleUpsertInput): Promise<RoleRecord>
     remove(id: string): Promise<void>
     setPermissions(id: string, keys: string[]): Promise<RoleRecord>
+  }
+  departments: {
+    list(query: ListDepartmentsQuery): Promise<DepartmentRecord[]>
+    getById(id: string): Promise<DepartmentRecord | null>
+    create(input: DepartmentUpsertInput): Promise<DepartmentRecord>
+    update(id: string, input: DepartmentUpsertInput): Promise<DepartmentRecord>
+    remove(id: string): Promise<void>
+    parseImportFile(payload: {
+      data: ArrayBuffer
+      fileName: string
+    }): Promise<DepartmentParseResult>
+    importRows(rows: DepartmentImportRow[]): Promise<DepartmentImportSummary>
   }
   settings: {
     getAll(): Promise<AppSettings>

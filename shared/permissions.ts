@@ -5,6 +5,13 @@
 export const MODULE_PERMISSIONS = {
   users: ['users.view', 'users.create', 'users.edit', 'users.delete', 'users.manage_status'],
   roles: ['roles.view', 'roles.create', 'roles.edit', 'roles.delete'],
+  departments: [
+    'departments.view',
+    'departments.create',
+    'departments.edit',
+    'departments.delete',
+    'departments.import'
+  ],
   settings: ['settings.view', 'settings.edit']
 } as const
 

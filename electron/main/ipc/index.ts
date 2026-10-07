@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { registerAuthIpc, registerSystemIpc } from './auth.ipc'
+import { registerDepartmentsIpc } from './departments.ipc'
 import { registerRolesIpc } from './roles.ipc'
 import { registerSettingsIpc } from './settings.ipc'
 import { createIpcRegistry } from './registry'
@@ -11,6 +12,7 @@ export function registerAllIpc(prisma: PrismaClient): void {
   registerAuthIpc(prisma, ipc)
   registerUsersIpc(prisma, ipc)
   registerRolesIpc(prisma, ipc)
+  registerDepartmentsIpc(prisma, ipc)
   registerSettingsIpc(prisma, ipc)
   registerSystemIpc(prisma, ipc)
 }

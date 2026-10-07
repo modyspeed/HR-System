@@ -40,6 +40,7 @@
     "dashboard": "Dashboard",
     "users": "Users",
     "roles": "Roles & Permissions",
+    "departments": "Departments",
     "profile": "My Profile",
     "settings": "Settings",
     "signOut": "Sign out",
@@ -189,6 +190,51 @@
     "confirmPasswordPlaceholder": "Re-enter the new password",
     "passwordChanged": "Password changed successfully"
   },
+  "departments": {
+    "title": "Departments",
+    "subtitle": "Manage company departments — add manually or import from an Excel/PDF file",
+    "new": "New department",
+    "import": "Import",
+    "searchPlaceholder": "Search by code or name…",
+    "code": "Department code",
+    "name": "Department name",
+    "allowance": "Nature of work allowance",
+    "allowanceHint": "Percentage between 0 and 100 — optional",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Disabled",
+    "actions": "Actions",
+    "activeOnly": "Active only",
+    "inactiveOnly": "Disabled only",
+    "allStatuses": "All statuses",
+    "clearFilters": "Clear filters",
+    "activeBadge": "Active",
+    "inactiveBadge": "Disabled",
+    "noDepartments": "No departments yet",
+    "noDepartmentsBody": "Start by adding a department manually, or import a departments file (Excel/PDF).",
+    "noResults": "No matching results",
+    "noResultsBody": "Try adjusting your search or filters.",
+    "createTitle": "New department",
+    "editTitle": "Edit department",
+    "confirmDeleteTitle": "Delete department",
+    "confirmDeleteBody": "Are you sure you want to delete department \"{{name}}\"? This action cannot be undone.",
+    "importTitle": "Import departments",
+    "importHint": "Choose an Excel or PDF file containing: department code, name, nature of work allowance",
+    "formats": "Excel (.xlsx, .xls, .csv) or PDF",
+    "dropOrClick": "Drop the file here or click to browse",
+    "previewHint": "Review and edit the rows before confirming the import",
+    "importConfirm": "Import {{count}} departments",
+    "noRows": "No valid rows were found in the file",
+    "issuesCount": "{{count}} row(s) skipped",
+    "importSummary": "Added {{created}}, updated {{updated}}, skipped {{skipped}}.",
+    "importFailed": "Could not parse the file",
+    "issue": {
+      "missing-code": "Missing department code",
+      "missing-name": "Missing department name",
+      "unrecognized-line": "Could not recognize this row",
+      "pct-out-of-range": "Percentage out of range (0-100)"
+    }
+  },
   "validation": {
     "required": "This field is required",
     "usernameMin": "Username must be at least 3 characters",
@@ -203,12 +249,15 @@
     "keyRequired": "Role key is required",
     "keyPattern": "Uppercase letters, numbers and underscores only",
     "passwordsMismatch": "Passwords do not match",
-    "wrongPassword": "Current password is incorrect"
+    "wrongPassword": "Current password is incorrect",
+    "numberRequired": "A number is required",
+    "pctRange": "The percentage must be between 0 and 100"
   },
   "permissions": {
     "modules": {
       "users": "Users",
       "roles": "Roles",
+      "departments": "Departments",
       "settings": "Settings"
     },
     "actions": {
@@ -216,7 +265,8 @@
       "create": "Create",
       "edit": "Edit",
       "delete": "Delete",
-      "manage_status": "Manage status"
+      "manage_status": "Manage status",
+      "import": "Import"
     }
   },
   "errors": {
@@ -243,6 +293,9 @@
     "roleUpdated": "Role and permissions updated",
     "roleDeleted": "Role deleted",
     "permissionsUpdated": "Permissions updated",
+    "departmentCreated": "Department created successfully",
+    "departmentUpdated": "Department updated successfully",
+    "departmentDeleted": "Department deleted",
     "languageChanged": "Language changed",
     "themeChanged": "Appearance changed",
     "loginSuccess": "Signed in successfully",

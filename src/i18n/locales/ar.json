@@ -40,6 +40,7 @@
     "dashboard": "الرئيسية",
     "users": "المستخدمون",
     "roles": "الأدوار والصلاحيات",
+    "departments": "الأقسام",
     "profile": "ملفي الشخصي",
     "settings": "الإعدادات",
     "signOut": "تسجيل الخروج",
@@ -189,6 +190,51 @@
     "confirmPasswordPlaceholder": "أعد كتابة كلمة المرور الجديدة",
     "passwordChanged": "تم تغيير كلمة المرور بنجاح"
   },
+  "departments": {
+    "title": "الأقسام",
+    "subtitle": "إدارة أقسام الشركة — إضافة يدوية أو استيراد من ملف Excel/PDF",
+    "new": "قسم جديد",
+    "import": "استيراد",
+    "searchPlaceholder": "ابحث بكود القسم أو اسمه…",
+    "code": "كود القسم",
+    "name": "اسم القسم",
+    "allowance": "بدل طبيعة العمل",
+    "allowanceHint": "نسبة مئوية من 0 إلى 100 — اختياري",
+    "status": "الحالة",
+    "active": "نشط",
+    "inactive": "معطَّل",
+    "actions": "إجراءات",
+    "activeOnly": "النشطة فقط",
+    "inactiveOnly": "المعطَّلة فقط",
+    "allStatuses": "كل الحالات",
+    "clearFilters": "مسح الفلاتر",
+    "activeBadge": "نشط",
+    "inactiveBadge": "معطَّل",
+    "noDepartments": "لا توجد أقسام بعد",
+    "noDepartmentsBody": "ابدأ بإضافة قسم يدويًا، أو استورد ملف الأقسام (Excel/PDF).",
+    "noResults": "لا توجد نتائج مطابقة",
+    "noResultsBody": "جرِّب تعديل معايير البحث أو الفلترة.",
+    "createTitle": "إضافة قسم جديد",
+    "editTitle": "تعديل القسم",
+    "confirmDeleteTitle": "حذف القسم",
+    "confirmDeleteBody": "هل أنت متأكد من حذف قسم «{{name}}»؟ لا يمكن التراجع عن هذا الإجراء.",
+    "importTitle": "استيراد الأقسام",
+    "importHint": "اختر ملف Excel أو PDF يحتوي على: كود القسم، اسم القسم، نسبة بدل طبيعة العمل",
+    "formats": "Excel (.xlsx, .xls, .csv) أو PDF",
+    "dropOrClick": "اسحب الملف هنا أو اضغط للاختيار",
+    "previewHint": "عاين وعدّل الصفوف قبل تأكيد الاستيراد",
+    "importConfirm": "استيراد {{count}} قسم",
+    "noRows": "لم يتم العثور على صفوف صالحة في الملف",
+    "issuesCount": "{{count}} صف تم تخطّيه",
+    "importSummary": "تمت إضافة {{created}} قسم وتحديث {{updated}} قسم، وتخطّي {{skipped}}.",
+    "importFailed": "تعذَّر تحليل الملف",
+    "issue": {
+      "missing-code": "كود القسم مفقود",
+      "missing-name": "اسم القسم مفقود",
+      "unrecognized-line": "تعذَّر التعرف على الصف",
+      "pct-out-of-range": "النسبة خارج النطاق (0-100)"
+    }
+  },
   "validation": {
     "required": "هذا الحقل مطلوب",
     "usernameMin": "اسم المستخدم 3 أحرف على الأقل",
@@ -203,12 +249,15 @@
     "keyRequired": "مفتاح الدور مطلوب",
     "keyPattern": "حروف إنجليزية كبيرة وأرقام وشرطات فقط",
     "passwordsMismatch": "كلمتا المرور غير متطابقتين",
-    "wrongPassword": "كلمة المرور الحالية غير صحيحة"
+    "wrongPassword": "كلمة المرور الحالية غير صحيحة",
+    "numberRequired": "يجب إدخال رقم",
+    "pctRange": "النسبة يجب أن تكون بين 0 و100"
   },
   "permissions": {
     "modules": {
       "users": "المستخدمون",
       "roles": "الأدوار",
+      "departments": "الأقسام",
       "settings": "الإعدادات"
     },
     "actions": {
@@ -216,7 +265,8 @@
       "create": "إنشاء",
       "edit": "تعديل",
       "delete": "حذف",
-      "manage_status": "إدارة الحالة"
+      "manage_status": "إدارة الحالة",
+      "import": "استيراد"
     }
   },
   "errors": {
@@ -243,6 +293,9 @@
     "roleUpdated": "تم تحديث الدور وصلحياته",
     "roleDeleted": "تم حذف الدور",
     "permissionsUpdated": "تم تحديث الصلاحيات",
+    "departmentCreated": "تم إنشاء القسم بنجاح",
+    "departmentUpdated": "تم تحديث القسم بنجاح",
+    "departmentDeleted": "تم حذف القسم",
     "languageChanged": "تم تغيير اللغة",
     "themeChanged": "تم تغيير المظهر",
     "loginSuccess": "تم تسجيل الدخول بنجاح",
