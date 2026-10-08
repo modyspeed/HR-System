@@ -13,6 +13,7 @@ import { UsersList } from '@/modules/users/UsersList'
 import { RolesList } from '@/modules/roles/RolesList'
 import { RoleEditor } from '@/modules/roles/RoleEditor'
 import { DepartmentsList } from '@/modules/departments/DepartmentsList'
+import { EmployeesList } from '@/modules/employees/EmployeesList'
 import { Profile } from '@/modules/profile/Profile'
 import { Settings } from '@/modules/settings/Settings'
 
@@ -86,6 +87,10 @@ export function App() {
           element={
             <Protected permission="departments.view" element={<DepartmentsList />} />
           }
+        />
+        <Route
+          path="employees"
+          element={<Protected permission="employees.view" element={<EmployeesList />} />}
         />
         <Route path="profile" element={<Protected element={<Profile />} />} />
         <Route

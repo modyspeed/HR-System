@@ -27,7 +27,9 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      // Chromium's PDF viewer (used by the in-app employee-file preview)
+      plugins: true
     }
   })
 

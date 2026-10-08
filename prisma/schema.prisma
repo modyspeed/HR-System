@@ -57,5 +57,32 @@ model Department {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  // future relation columns (employees, branches, …) slot in here
+  employees Employee[]
+
+  // future relation columns (branches, cost centers, …) slot in here
+}
+
+model Employee {
+  id                String    @id @default(cuid())
+  code              String    @unique // كود الموظف — natural key for import upserts
+  name              String // اسم الموظف
+  insuranceNo       String? // الرقم التأمينى
+  nationalId        String? // الرقم القومى
+  grade             String? // الدرجة
+  gradeDate         DateTime? // تاريخ الدرجة
+  birthDate         DateTime? // تاريخ الميلاد
+  permanentDate     DateTime? // تاريخ التثبيت
+  hireDate          DateTime? // تاريخ التعيين
+  qualification     String? // المؤهل
+  qualificationYear Int? // سنة المؤهل
+  fileOriginalName  String? // attached work file — name shown to the user
+  fileStoredName    String? // attached work file — unique name inside the files folder
+  fileSize          Int? // attached work file — bytes
+  fileLinkedAt      DateTime? // attached work file — when it was linked/replaced
+  contractType      String? // نوع التعاقد (free text — permanent, temporary, …)
+  departmentId      String? // القسم — soft link to Department; unlinking a department nulls this
+  department        Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }

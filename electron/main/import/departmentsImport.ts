@@ -13,6 +13,7 @@ import type {
   DepartmentImportRow,
   DepartmentParseResult
 } from '../../../shared/types'
+import { normalizeDigits, normalizeHeader, toIdText, toNameText } from './text'
 
 const CODE_ALIASES = [
   'كود القسم',
@@ -41,49 +42,12 @@ const PCT_ALIASES = [
   '%'
 ]
 
-/** Unify Arabic orthography + strip noise so header matching is forgiving. */
-function normalizeHeader(value: unknown): string {
-  return String(value ?? '')
-    .replace(/[أإآ]/g, 'ا')
-    .replace(/ى/g, 'ي')
-    .replace(/ـ/g, '')
-    .replace(/[^\p{L}\p{N}% ]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-}
-
-/** Digits → plain ASCII so numeric parsing is locale independent. */
-function normalizeDigits(value: string): string {
-  return value
-    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-}
-
-function toCodeText(value: unknown): string {
-  const text = normalizeDigits(String(value ?? '').trim())
-  if (!text) return ''
-  // Keep codes verbatim (leading zeros matter); only strip thousands separators
-  // and decimals so formatted cells like "553,041" still match.
-  if (/^\d[\d\s,]*$/.test(text) || /^\d[\d\s,]*\.\d*$/.test(text)) {
-    const [integer] = text.replace(/[\s,]/g, '').split('.')
-    return integer
-  }
-  return text
-}
-
 function toPctNumber(value: unknown): number | null {
   const text = normalizeDigits(String(value ?? '').trim()).replace(/%/g, '').trim()
   if (!text) return null
   const parsed = Number(text.replace(/,/g, ''))
   if (Number.isNaN(parsed)) return null
   return parsed
-}
-
-function toNameText(value: unknown): string {
-  return normalizeDigits(String(value ?? ''))
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 interface ColumnMap {
@@ -120,7 +84,7 @@ function detectColumns(rows: unknown[][]): { map: ColumnMap; headerRow: number }
 
 function rowToImportRow(values: unknown[], map: ColumnMap): DepartmentImportRow {
   return {
-    code: toCodeText(values[map.code]),
+    code: toIdText(values[map.code]),
     name: toNameText(values[map.name]),
     natureAllowancePct: map.pct === null ? null : toPctNumber(values[map.pct])
   }
@@ -217,7 +181,7 @@ function parsePlainText(text: string, source: 'pdf' | 'csv'): DepartmentParseRes
       continue
     }
 
-    const code = toCodeText(codeMatch[1])
+    const code = toIdText(codeMatch[1])
     const natureAllowancePct = toPctNumber(pctMatch[1])
     const name = line.slice(codeMatch[0].length, pctMatch.index).trim()
 

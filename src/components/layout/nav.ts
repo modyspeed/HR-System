@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, Settings, ShieldCheck, UserCircle, Users } from 'lucide-react'
+import { Building2, Contact, LayoutDashboard, Settings, ShieldCheck, UserCircle, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -19,6 +19,13 @@ export const NAV_ITEMS: NavItem[] = [
     labelKey: 'nav.departments',
     icon: Building2,
     permission: 'departments.view',
+    section: 'management'
+  },
+  {
+    to: '/employees',
+    labelKey: 'nav.employees',
+    icon: Contact,
+    permission: 'employees.view',
     section: 'management'
   },
   { to: '/profile', labelKey: 'nav.profile', icon: UserCircle, section: 'account' },

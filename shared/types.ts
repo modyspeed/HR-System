@@ -129,6 +129,110 @@ export interface DepartmentImportSummary {
   skipped: number
 }
 
+/* -------------------------------- Employees -------------------------------- */
+
+/** ISO date (`yyyy-mm-dd`) or null — dates are stored date-only. */
+export type EmployeeDate = string | null
+
+export interface EmployeeRecord {
+  id: string
+  code: string
+  name: string
+  insuranceNo: string | null
+  nationalId: string | null
+  grade: string | null
+  gradeDate: EmployeeDate
+  birthDate: EmployeeDate
+  permanentDate: EmployeeDate
+  hireDate: EmployeeDate
+  qualification: string | null
+  qualificationYear: number | null
+  /** نوع التعاقد — free text. */
+  contractType: string | null
+  /** القسم — linked Department (resolved name included for display). */
+  departmentId: string | null
+  departmentName: string | null
+  /** Attached work file (PDF/Excel), when linked. */
+  fileOriginalName: string | null
+  fileSize: number | null
+  fileLinkedAt: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ListEmployeesQuery {
+  search?: string
+  isActive?: boolean | null
+  sort?: 'code' | 'name' | 'grade' | 'hireDate' | 'createdAt'
+  order?: 'asc' | 'desc'
+}
+
+export interface EmployeeUpsertInput {
+  code: string
+  name: string
+  insuranceNo?: string | null
+  nationalId?: string | null
+  grade?: string | null
+  gradeDate?: EmployeeDate
+  birthDate?: EmployeeDate
+  permanentDate?: EmployeeDate
+  hireDate?: EmployeeDate
+  qualification?: string | null
+  qualificationYear?: number | null
+  contractType?: string | null
+  departmentId?: string | null
+  isActive?: boolean
+}
+
+/** One normalized row coming out of the Excel/PDF importer. */
+export interface EmployeeImportRow {
+  code: string
+  name: string
+  insuranceNo: string | null
+  nationalId: string | null
+  grade: string | null
+  gradeDate: EmployeeDate
+  birthDate: EmployeeDate
+  permanentDate: EmployeeDate
+  hireDate: EmployeeDate
+  qualification: string | null
+  qualificationYear: number | null
+}
+
+export interface EmployeeImportIssue {
+  line: number
+  raw: string
+  reason: string
+}
+
+export interface EmployeeParseResult {
+  rows: EmployeeImportRow[]
+  issues: EmployeeImportIssue[]
+  source: 'excel' | 'pdf' | 'csv'
+}
+
+export interface EmployeeImportSummary {
+  created: number
+  updated: number
+  skipped: number
+}
+
+/** Result of `employees:previewFile` — either PDF bytes or a parsed grid. */
+export interface EmployeeFilePreview {
+  kind: 'pdf' | 'table'
+  originalName: string | null
+  ext: string
+  size: number
+  /** PDF payload (Uint8Array crosses the IPC boundary intact). */
+  data?: Uint8Array
+  /** Spreadsheet payload. */
+  sheetName?: string | null
+  rows?: string[][]
+  totalRows?: number
+  truncated?: boolean
+}
+
 export interface UniquenessCheck {
   username?: string
   email?: string
@@ -185,6 +289,26 @@ export interface ApiShape {
       fileName: string
     }): Promise<DepartmentParseResult>
     importRows(rows: DepartmentImportRow[]): Promise<DepartmentImportSummary>
+  }
+  employees: {
+    list(query: ListEmployeesQuery): Promise<EmployeeRecord[]>
+    getById(id: string): Promise<EmployeeRecord | null>
+    create(input: EmployeeUpsertInput): Promise<EmployeeRecord>
+    update(id: string, input: EmployeeUpsertInput): Promise<EmployeeRecord>
+    remove(id: string): Promise<void>
+    parseImportFile(payload: {
+      data: ArrayBuffer
+      fileName: string
+    }): Promise<EmployeeParseResult>
+    importRows(rows: EmployeeImportRow[]): Promise<EmployeeImportSummary>
+    attachFile(payload: {
+      id: string
+      data: ArrayBuffer
+      fileName: string
+    }): Promise<EmployeeRecord>
+    removeFile(id: string): Promise<EmployeeRecord>
+    previewFile(id: string): Promise<EmployeeFilePreview>
+    revealFilesDir(): Promise<void>
   }
   settings: {
     getAll(): Promise<AppSettings>

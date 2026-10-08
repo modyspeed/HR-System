@@ -12,6 +12,7 @@ export const MODULE_PERMISSIONS = {
     'departments.delete',
     'departments.import'
   ],
+  employees: ['employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.import'],
   settings: ['settings.view', 'settings.edit']
 } as const
 

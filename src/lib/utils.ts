@@ -49,3 +49,24 @@ export function formatDateTime(iso: string | null, language: string): string {
     minute: '2-digit'
   }).format(date)
 }
+
+/** Date-only ISO (`yyyy-mm-dd`) → localized label without timezone drift. */
+export function formatDateOnly(iso: string | null, language: string): string {
+  if (!iso) return '—'
+  const date = new Date(`${iso}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC'
+  }).format(date)
+}
+
+/** Byte count -> friendly size label (B / KB / MB). */
+export function formatFileSize(bytes: number | null): string {
+  if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return '—'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}

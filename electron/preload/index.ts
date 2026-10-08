@@ -35,6 +35,19 @@ const api: ApiShape = {
     parseImportFile: (payload) => ipcRenderer.invoke('departments:parseImportFile', payload),
     importRows: (rows) => ipcRenderer.invoke('departments:importRows', rows)
   },
+  employees: {
+    list: (query) => ipcRenderer.invoke('employees:list', query),
+    getById: (id) => ipcRenderer.invoke('employees:getById', id),
+    create: (input) => ipcRenderer.invoke('employees:create', input),
+    update: (id, input) => ipcRenderer.invoke('employees:update', id, input),
+    remove: (id) => ipcRenderer.invoke('employees:remove', id),
+    parseImportFile: (payload) => ipcRenderer.invoke('employees:parseImportFile', payload),
+    importRows: (rows) => ipcRenderer.invoke('employees:importRows', rows),
+    attachFile: (payload) => ipcRenderer.invoke('employees:attachFile', payload),
+    removeFile: (id) => ipcRenderer.invoke('employees:removeFile', id),
+    previewFile: (id) => ipcRenderer.invoke('employees:previewFile', id),
+    revealFilesDir: () => ipcRenderer.invoke('employees:revealFilesDir')
+  },
   settings: {
     getAll: () => ipcRenderer.invoke('settings:getAll'),
     setLanguage: (language) => ipcRenderer.invoke('settings:setLanguage', language),

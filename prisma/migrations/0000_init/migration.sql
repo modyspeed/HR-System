@@ -49,6 +49,32 @@ CREATE TABLE IF NOT EXISTS "Department" (
     "updatedAt" DATETIME NOT NULL
 );
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Employee" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "insuranceNo" TEXT,
+    "nationalId" TEXT,
+    "grade" TEXT,
+    "gradeDate" DATETIME,
+    "birthDate" DATETIME,
+    "permanentDate" DATETIME,
+    "hireDate" DATETIME,
+    "qualification" TEXT,
+    "qualificationYear" INTEGER,
+    "fileOriginalName" TEXT,
+    "fileStoredName" TEXT,
+    "fileSize" INTEGER,
+    "fileLinkedAt" DATETIME,
+    "contractType" TEXT,
+    "departmentId" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Employee_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
 
@@ -66,3 +92,6 @@ CREATE INDEX IF NOT EXISTS "RolePermission_permissionKey_idx" ON "RolePermission
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "Department_code_key" ON "Department"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Employee_code_key" ON "Employee"("code");
