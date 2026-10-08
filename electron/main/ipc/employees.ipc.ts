@@ -2,7 +2,6 @@ import { Prisma, PrismaClient } from '@prisma/client'
 import { ApiError } from '../../../shared/types'
 import type {
   EmployeeImportRow,
-  EmployeeImportSummary,
   EmployeeParseResult,
   EmployeeRecord,
   EmployeeUpsertInput,
@@ -15,7 +14,8 @@ import {
   removeEmployeeFile,
   revealEmployeeFilesDir
 } from '../employee-files'
-import { parseEmployeesFile, validateEmployeeImportRow } from '../import/employeesImport'
+import { parseEmployeesFile } from '../import/employeesImport'
+import { importEmployees } from '../import/employeesPersist'
 import type { IpcRegistry } from './registry'
 
 const DEPARTMENT_INCLUDE = { department: { select: { name: true } } } as const
@@ -265,63 +265,4 @@ async function updateEmployee(
     include: DEPARTMENT_INCLUDE
   })
   return toEmployeeRecord(employee)
-}
-
-async function importEmployees(
-  prisma: PrismaClient,
-  rows: EmployeeImportRow[]
-): Promise<EmployeeImportSummary> {
-  let created = 0
-  let updated = 0
-  let skipped = 0
-
-  await prisma.$transaction(
-    async (tx) => {
-      const validRows = rows.filter((row) => {
-        if (validateEmployeeImportRow(row)) {
-          skipped += 1
-          return false
-        }
-        return true
-      })
-
-      const codes = [...new Set(validRows.map((row) => row.code.trim()))]
-      const existing = await tx.employee.findMany({
-        where: { code: { in: codes } },
-        select: { id: true, code: true }
-      })
-      const existingByCode = new Map(existing.map((row) => [row.code, row.id]))
-
-      for (const row of validRows) {
-        const code = row.code.trim()
-        const data = {
-          code,
-          name: row.name.trim(),
-          insuranceNo: row.insuranceNo,
-          nationalId: row.nationalId,
-          grade: row.grade,
-          gradeDate: dateOrNull(row.gradeDate),
-          birthDate: dateOrNull(row.birthDate),
-          permanentDate: dateOrNull(row.permanentDate),
-          hireDate: dateOrNull(row.hireDate),
-          qualification: row.qualification,
-          qualificationYear: row.qualificationYear
-        }
-
-        const existingId = existingByCode.get(code)
-        if (existingId) {
-          // Re-import refreshes the data but keeps the current active status.
-          await tx.employee.update({ where: { id: existingId }, data })
-          updated += 1
-        } else {
-          const record = await tx.employee.create({ data: { ...data, isActive: true } })
-          existingByCode.set(code, record.id)
-          created += 1
-        }
-      }
-    },
-    { timeout: 60_000 }
-  )
-
-  return { created, updated, skipped }
 }

@@ -235,7 +235,7 @@ export function ImportEmployeesModal({ open, onClose, onImported }: ImportEmploy
               {t('employees.previewHint')}
             </p>
             <div className="scroll-area max-h-[42vh] overflow-auto rounded-2xl border border-line">
-              <table className="w-full min-w-[1500px]">
+              <table className="w-full min-w-[2100px]">
                 <thead>
                   <tr className="border-b border-line bg-surface-soft text-[10px] uppercase tracking-wider text-ink-low">
                     <th className="px-3 py-2.5 text-start font-medium">#</th>
@@ -265,6 +265,15 @@ export function ImportEmployeesModal({ open, onClose, onImported }: ImportEmploy
                     </th>
                     <th className="px-3 py-2.5 text-start font-medium">
                       {t('employees.hireDate')}
+                    </th>
+                    <th className="px-3 py-2.5 text-start font-medium">
+                      {t('employees.departmentCode')}
+                    </th>
+                    <th className="px-3 py-2.5 text-start font-medium">
+                      {t('employees.department')}
+                    </th>
+                    <th className="px-3 py-2.5 text-start font-medium">
+                      {t('employees.contractType')}
                     </th>
                     <th className="px-3 py-2.5 text-end font-medium">{t('common.remove')}</th>
                   </tr>
@@ -355,6 +364,36 @@ export function ImportEmployeesModal({ open, onClose, onImported }: ImportEmploy
                         <td className="px-2 py-2">{dateCell(row, 'birthDate', index)}</td>
                         <td className="px-2 py-2">{dateCell(row, 'permanentDate', index)}</td>
                         <td className="px-2 py-2">{dateCell(row, 'hireDate', index)}</td>
+                        <td className="px-2 py-2">
+                          <input
+                            value={row.departmentCode ?? ''}
+                            onChange={(event) =>
+                              updateRow(index, { departmentCode: event.target.value || null })
+                            }
+                            dir="ltr"
+                            className="field h-9 w-24 rounded-lg px-2.5 text-xs text-ink-high outline-none"
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            value={row.departmentName ?? ''}
+                            onChange={(event) =>
+                              updateRow(index, { departmentName: event.target.value || null })
+                            }
+                            dir="auto"
+                            className="field h-9 min-w-[160px] rounded-lg px-2.5 text-xs text-ink-high outline-none"
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            value={row.contractType ?? ''}
+                            onChange={(event) =>
+                              updateRow(index, { contractType: event.target.value || null })
+                            }
+                            dir="auto"
+                            className="field h-9 w-32 rounded-lg px-2.5 text-xs text-ink-high outline-none"
+                          />
+                        </td>
                         <td className="px-3 py-2 text-end">
                           <button
                             type="button"

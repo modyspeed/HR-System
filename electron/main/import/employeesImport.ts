@@ -29,9 +29,20 @@ type ColumnKey =
   | 'hireDate'
   | 'qualification'
   | 'qualificationYear'
+  | 'departmentCode'
+  | 'departmentName'
+  | 'contractType'
 
 const ALIASES: Record<ColumnKey, string[]> = {
-  code: ['كود الموظف', 'كود', 'code', 'employee code', 'emp code', 'employee id'],
+  code: [
+    'كود الموظف',
+    'رقم الموظف',
+    'كود',
+    'code',
+    'employee code',
+    'emp code',
+    'employee id'
+  ],
   name: ['اسم الموظف', 'اسم', 'name', 'employee name', 'emp name'],
   insuranceNo: ['الرقم التأمينى', 'الرقم التأميني', 'رقم التأمين', 'insurance no', 'insurance', 'social insurance'],
   nationalId: ['الرقم القومى', 'الرقم القومي', 'رقم قومي', 'national id', 'nationalid', 'nid'],
@@ -41,7 +52,11 @@ const ALIASES: Record<ColumnKey, string[]> = {
   permanentDate: ['تاريخ التثبيت', 'تثبيت', 'permanent date'],
   hireDate: ['تاريخ التعيين', 'تاريخ التعين', 'hire date', 'date of hire', 'hiring date'],
   qualification: ['المؤهل', 'qualification', 'qualification name'],
-  qualificationYear: ['سنة المؤهل', 'سنه المؤهل', 'qualification year', 'year of qualification']
+  qualificationYear: ['سنة المؤهل', 'سنه المؤهل', 'qualification year', 'year of qualification'],
+  // Optional in every source file — a missing column simply yields `null`.
+  departmentCode: ['رقم القسم', 'كود القسم', 'رمز القسم', 'dept code', 'department code'],
+  departmentName: ['اسم القسم', 'القسم', 'قسم', 'dept name', 'department name', 'department'],
+  contractType: ['نوع التعاقد', 'نوع العقد', 'contract type', 'contract']
 }
 
 interface ColumnMap {
@@ -174,7 +189,10 @@ function rowToImportRow(
     permanentDate: parseEmployeeDate(dateCell('permanentDate')),
     hireDate: parseEmployeeDate(dateCell('hireDate')),
     qualification: toNameText(cellOf(values, map, 'qualification')) || null,
-    qualificationYear: toIntOrNull(cellOf(values, map, 'qualificationYear'))
+    qualificationYear: toIntOrNull(cellOf(values, map, 'qualificationYear')),
+    departmentCode: toIdText(cellOf(values, map, 'departmentCode')) || null,
+    departmentName: toNameText(cellOf(values, map, 'departmentName')) || null,
+    contractType: toNameText(cellOf(values, map, 'contractType')) || null
   }
 }
 
@@ -361,7 +379,10 @@ function parsePdfLines(text: string): EmployeeParseResult {
       permanentDate: dateValues[2] ?? null,
       hireDate: dateValues[3] ?? null,
       qualification: null,
-      qualificationYear: null
+      qualificationYear: null,
+      departmentCode: null,
+      departmentName: null,
+      contractType: null
     })
   }
 

@@ -198,6 +198,11 @@ export interface EmployeeImportRow {
   hireDate: EmployeeDate
   qualification: string | null
   qualificationYear: number | null
+  // Optional columns — `null` when the source file has no such column (or the
+  // cell is empty). The importer then leaves the stored value untouched.
+  departmentCode: string | null
+  departmentName: string | null
+  contractType: string | null
 }
 
 export interface EmployeeImportIssue {
