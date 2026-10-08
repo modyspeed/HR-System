@@ -14,7 +14,7 @@ import {
   Upload
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { EmployeeRecord, ListEmployeesQuery } from '@shared/types'
+import type { EmployeeRecord, ExportPayload, ListEmployeesQuery } from '@shared/types'
 import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -28,6 +28,7 @@ import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
 import { SkeletonRows } from '@/components/ui/Skeleton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ExportMenu } from '@/components/ui/ExportMenu'
 import { RowActions } from '@/components/ui/RowActions'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -74,7 +75,7 @@ export function EmployeesList() {
     queryFn: () => api.employees.list(query)
   })
 
-  const employees = employeesQuery.data ?? []
+  const employees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data])
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['employees'] })
@@ -106,6 +107,74 @@ export function EmployeesList() {
 
   const hasFilters = Boolean(debouncedSearch || isActive !== '')
 
+  /**
+   * Export mirrors the current list (same filters, same order) and carries the
+   * full record — richer than the six visible columns. Dates stay ISO so the
+   * Excel sheet remains sortable regardless of the interface language.
+   */
+  const exportPayload = useMemo<ExportPayload | null>(() => {
+    if (employees.length === 0) return null
+    const filters = [
+      debouncedSearch ? `«${debouncedSearch}»` : null,
+      isActive === 'active'
+        ? t('employees.activeOnly')
+        : isActive === 'inactive'
+          ? t('employees.inactiveOnly')
+          : null
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    const subtitle = [t('export.count', { count: employees.length }), filters]
+      .filter(Boolean)
+      .join(' — ')
+
+    return {
+      scope: 'employees',
+      fileName: `employees-${new Date().toISOString().slice(0, 10)}`,
+      title: t('employees.title'),
+      subtitle,
+      direction: i18n.dir() === 'rtl' ? 'rtl' : 'ltr',
+      columns: [
+        { key: 'code', label: t('employees.code'), width: 12, align: 'center' },
+        { key: 'name', label: t('employees.name'), width: 32 },
+        { key: 'insuranceNo', label: t('employees.insuranceNo'), width: 18, align: 'center' },
+        { key: 'nationalId', label: t('employees.nationalId'), width: 18, align: 'center' },
+        { key: 'grade', label: t('employees.grade'), width: 10, align: 'center' },
+        { key: 'gradeDate', label: t('employees.gradeDate'), width: 14, align: 'center' },
+        { key: 'birthDate', label: t('employees.birthDate'), width: 14, align: 'center' },
+        { key: 'permanentDate', label: t('employees.permanentDate'), width: 14, align: 'center' },
+        { key: 'hireDate', label: t('employees.hireDate'), width: 14, align: 'center' },
+        { key: 'qualification', label: t('employees.qualification'), width: 20 },
+        {
+          key: 'qualificationYear',
+          label: t('employees.qualificationYear'),
+          width: 12,
+          align: 'center',
+          format: '0'
+        },
+        { key: 'department', label: t('employees.department'), width: 26 },
+        { key: 'contractType', label: t('employees.contractType'), width: 14, align: 'center' },
+        { key: 'status', label: t('employees.status'), width: 12, align: 'center' }
+      ],
+      rows: employees.map((employee) => [
+        employee.code,
+        employee.name,
+        employee.insuranceNo,
+        employee.nationalId,
+        employee.grade,
+        employee.gradeDate,
+        employee.birthDate,
+        employee.permanentDate,
+        employee.hireDate,
+        employee.qualification,
+        employee.qualificationYear,
+        employee.departmentName,
+        employee.contractType,
+        employee.isActive ? t('employees.activeBadge') : t('employees.inactiveBadge')
+      ])
+    }
+  }, [employees, debouncedSearch, isActive, t, i18n])
+
   const cell = (value: string | null) => (value ? value : <span className="text-ink-low">—</span>)
 
   return (
@@ -116,6 +185,7 @@ export function EmployeesList() {
         subtitle={t('employees.subtitle')}
         actions={
           <>
+            <ExportMenu payload={exportPayload} />
             {canImport && (
               <SoftButton
                 variant="ghost"

@@ -256,6 +256,37 @@ export interface AppSettings {
   theme: Theme
 }
 
+/* --------------------------------- export --------------------------------- */
+
+/** Which module's data is being exported — drives the permission check. */
+export type ExportScope = 'employees' | 'departments'
+
+export interface ExportColumn {
+  key: string
+  label: string
+  /** Excel column width hint (character units). */
+  width?: number
+  align?: 'start' | 'center' | 'end'
+  /** Excel number format applied when the cell value is numeric. */
+  format?: string
+}
+
+/**
+ * A table rendered outside the app (PDF report or styled Excel sheet).
+ * `rows` are aligned positionally with `columns`; `null` renders as `—`.
+ */
+export interface ExportPayload {
+  scope: ExportScope
+  /** Base file name without extension — the save dialog appends the real one. */
+  fileName: string
+  title: string
+  /** Secondary line under the title (row count, active filters, …). */
+  subtitle?: string
+  direction: 'rtl' | 'ltr'
+  columns: ExportColumn[]
+  rows: (string | number | null)[][]
+}
+
 /* ----------------------------- IPC channel map ---------------------------- */
 
 export interface ApiShape {
@@ -314,6 +345,11 @@ export interface ApiShape {
     removeFile(id: string): Promise<EmployeeRecord>
     previewFile(id: string): Promise<EmployeeFilePreview>
     revealFilesDir(): Promise<void>
+  }
+  export: {
+    /** Returns the saved path, or `null` when the user cancels the dialog. */
+    toPdf(payload: ExportPayload): Promise<string | null>
+    toExcel(payload: ExportPayload): Promise<string | null>
   }
   settings: {
     getAll(): Promise<AppSettings>

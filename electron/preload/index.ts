@@ -48,6 +48,10 @@ const api: ApiShape = {
     previewFile: (id) => ipcRenderer.invoke('employees:previewFile', id),
     revealFilesDir: () => ipcRenderer.invoke('employees:revealFilesDir')
   },
+  export: {
+    toPdf: (payload) => ipcRenderer.invoke('export:pdf', payload),
+    toExcel: (payload) => ipcRenderer.invoke('export:excel', payload)
+  },
   settings: {
     getAll: () => ipcRenderer.invoke('settings:getAll'),
     setLanguage: (language) => ipcRenderer.invoke('settings:setLanguage', language),

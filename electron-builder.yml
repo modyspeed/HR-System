@@ -10,9 +10,11 @@ directories:
 files:
   - out/**/*
   - package.json
-  # Runtime Node deps — everything else is bundled into out/ or is a devDependency.
-  - node_modules/@prisma/**/*
-  - node_modules/bcryptjs/**/*
+  # The main process externalises its runtime deps (externalizeDepsPlugin), so
+  # they must ship with the app: Prisma + bcryptjs for data/auth, and
+  # xlsx/pdf-parse/exceljs for import & export. Electron-builder copies only
+  # production dependencies from node_modules — devDependencies are dropped.
+  - node_modules/**/*
   - '!**/*.{ts,tsx,map,d.ts}'
   - '!{.eslintignore,.eslintrc.cjs,.gitignore}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tailwind.config.js,postcss.config.js,electron.vite.config.ts,electron-builder.yml}'

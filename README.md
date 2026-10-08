@@ -14,7 +14,7 @@
 - [أوامر التطوير](#أوامر-التطوير)
 - [معمارية المشروع](#معمارية-المشروع)
 - [قاعدة البيانات](#قاعدة-البيانات)
-- [الاستيراد من Excel/PDF](#الاستيراد-من-excelpdf)
+- [الاستيراد والتصدير](#الاستيراد-والتصدير)
 - [نظام التصميم](#نظام-التصميم)
 - [الأمان والصلاحيات](#الأمان-والصلاحيات)
 - [التعدد اللغوي و RTL](#التعدد-اللغوي-و-rtl)
@@ -98,12 +98,15 @@ HR-System/
 │   │   │   ├── roles.ipc.ts  # الأدوار والصلاحيات
 │   │   │   ├── departments.ipc.ts  # الأقسام
 │   │   │   ├── employees.ipc.ts    # الموظفون
+│   │   │   ├── export.ipc.ts       # تصدير PDF / Excel
 │   │   │   └── settings.ipc.ts
-│   │   └── import/           # تحليل ملفات Excel/PDF وحفظها
-│   │       ├── employeesImport.ts   # قراءة ملف الموظفين → صفوف مُطبَّعة
-│   │       ├── employeesPersist.ts  # حفظ الصفوف + مطابقة/إنشاء الأقسام
-│   │       ├── departmentsImport.ts # قراءة ملف الأقسام
-│   │       └── text.ts              # تطبيع العناوين والأرقام العربية
+│   │   ├── export/
+│   │   │   └── report.ts           # تقرير PDF عبر Chromium + ورقة Excel (exceljs)
+│   │   └── import/                 # قراءة ملفات Excel/PDF وحفظها
+│   │       ├── employeesImport.ts  # قراءة ملف الموظفين → صفوف مُطبَّعة
+│   │       ├── employeesPersist.ts # حفظ الصفوف + مطابقة/إنشاء الأقسام
+│   │       ├── departmentsImport.ts# قراءة ملف الأقسام
+│   │       └── text.ts             # تطبيع العناوين والأرقام العربية
 │   └── preload/
 │       └── index.ts          # contextBridge → window.api (مُنمَّق بالكامل)
 ├── shared/                   # كود مشترك بين main و renderer
@@ -113,7 +116,7 @@ HR-System/
 │   ├── main.tsx
 │   ├── App.tsx               # Router + AnimatePresence + guards
 │   ├── components/
-│   │   ├── ui/               # GlassCard, SoftButton, Badge, Input, Modal, Table, Checkbox, Select, Toggle, Avatar, ConfirmDialog, RowActions, Skeleton
+│   │   ├── ui/               # GlassCard, SoftButton, Badge, Input, Modal, Table, Checkbox, Select, Toggle, Avatar, ConfirmDialog, RowActions, Skeleton, ExportMenu
 │   │   ├── layout/           # AppShell, Sidebar, Topbar, CommandSearch, Aurora, PageHeader
 │   │   └── feedback/         # EmptyState, NoAccess, ConfirmDialog, Toaster, BootScreen
 │   ├── modules/
@@ -121,8 +124,8 @@ HR-System/
 │   │   ├── dashboard/        # لوحة مبسطة (إحصائيات المستخدمين/الأدوار)
 │   │   ├── users/            # قائمة + نموذج مستخدم
 │   │   ├── roles/            # قائمة الأدوار + محرر مصفوفة الصلاحيات
-│   │   ├── departments/      # قائمة + نموذج + استيراد الأقسام
-│   │   ├── employees/        # قائمة + نموذج + استيراد + ملف العمل
+│   │   ├── departments/      # قائمة + نموذج + استيراد/تصدير الأقسام
+│   │   ├── employees/        # قائمة + نموذج + استيراد/تصدير + ملف العمل
 │   │   ├── profile/          # ملفي الشخصي (تغيير كلمة المرور)
 │   │   └── settings/         # الإعدادات (تبديل اللغة)
 │   ├── lib/
@@ -190,7 +193,7 @@ contextIsolation: true
 
 ---
 
-## الاستيراد من Excel/PDF
+## الاستيراد والتصدير
 
 وحدتا **الموظفون** و**الأقسام** تستوردان ملفات Excel (`.xlsx/.xls/.csv`) أو PDF عبر شاشة الاستيراد، مع معاينة الصفوف وتعديلها قبل التأكيد. المطابقة على عناوين الأعمدة بالعربية والإنجليزية، مع تسامح في التشكيل وعلامات الاتجاه (bidi) وصيغ التواريخ.
 
@@ -224,6 +227,15 @@ node scripts/update-employee-dept-contract.mjs --apply "D:\path\to\file.xlsx"
 ```
 
 يقرأ `Desktop/بيانات الموظفين.xlsx` افتراضياً، يطابق بالكود، يملأ الحقول الفارغة فقط، وياخذ نسخة `.bak` بجانب قاعدة البيانات قبل أي كتابة.
+
+### التصدير (PDF / Excel)
+
+زر **تصدير** في تبويبَي الموظفين والأقسام يصدّر **القائمة الحالية كما هي** — بنفس الفلاتر والترتيب المطبقين — بصيغتين:
+
+- **تقرير PDF** (`electron/main/export/report.ts`): صفحة A4 (أفقية إذا زادت الأعمدة عن 7) مع رأس داكن/ذهبي، رأس جدول يتكرر على كل صفحة، وخط عربي سليم — يُولَّد عبر `webContents.printToPDF` في نافذة خفية، فلا حاجة لمكتبات PDF خارجية.
+- **ورقة Excel** (مكتبة `exceljs`): ورقة RTL مع تثبيت رأس الجدول، وفلتر تلقائي، وعرض أعمدة، وتظليل متناوب، وتنسيق أرقام للنسب.
+
+التصدير محمي بصلاحية العرض (`employees.view` / `departments.view`)، ويُفتح معه نافذة اختيار مسار الحفظ (الافتراضي: مجلد المستندات)، والتواريخ تُصدَّر بصيغة ISO `yyyy-mm-dd` ليبقى الملف قابلًا للفرز والفلاتر في Excel.
 
 ---
 
@@ -387,6 +399,7 @@ node scripts/smoke-db.mjs   # اختبار دقيقي لطبقة البيانا�
 | بطء في blur/3D | حصر `backdrop-filter` على عناصر محدودة + استخدم `will-change` باعتدال |
 | RTL يكسر التخطيط | توجد قيمة `left`/`right` صريحة — استبدلها بـ logical properties |
 | فقدان DB بعد التحديث | تأكد أن قاعدة البيانات في `userData` وليست داخل مجلد التطبيق |
+| أزرار الاستيراد/التصدير لا تعمل في النسخة المُغلَّفة | تبعيات التشغيل (`xlsx` / `pdf-parse` / `exceljs`) ليست داخل الحزمة — يجب أن تتضمن `files` في `electron-builder.yml` كل `node_modules/**/*` (devDependencies تُستبعد تلقائياً) |
 
 ---
 

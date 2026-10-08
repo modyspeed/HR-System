@@ -12,7 +12,7 @@ import {
   Plus
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { DepartmentRecord, ListDepartmentsQuery } from '@shared/types'
+import type { DepartmentRecord, ExportPayload, ListDepartmentsQuery } from '@shared/types'
 import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -25,6 +25,7 @@ import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
 import { SkeletonRows } from '@/components/ui/Skeleton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ExportMenu } from '@/components/ui/ExportMenu'
 import { RowActions } from '@/components/ui/RowActions'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -34,7 +35,7 @@ import { ImportDepartmentsModal } from './ImportDepartmentsModal'
 type SortField = NonNullable<ListDepartmentsQuery['sort']>
 
 export function DepartmentsList() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const canCreate = usePermission('departments.create')
   const canEdit = usePermission('departments.edit')
@@ -66,7 +67,7 @@ export function DepartmentsList() {
     queryFn: () => api.departments.list(query)
   })
 
-  const departments = departmentsQuery.data ?? []
+  const departments = useMemo(() => departmentsQuery.data ?? [], [departmentsQuery.data])
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['departments'] })
@@ -98,6 +99,49 @@ export function DepartmentsList() {
 
   const hasFilters = Boolean(debouncedSearch || isActive !== '')
 
+  const exportPayload = useMemo<ExportPayload | null>(() => {
+    if (departments.length === 0) return null
+    const filters = [
+      debouncedSearch ? `«${debouncedSearch}»` : null,
+      isActive === 'active'
+        ? t('departments.activeOnly')
+        : isActive === 'inactive'
+          ? t('departments.inactiveOnly')
+          : null
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    const subtitle = [t('export.count', { count: departments.length }), filters]
+      .filter(Boolean)
+      .join(' — ')
+
+    return {
+      scope: 'departments',
+      fileName: `departments-${new Date().toISOString().slice(0, 10)}`,
+      title: t('departments.title'),
+      subtitle,
+      direction: i18n.dir() === 'rtl' ? 'rtl' : 'ltr',
+      columns: [
+        { key: 'code', label: t('departments.code'), width: 14, align: 'center' },
+        { key: 'name', label: t('departments.name'), width: 36 },
+        {
+          key: 'allowance',
+          label: t('departments.allowance'),
+          width: 18,
+          align: 'center',
+          format: '0"%"'
+        },
+        { key: 'status', label: t('departments.status'), width: 12, align: 'center' }
+      ],
+      rows: departments.map((department) => [
+        department.code,
+        department.name,
+        department.natureAllowancePct,
+        department.isActive ? t('departments.activeBadge') : t('departments.inactiveBadge')
+      ])
+    }
+  }, [departments, debouncedSearch, isActive, t, i18n])
+
   return (
     <div>
       <PageHeader
@@ -106,6 +150,7 @@ export function DepartmentsList() {
         subtitle={t('departments.subtitle')}
         actions={
           <>
+            <ExportMenu payload={exportPayload} />
             {canImport && (
               <SoftButton
                 variant="ghost"
