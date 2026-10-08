@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { scaleIn } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
@@ -43,7 +44,12 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  return (
+  // Portal to <body>: the route wrapper inside <main> carries framer-motion
+  // `filter: blur(0px)` after page transitions, and a filtered ancestor becomes
+  // the containing block for `position: fixed` — which anchored the dialog to
+  // the scrolled content instead of the viewport (reaching it needed a long
+  // scroll). Portalling escapes that ancestor, so the dialog is viewport-locked.
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 grid place-items-center p-6">
@@ -101,6 +107,7 @@ export function Modal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
