@@ -85,6 +85,8 @@ export interface DepartmentRecord {
   name: string
   natureAllowancePct: number | null
   isActive: boolean
+  /** عدد الموظفين المرتبطين — يحسم الحالة الفعلية للقسم ديناميكيًا. */
+  employeeCount: number
   createdAt: string
   updatedAt: string
 }
@@ -156,6 +158,8 @@ export interface EmployeeRecord {
   fileOriginalName: string | null
   fileSize: number | null
   fileLinkedAt: string | null
+  /** حالة الموظف الوظيفية — مفتاح من `EMPLOYEE_STATUS_KEYS`. */
+  status: string
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -166,6 +170,17 @@ export interface ListEmployeesQuery {
   isActive?: boolean | null
   sort?: 'code' | 'name' | 'grade' | 'hireDate' | 'createdAt'
   order?: 'asc' | 'desc'
+  status?: string
+}
+
+export interface EmployeeStatusHistoryRecord {
+  id: string
+  employeeId: string
+  fromStatus: string
+  toStatus: string
+  reason: string | null
+  changedBy: string | null
+  changedAt: string
 }
 
 export interface EmployeeUpsertInput {
@@ -223,19 +238,63 @@ export interface EmployeeImportSummary {
   skipped: number
 }
 
-/** Result of `employees:previewFile` — either PDF bytes or a parsed grid. */
+/** Result of `*:previewFile` — PDF bytes, a parsed spreadsheet grid, or an image. */
 export interface EmployeeFilePreview {
-  kind: 'pdf' | 'table'
+  kind: 'pdf' | 'table' | 'image'
   originalName: string | null
   ext: string
   size: number
-  /** PDF payload (Uint8Array crosses the IPC boundary intact). */
+  /** PDF / image payload (Uint8Array crosses the IPC boundary intact). */
   data?: Uint8Array
+  /** Image MIME type (e.g. image/png) when `kind === 'image'`. */
+  mime?: string
   /** Spreadsheet payload. */
   sheetName?: string | null
   rows?: string[][]
   totalRows?: number
   truncated?: boolean
+}
+
+/** Result of `leaves:previewFile` — same shapes as the employee file preview. */
+export type LeaveFilePreview = EmployeeFilePreview
+
+export interface LeaveRecord {
+  id: string
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  /** مفتاح من كتالوج `LEAVE_TYPE_KEYS` — أنواع الإجازات وفق القانون المصري. */
+  type: string
+  startDate: string // yyyy-mm-dd
+  endDate: string // yyyy-mm-dd (شاملان)
+  daysCount: number
+  year: number
+  reason: string | null
+  status: string // pending | approved | rejected
+  fileOriginalName: string | null
+  fileSize: number | null
+  fileLinkedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LeaveUpsertInput {
+  employeeId: string
+  type: string
+  startDate: string
+  endDate: string
+  /** يُحتسب تلقائيًا من الفترة إذا لم يُمرَّر. */
+  daysCount?: number | null
+  year?: number | null
+  reason?: string | null
+  status?: string
+}
+
+export interface ListLeavesQuery {
+  search?: string
+  type?: string
+  status?: string
+  year?: number | null
 }
 
 export interface UniquenessCheck {
@@ -259,7 +318,7 @@ export interface AppSettings {
 /* --------------------------------- export --------------------------------- */
 
 /** Which module's data is being exported — drives the permission check. */
-export type ExportScope = 'employees' | 'departments'
+export type ExportScope = 'employees' | 'departments' | 'leaves'
 
 export interface ExportColumn {
   key: string
@@ -332,6 +391,12 @@ export interface ApiShape {
     create(input: EmployeeUpsertInput): Promise<EmployeeRecord>
     update(id: string, input: EmployeeUpsertInput): Promise<EmployeeRecord>
     remove(id: string): Promise<void>
+    /** يُسجِّل تغيير الحالة في سجل الموظف ويُحدِّث `isActive` تلقائيًا. */
+    setStatus(
+      id: string,
+      input: { status: string; reason?: string }
+    ): Promise<EmployeeRecord>
+    statusHistory(id: string): Promise<EmployeeStatusHistoryRecord[]>
     parseImportFile(payload: {
       data: ArrayBuffer
       fileName: string
@@ -344,6 +409,21 @@ export interface ApiShape {
     }): Promise<EmployeeRecord>
     removeFile(id: string): Promise<EmployeeRecord>
     previewFile(id: string): Promise<EmployeeFilePreview>
+    revealFilesDir(): Promise<void>
+  }
+  leaves: {
+    list(query: ListLeavesQuery): Promise<LeaveRecord[]>
+    getById(id: string): Promise<LeaveRecord | null>
+    create(input: LeaveUpsertInput): Promise<LeaveRecord>
+    update(id: string, input: LeaveUpsertInput): Promise<LeaveRecord>
+    remove(id: string): Promise<void>
+    attachFile(payload: {
+      id: string
+      data: ArrayBuffer
+      fileName: string
+    }): Promise<LeaveRecord>
+    removeFile(id: string): Promise<LeaveRecord>
+    previewFile(id: string): Promise<LeaveFilePreview>
     revealFilesDir(): Promise<void>
   }
   export: {

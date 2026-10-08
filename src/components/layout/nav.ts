@@ -1,4 +1,13 @@
-import { Building2, Contact, LayoutDashboard, Settings, ShieldCheck, UserCircle, Users } from 'lucide-react'
+import {
+  Building2,
+  CalendarDays,
+  Contact,
+  LayoutDashboard,
+  Settings,
+  ShieldCheck,
+  UserCircle,
+  Users
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -26,6 +35,13 @@ export const NAV_ITEMS: NavItem[] = [
     labelKey: 'nav.employees',
     icon: Contact,
     permission: 'employees.view',
+    section: 'management'
+  },
+  {
+    to: '/leaves',
+    labelKey: 'nav.leaves',
+    icon: CalendarDays,
+    permission: 'leaves.view',
     section: 'management'
   },
   { to: '/profile', labelKey: 'nav.profile', icon: UserCircle, section: 'account' },

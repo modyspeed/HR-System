@@ -133,12 +133,15 @@ export function DepartmentsList() {
         },
         { key: 'status', label: t('departments.status'), width: 12, align: 'center' }
       ],
-      rows: departments.map((department) => [
-        department.code,
-        department.name,
-        department.natureAllowancePct,
-        department.isActive ? t('departments.activeBadge') : t('departments.inactiveBadge')
-      ])
+      rows: departments.map((department) => {
+        const effectiveActive = department.isActive && department.employeeCount > 0
+        return [
+          department.code,
+          department.name,
+          department.natureAllowancePct,
+          effectiveActive ? t('departments.activeBadge') : t('departments.inactiveBadge')
+        ]
+      })
     }
   }, [departments, debouncedSearch, isActive, t, i18n])
 
@@ -319,11 +322,25 @@ export function DepartmentsList() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <Badge tone={department.isActive ? 'teal' : 'rose'} dot>
-                        {department.isActive
-                          ? t('departments.activeBadge')
-                          : t('departments.inactiveBadge')}
-                      </Badge>
+                      {department.isActive && department.employeeCount === 0 ? (
+                        <span
+                          className="flex w-fit items-center gap-2"
+                          title={t('departments.zeroEmployeesHint')}
+                        >
+                          <Badge tone="neutral" dot>
+                            {t('departments.inactiveBadge')}
+                          </Badge>
+                          <span className="rounded-full bg-surface-strong px-2 py-0.5 text-[10px] font-medium text-ink-low">
+                            {t('departments.zeroEmployees')}
+                          </span>
+                        </span>
+                      ) : (
+                        <Badge tone={department.isActive ? 'teal' : 'rose'} dot>
+                          {department.isActive
+                            ? t('departments.activeBadge')
+                            : t('departments.inactiveBadge')}
+                        </Badge>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <RowActions

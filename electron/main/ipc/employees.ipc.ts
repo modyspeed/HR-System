@@ -7,7 +7,8 @@ import type {
   EmployeeUpsertInput,
   ListEmployeesQuery
 } from '../../../shared/types'
-import { requirePermission } from '../auth'
+import { getSession, requirePermission } from '../auth'
+import { ACTIVE_EMPLOYEE_STATUS } from '../../../shared/employeeStatuses'
 import {
   attachEmployeeFile,
   previewEmployeeFile,
@@ -16,6 +17,7 @@ import {
 } from '../employee-files'
 import { parseEmployeesFile } from '../import/employeesImport'
 import { importEmployees } from '../import/employeesPersist'
+import { changeEmployeeStatus, getStatusHistory } from '../employee-status'
 import type { IpcRegistry } from './registry'
 
 const DEPARTMENT_INCLUDE = { department: { select: { name: true } } } as const
@@ -46,6 +48,7 @@ function toEmployeeRecord(employee: EmployeeRow): EmployeeRecord {
     fileOriginalName: employee.fileOriginalName,
     fileSize: employee.fileSize,
     fileLinkedAt: employee.fileLinkedAt ? employee.fileLinkedAt.toISOString() : null,
+    status: employee.status,
     isActive: employee.isActive,
     createdAt: employee.createdAt.toISOString(),
     updatedAt: employee.updatedAt.toISOString()
@@ -136,6 +139,8 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
     if (query.isActive !== null && query.isActive !== undefined) {
       where.isActive = query.isActive
     }
+    const statusFilter = query.status?.trim()
+    if (statusFilter) where.status = statusFilter
 
     const order = query.order ?? 'asc'
     const orderBy: Prisma.EmployeeOrderByWithRelationInput = {
@@ -172,6 +177,25 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
   ipc.handle('employees:remove', async (_event, id: string) => {
     requirePermission('employees.delete')
     await prisma.employee.delete({ where: { id } })
+  })
+
+  ipc.handle(
+    'employees:setStatus',
+    async (_event, id: string, input: { status: string; reason?: string }) => {
+      requirePermission('employees.manage_status')
+      await changeEmployeeStatus(prisma, id, input, getSession()?.fullName ?? null)
+      const employee = await prisma.employee.findUnique({
+        where: { id },
+        include: DEPARTMENT_INCLUDE
+      })
+      if (!employee) throw new ApiError('NOT_FOUND', 'Employee not found')
+      return toEmployeeRecord(employee)
+    }
+  )
+
+  ipc.handle('employees:statusHistory', async (_event, id: string) => {
+    requirePermission('employees.view')
+    return getStatusHistory(prisma, id)
   })
 
   ipc.handle(
@@ -239,7 +263,10 @@ async function createEmployee(
   if (existing) throw new ApiError('CONFLICT', 'An employee with this code already exists')
   await assertDepartmentExists(prisma, data.departmentId)
 
-  const employee = await prisma.employee.create({ data, include: DEPARTMENT_INCLUDE })
+  const employee = await prisma.employee.create({
+    data: { ...data, status: ACTIVE_EMPLOYEE_STATUS, isActive: true },
+    include: DEPARTMENT_INCLUDE
+  })
   return toEmployeeRecord(employee)
 }
 
@@ -261,7 +288,8 @@ async function updateEmployee(
 
   const employee = await prisma.employee.update({
     where: { id },
-    data,
+    // الحالة تُدار حصريًا عبر changeEmployeeStatus — التعديل العادي لا يمسّها.
+    data: { ...data, status: target.status, isActive: target.isActive },
     include: DEPARTMENT_INCLUDE
   })
   return toEmployeeRecord(employee)

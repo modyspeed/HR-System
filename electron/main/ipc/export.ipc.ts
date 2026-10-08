@@ -7,7 +7,8 @@ import type { IpcRegistry } from './registry'
 /** Exporting a list is a read of that list — reuse the module's view right. */
 const PERMISSION_BY_SCOPE: Record<string, string> = {
   employees: 'employees.view',
-  departments: 'departments.view'
+  departments: 'departments.view',
+  leaves: 'leaves.view'
 }
 
 function guard(payload: ExportPayload): void {

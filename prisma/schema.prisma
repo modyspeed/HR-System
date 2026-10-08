@@ -82,7 +82,48 @@ model Employee {
   contractType      String? // نوع التعاقد (free text — permanent, temporary, …)
   departmentId      String? // القسم — soft link to Department; unlinking a department nulls this
   department        Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  leaves            Leave[]
+  status            String      @default("active") // الحالة الوظيفية — مفتاح من كتالوج الحالات (نشط/معاش/وفاة/استقالة…)
+  statusHistory     EmployeeStatusHistory[]
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+}
+
+model EmployeeStatusHistory {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  fromStatus String // الحالة قبل التغيير
+  toStatus   String // الحالة الجديدة
+  reason     String? // سبب التغيير (استقالة، بلوغ المعاش، وفاة…)
+  changedBy  String? // اسم المستخدم الذي نفّذ التغيير
+  changedAt  DateTime @default(now())
+
+  @@index([employeeId])
+  @@index([changedAt])
+}
+
+model Leave {
+  id               String    @id @default(cuid())
+  employeeId       String
+  employee         Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type             String // نوع الإجازة — مفتاح من كتالوج أنواع الإجازات (قانون العمل المصري 12/2003 وغيره)
+  startDate        DateTime // تاريخ بداية الإجازة
+  endDate          DateTime // تاريخ نهاية الإجازة (شامل)
+  daysCount        Int // عدد أيام الإجازة (شامل طرفي الفترة)
+  year             Int // السنة الإدارية المُحتسَبة من تاريخ البدء
+  reason           String? // سبب الإجازة / ملاحظات الإدارة
+  status           String    @default("pending") // pending | approved | rejected
+  fileOriginalName String? // المستند الموثَّق — الاسم الظاهر للمستخدم
+  fileStoredName   String? // المستند الموثَّق — الاسم الفريد داخل مجلد ملفات الإجازات
+  fileSize         Int? // المستند الموثَّق — الحجم بالبايت
+  fileLinkedAt     DateTime? // المستند الموثَّق — وقت الرفع/الاستبدال
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([type])
+  @@index([status])
+  @@index([year])
 }

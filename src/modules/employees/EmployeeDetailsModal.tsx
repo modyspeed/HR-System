@@ -6,6 +6,8 @@ import { usePermission } from '@/hooks/usePermission'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { SoftButton } from '@/components/ui/SoftButton'
+import { DetailField, SectionTitle } from './detailFields'
+import { employeeStatusTone } from './employeeStatusMeta'
 
 interface EmployeeDetailsModalProps {
   open: boolean
@@ -21,42 +23,6 @@ function extensionOf(name: string | null): string {
   if (!name) return ''
   const index = name.lastIndexOf('.')
   return index >= 0 ? name.slice(index).toLowerCase() : ''
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="mb-2.5 mt-6 text-[11px] font-semibold uppercase tracking-wider text-accent-300 first:mt-0">
-      {children}
-    </h3>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-  ltr = false,
-  mono = false
-}: {
-  label: string
-  value: string
-  ltr?: boolean
-  mono?: boolean
-}) {
-  return (
-    <div className="rounded-2xl bg-surface-soft px-4 py-3 shadow-[var(--shadow-inset)]">
-      <p className="text-[11px] text-ink-low">{label}</p>
-      <p
-        dir={ltr ? 'ltr' : 'auto'}
-        className={cn(
-          'mt-1 text-sm font-medium break-words text-ink-high',
-          mono && 'font-mono text-[13px]',
-          !value && 'text-ink-low'
-        )}
-      >
-        {value || '—'}
-      </p>
-    </div>
-  )
 }
 
 export function EmployeeDetailsModal({
@@ -141,10 +107,8 @@ export function EmployeeDetailsModal({
             <div className="rounded-2xl bg-surface-soft px-4 py-3 shadow-[var(--shadow-inset)]">
               <p className="text-[11px] text-ink-low">{t('employees.status')}</p>
               <div className="mt-1.5">
-                <Badge tone={employee.isActive ? 'teal' : 'rose'} dot>
-                  {employee.isActive
-                    ? t('employees.activeBadge')
-                    : t('employees.inactiveBadge')}
+                <Badge tone={employeeStatusTone(employee.status)} dot>
+                  {t(`employeeStatuses.${employee.status}`)}
                 </Badge>
               </div>
             </div>

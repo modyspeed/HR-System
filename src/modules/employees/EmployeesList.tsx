@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
+  Activity,
   ArrowDownUp,
   Contact,
   Eye,
@@ -11,7 +13,8 @@ import {
   Plus,
   Search,
   Trash2,
-  Upload
+  Upload,
+  UserRound
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EmployeeRecord, ExportPayload, ListEmployeesQuery } from '@shared/types'
@@ -36,21 +39,25 @@ import { EmployeeDetailsModal } from './EmployeeDetailsModal'
 import { EmployeeFormModal } from './EmployeeFormModal'
 import { EmployeeFileModal } from './EmployeeFileModal'
 import { ImportEmployeesModal } from './ImportEmployeesModal'
+import { EmployeeStatusDialog } from './EmployeeStatusDialog'
+import { EMPLOYEE_STATUS_KEYS, employeeStatusTone } from './employeeStatusMeta'
 
 type SortField = NonNullable<ListEmployeesQuery['sort']>
 
 export function EmployeesList() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const canCreate = usePermission('employees.create')
   const canEdit = usePermission('employees.edit')
   const canDelete = usePermission('employees.delete')
+  const canManageStatus = usePermission('employees.manage_status')
   const canImport = usePermission('employees.import')
   const language = i18n.language
 
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 260)
-  const [isActive, setIsActive] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
   const [sort, setSort] = useState<SortField>('code')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
   const [formOpen, setFormOpen] = useState(false)
@@ -59,15 +66,16 @@ export function EmployeesList() {
   const [confirmDelete, setConfirmDelete] = useState<EmployeeRecord | null>(null)
   const [fileEmployee, setFileEmployee] = useState<EmployeeRecord | null>(null)
   const [viewing, setViewing] = useState<EmployeeRecord | null>(null)
+  const [statusEmployee, setStatusEmployee] = useState<EmployeeRecord | null>(null)
 
   const query: ListEmployeesQuery = useMemo(
     () => ({
       search: debouncedSearch || undefined,
-      isActive: isActive === '' ? null : isActive === 'active',
+      status: statusFilter || undefined,
       sort,
       order
     }),
-    [debouncedSearch, isActive, sort, order]
+    [debouncedSearch, statusFilter, sort, order]
   )
 
   const employeesQuery = useQuery({
@@ -93,7 +101,7 @@ export function EmployeesList() {
 
   const clearFilters = () => {
     setSearch('')
-    setIsActive('')
+    setStatusFilter('')
   }
 
   const toggleSort = (field: SortField) => {
@@ -105,7 +113,7 @@ export function EmployeesList() {
     }
   }
 
-  const hasFilters = Boolean(debouncedSearch || isActive !== '')
+  const hasFilters = Boolean(debouncedSearch || statusFilter !== '')
 
   /**
    * Export mirrors the current list (same filters, same order) and carries the
@@ -116,11 +124,7 @@ export function EmployeesList() {
     if (employees.length === 0) return null
     const filters = [
       debouncedSearch ? `«${debouncedSearch}»` : null,
-      isActive === 'active'
-        ? t('employees.activeOnly')
-        : isActive === 'inactive'
-          ? t('employees.inactiveOnly')
-          : null
+      statusFilter ? t(`employeeStatuses.${statusFilter}`) : null
     ]
       .filter(Boolean)
       .join(' · ')
@@ -170,10 +174,10 @@ export function EmployeesList() {
         employee.qualificationYear,
         employee.departmentName,
         employee.contractType,
-        employee.isActive ? t('employees.activeBadge') : t('employees.inactiveBadge')
+        t(`employeeStatuses.${employee.status}`)
       ])
     }
-  }, [employees, debouncedSearch, isActive, t, i18n])
+  }, [employees, debouncedSearch, statusFilter, t, i18n])
 
   const cell = (value: string | null) => (value ? value : <span className="text-ink-low">—</span>)
 
@@ -223,12 +227,12 @@ export function EmployeesList() {
           />
           <Select
             containerClassName="lg:w-44"
-            value={isActive}
-            onChange={(event) => setIsActive(event.target.value)}
-            options={[
-              { value: 'active', label: t('employees.activeOnly') },
-              { value: 'inactive', label: t('employees.inactiveOnly') }
-            ]}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            options={EMPLOYEE_STATUS_KEYS.map((key) => ({
+              value: key,
+              label: t(`employeeStatuses.${key}`)
+            }))}
             placeholder={t('employees.allStatuses')}
           />
           {hasFilters && (
@@ -371,10 +375,8 @@ export function EmployeesList() {
                       {formatDateOnly(employee.hireDate, language)}
                     </td>
                     <td className="px-5 py-3.5">
-                      <Badge tone={employee.isActive ? 'teal' : 'rose'} dot>
-                        {employee.isActive
-                          ? t('employees.activeBadge')
-                          : t('employees.inactiveBadge')}
+                      <Badge tone={employeeStatusTone(employee.status)} dot>
+                        {t(`employeeStatuses.${employee.status}`)}
                       </Badge>
                     </td>
                     <td className="px-5 py-3.5">
@@ -390,6 +392,22 @@ export function EmployeesList() {
                         </button>
                         <RowActions
                           actions={[
+                            {
+                              key: 'profile',
+                              label: t('employees.profile'),
+                              icon: <UserRound className="size-3.5" />,
+                              onClick: () => navigate(`/employees/${employee.id}`)
+                            },
+                            ...(canManageStatus
+                              ? [
+                                  {
+                                    key: 'status',
+                                    label: t('employees.statusTitle'),
+                                    icon: <Activity className="size-3.5" />,
+                                    onClick: () => setStatusEmployee(employee)
+                                  }
+                                ]
+                              : []),
                             {
                               key: 'file',
                               label: t('employees.file.action'),
@@ -465,6 +483,13 @@ export function EmployeesList() {
             })
           }
         }}
+      />
+
+      <EmployeeStatusDialog
+        open={statusEmployee !== null}
+        employee={statusEmployee}
+        onClose={() => setStatusEmployee(null)}
+        onChanged={() => invalidate()}
       />
 
       <EmployeeDetailsModal

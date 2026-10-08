@@ -15,7 +15,9 @@ import {
 } from '../import/departmentsImport'
 import type { IpcRegistry } from './registry'
 
-type DepartmentRow = Prisma.DepartmentGetPayload<Record<string, never>>
+const DEPARTMENT_INCLUDE = { _count: { select: { employees: true } } } as const
+
+type DepartmentRow = Prisma.DepartmentGetPayload<{ include: typeof DEPARTMENT_INCLUDE }>
 
 function toDepartmentRecord(department: DepartmentRow): DepartmentRecord {
   return {
@@ -24,6 +26,7 @@ function toDepartmentRecord(department: DepartmentRow): DepartmentRecord {
     name: department.name,
     natureAllowancePct: department.natureAllowancePct,
     isActive: department.isActive,
+    employeeCount: department._count.employees,
     createdAt: department.createdAt.toISOString(),
     updatedAt: department.updatedAt.toISOString()
   }
@@ -69,13 +72,13 @@ export function registerDepartmentsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
       [query.sort ?? 'code']: order
     }
 
-    const departments = await prisma.department.findMany({ where, orderBy })
+    const departments = await prisma.department.findMany({ where, orderBy, include: DEPARTMENT_INCLUDE })
     return departments.map(toDepartmentRecord)
   })
 
   ipc.handle('departments:getById', async (_event, id: string) => {
     requirePermission('departments.view')
-    const department = await prisma.department.findUnique({ where: { id } })
+    const department = await prisma.department.findUnique({ where: { id }, include: DEPARTMENT_INCLUDE })
     return department ? toDepartmentRecord(department) : null
   })
 
@@ -118,7 +121,7 @@ async function createDepartment(
   const existing = await prisma.department.findUnique({ where: { code: data.code } })
   if (existing) throw new ApiError('CONFLICT', 'A department with this code already exists')
 
-  const department = await prisma.department.create({ data })
+  const department = await prisma.department.create({ data, include: DEPARTMENT_INCLUDE })
   return toDepartmentRecord(department)
 }
 
@@ -137,7 +140,7 @@ async function updateDepartment(
     if (clash) throw new ApiError('CONFLICT', 'A department with this code already exists')
   }
 
-  const department = await prisma.department.update({ where: { id }, data })
+  const department = await prisma.department.update({ where: { id }, data, include: DEPARTMENT_INCLUDE })
   return toDepartmentRecord(department)
 }
 

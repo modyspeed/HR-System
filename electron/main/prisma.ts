@@ -38,7 +38,8 @@ const SCHEMA_UPGRADES = [
   `ALTER TABLE "Employee" ADD COLUMN "fileSize" INTEGER`,
   `ALTER TABLE "Employee" ADD COLUMN "fileLinkedAt" DATETIME`,
   `ALTER TABLE "Employee" ADD COLUMN "contractType" TEXT`,
-  `ALTER TABLE "Employee" ADD COLUMN "departmentId" TEXT`
+  `ALTER TABLE "Employee" ADD COLUMN "departmentId" TEXT`,
+  `ALTER TABLE "Employee" ADD COLUMN "status" TEXT DEFAULT 'active'`
 ]
 
 export async function applySnapshot(prisma: PrismaClient): Promise<void> {

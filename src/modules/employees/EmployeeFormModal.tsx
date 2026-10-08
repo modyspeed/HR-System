@@ -13,7 +13,6 @@ import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
-import { Toggle } from '@/components/ui/Toggle'
 
 interface EmployeeFormModalProps {
   open: boolean
@@ -36,7 +35,6 @@ interface FormValues {
   qualificationYear: string
   contractType: string
   departmentId: string
-  isActive: boolean
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -69,8 +67,7 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
         .optional()
         .refine((value) => !value || /^\d{4}$/.test(value), { message: t('validation.yearInvalid') }),
       contractType: z.string().trim().optional(),
-      departmentId: z.string().trim().optional(),
-      isActive: z.boolean()
+      departmentId: z.string().trim().optional()
     })
   }, [t])
 
@@ -78,8 +75,6 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
     register,
     handleSubmit,
     reset,
-    setValue,
-    watch,
     formState: { errors, isSubmitting }
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -96,8 +91,7 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
       qualification: '',
       qualificationYear: '',
       contractType: '',
-      departmentId: '',
-      isActive: true
+      departmentId: ''
     }
   })
 
@@ -116,8 +110,7 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
       qualification: employee?.qualification ?? '',
       qualificationYear: employee?.qualificationYear ? String(employee.qualificationYear) : '',
       contractType: employee?.contractType ?? '',
-      departmentId: employee?.departmentId ?? '',
-      isActive: employee?.isActive ?? true
+      departmentId: employee?.departmentId ?? ''
     })
   }, [open, employee, reset])
 
@@ -145,8 +138,7 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
     qualification: values.qualification.trim() || null,
     qualificationYear: values.qualificationYear ? Number(values.qualificationYear) : null,
     contractType: values.contractType.trim() || null,
-    departmentId: values.departmentId || null,
-    isActive: values.isActive
+    departmentId: values.departmentId || null
   })
 
   const createMutation = useMutation({
@@ -290,21 +282,6 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
           error={errors.gradeDate?.message}
           {...register('gradeDate')}
         />
-        <div className="sm:col-span-2">
-          <div className="flex cursor-pointer items-center justify-between gap-3 rounded-full bg-surface-soft px-5 py-3 shadow-[var(--shadow-inset)]">
-            <span className="flex flex-col">
-              <span className="text-sm font-semibold text-ink-high">{t('employees.status')}</span>
-              <span className="text-[11px] text-ink-low">
-                {t('employees.active')} / {t('employees.inactive')}
-              </span>
-            </span>
-            <Toggle
-              checked={watch('isActive')}
-              onChange={(value) => setValue('isActive', value)}
-              label={t('employees.status')}
-            />
-          </div>
-        </div>
       </form>
     </Modal>
   )

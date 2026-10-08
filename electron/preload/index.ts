@@ -41,6 +41,8 @@ const api: ApiShape = {
     create: (input) => ipcRenderer.invoke('employees:create', input),
     update: (id, input) => ipcRenderer.invoke('employees:update', id, input),
     remove: (id) => ipcRenderer.invoke('employees:remove', id),
+    setStatus: (id, input) => ipcRenderer.invoke('employees:setStatus', id, input),
+    statusHistory: (id) => ipcRenderer.invoke('employees:statusHistory', id),
     parseImportFile: (payload) => ipcRenderer.invoke('employees:parseImportFile', payload),
     importRows: (rows) => ipcRenderer.invoke('employees:importRows', rows),
     attachFile: (payload) => ipcRenderer.invoke('employees:attachFile', payload),
@@ -51,6 +53,17 @@ const api: ApiShape = {
   export: {
     toPdf: (payload) => ipcRenderer.invoke('export:pdf', payload),
     toExcel: (payload) => ipcRenderer.invoke('export:excel', payload)
+  },
+  leaves: {
+    list: (query) => ipcRenderer.invoke('leaves:list', query),
+    getById: (id) => ipcRenderer.invoke('leaves:getById', id),
+    create: (input) => ipcRenderer.invoke('leaves:create', input),
+    update: (id, input) => ipcRenderer.invoke('leaves:update', id, input),
+    remove: (id) => ipcRenderer.invoke('leaves:remove', id),
+    attachFile: (payload) => ipcRenderer.invoke('leaves:attachFile', payload),
+    removeFile: (id) => ipcRenderer.invoke('leaves:removeFile', id),
+    previewFile: (id) => ipcRenderer.invoke('leaves:previewFile', id),
+    revealFilesDir: () => ipcRenderer.invoke('leaves:revealFilesDir')
   },
   settings: {
     getAll: () => ipcRenderer.invoke('settings:getAll'),

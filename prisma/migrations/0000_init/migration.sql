@@ -69,10 +69,43 @@ CREATE TABLE IF NOT EXISTS "Employee" (
     "fileLinkedAt" DATETIME,
     "contractType" TEXT,
     "departmentId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "Employee_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "EmployeeStatusHistory" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "employeeId" TEXT NOT NULL,
+    "fromStatus" TEXT NOT NULL,
+    "toStatus" TEXT NOT NULL,
+    "reason" TEXT,
+    "changedBy" TEXT,
+    "changedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "EmployeeStatusHistory_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Leave" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "employeeId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "startDate" DATETIME NOT NULL,
+    "endDate" DATETIME NOT NULL,
+    "daysCount" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "reason" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "fileOriginalName" TEXT,
+    "fileStoredName" TEXT,
+    "fileSize" INTEGER,
+    "fileLinkedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Leave_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -95,3 +128,21 @@ CREATE UNIQUE INDEX IF NOT EXISTS "Department_code_key" ON "Department"("code");
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "Employee_code_key" ON "Employee"("code");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "EmployeeStatusHistory_employeeId_idx" ON "EmployeeStatusHistory"("employeeId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "EmployeeStatusHistory_changedAt_idx" ON "EmployeeStatusHistory"("changedAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Leave_employeeId_idx" ON "Leave"("employeeId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Leave_type_idx" ON "Leave"("type");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Leave_status_idx" ON "Leave"("status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Leave_year_idx" ON "Leave"("year");
