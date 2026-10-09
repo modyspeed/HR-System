@@ -16,6 +16,7 @@ import { DepartmentsList } from '@/modules/departments/DepartmentsList'
 import { EmployeesList } from '@/modules/employees/EmployeesList'
 import { EmployeeProfile } from '@/modules/employees/EmployeeProfile'
 import { LeavesList } from '@/modules/leaves/LeavesList'
+import { PayrollsList } from '@/modules/payrolls/PayrollsList'
 import { Profile } from '@/modules/profile/Profile'
 import { Settings } from '@/modules/settings/Settings'
 
@@ -101,6 +102,10 @@ export function App() {
         <Route
           path="leaves"
           element={<Protected permission="leaves.view" element={<LeavesList />} />}
+        />
+        <Route
+          path="payrolls"
+          element={<Protected permission="payrolls.view" element={<PayrollsList />} />}
         />
         <Route path="profile" element={<Protected element={<Profile />} />} />
         <Route

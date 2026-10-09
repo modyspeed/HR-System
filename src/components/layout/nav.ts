@@ -1,4 +1,5 @@
 import {
+  Banknote,
   Building2,
   CalendarDays,
   Contact,
@@ -42,6 +43,13 @@ export const NAV_ITEMS: NavItem[] = [
     labelKey: 'nav.leaves',
     icon: CalendarDays,
     permission: 'leaves.view',
+    section: 'management'
+  },
+  {
+    to: '/payrolls',
+    labelKey: 'nav.payrolls',
+    icon: Banknote,
+    permission: 'payrolls.view',
     section: 'management'
   },
   { to: '/profile', labelKey: 'nav.profile', icon: UserCircle, section: 'account' },

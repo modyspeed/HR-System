@@ -17,6 +17,7 @@ import {
   revealEmployeeFilesDir
 } from '../employee-files'
 import { deleteStoredLeaveFile } from '../leave-files'
+import { sweepOrphanPayrollBatches } from './payrolls.ipc'
 import { parseEmployeesFile } from '../import/employeesImport'
 import { importEmployees } from '../import/employeesPersist'
 import {
@@ -209,6 +210,7 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
     deleteStoredEmployeeFile(target.fileStoredName)
     for (const leave of target.leaves) deleteStoredLeaveFile(leave.fileStoredName)
     await prisma.employee.delete({ where: { id } })
+    await sweepOrphanPayrollBatches(prisma)
   })
 
   ipc.handle(

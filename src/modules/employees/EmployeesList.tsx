@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Activity,
   ArrowDownUp,
+  Banknote,
   Contact,
   Eye,
   Paperclip,
@@ -41,6 +42,7 @@ import { EmployeeFormModal } from './EmployeeFormModal'
 import { EmployeeFileModal } from './EmployeeFileModal'
 import { ImportEmployeesModal } from './ImportEmployeesModal'
 import { EmployeeStatusDialog } from './EmployeeStatusDialog'
+import { PayrollByEmployeeModal } from '@/modules/payrolls/PayrollEmployeeView'
 import { EMPLOYEE_STATUS_KEYS, employeeStatusTone } from './employeeStatusMeta'
 
 type SortField = NonNullable<ListEmployeesQuery['sort']>
@@ -53,6 +55,7 @@ export function EmployeesList() {
   const canEdit = usePermission('employees.edit')
   const canDelete = usePermission('employees.delete')
   const canManageStatus = usePermission('employees.manage_status')
+  const canViewPayrolls = usePermission('payrolls.view')
   const canImport = usePermission('employees.import')
   const language = i18n.language
 
@@ -68,6 +71,7 @@ export function EmployeesList() {
   const [fileEmployee, setFileEmployee] = useState<EmployeeRecord | null>(null)
   const [viewing, setViewing] = useState<EmployeeRecord | null>(null)
   const [statusEmployee, setStatusEmployee] = useState<EmployeeRecord | null>(null)
+  const [payrollEmployee, setPayrollEmployee] = useState<EmployeeRecord | null>(null)
 
   const query: ListEmployeesQuery = useMemo(
     () => ({
@@ -408,6 +412,16 @@ export function EmployeesList() {
                               icon: <UserRound className="size-3.5" />,
                               onClick: () => navigate(`/employees/${employee.id}`)
                             },
+                            ...(canViewPayrolls
+                              ? [
+                                  {
+                                    key: 'payrolls',
+                                    label: t('payrolls.employeePayrolls'),
+                                    icon: <Banknote className="size-3.5" />,
+                                    onClick: () => setPayrollEmployee(employee)
+                                  }
+                                ]
+                              : []),
                             ...(canManageStatus
                               ? [
                                   {
@@ -500,6 +514,13 @@ export function EmployeesList() {
         employee={statusEmployee}
         onClose={() => setStatusEmployee(null)}
         onChanged={() => invalidate()}
+      />
+
+      <PayrollByEmployeeModal
+        open={payrollEmployee !== null}
+        employeeId={payrollEmployee?.id ?? null}
+        employeeName={payrollEmployee?.name ?? null}
+        onClose={() => setPayrollEmployee(null)}
       />
 
       <EmployeeDetailsModal

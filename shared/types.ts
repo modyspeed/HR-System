@@ -282,6 +282,58 @@ export interface LeaveRecord {
   updatedAt: string
 }
 
+export interface PayrollRecord {
+  id: string
+  batchId: string
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentName: string | null
+  type: string
+  month: number
+  year: number
+  period: string
+  page: number
+  basicSalary: number | null
+  totalEarned: number | null
+  totalDeductions: number | null
+  netSalary: number | null
+  fileName: string
+  uploadedAt: string
+}
+
+export interface PayrollParseRow {
+  page: number
+  code: string
+  name: string
+  /** الموظف المطابق في قاعدة البيانات — null لو لم يُعثر عليه. */
+  employeeId: string | null
+  match: 'code' | 'name' | 'none'
+  basicSalary: number | null
+  totalEarned: number | null
+  totalDeductions: number | null
+  netSalary: number | null
+}
+
+export interface PayrollParseResult {
+  type: string
+  month: number
+  year: number
+  period: string
+  fileName: string
+  pageCount: number
+  rows: PayrollParseRow[]
+  matched: number
+  unmatched: number
+}
+
+export interface ListPayrollsQuery {
+  search?: string
+  type?: string
+  month?: number | null
+  year?: number | null
+}
+
 export interface LeaveUpsertInput {
   employeeId: string
   type: string
@@ -322,7 +374,7 @@ export interface AppSettings {
 /* --------------------------------- export --------------------------------- */
 
 /** Which module's data is being exported — drives the permission check. */
-export type ExportScope = 'employees' | 'departments' | 'leaves'
+export type ExportScope = 'employees' | 'departments' | 'leaves' | 'payrolls'
 
 export interface ExportColumn {
   key: string
@@ -434,6 +486,25 @@ export interface ApiShape {
     removeFile(id: string): Promise<LeaveRecord>
     previewFile(id: string): Promise<LeaveFilePreview>
     revealFilesDir(): Promise<void>
+  }
+  payrolls: {
+    list(query: ListPayrollsQuery): Promise<PayrollRecord[]>
+    listByEmployee(employeeId: string): Promise<PayrollRecord[]>
+    /** Kفكشف PDF إلى أظرف — معاينة فقط (لا يُكتب شيء). */
+    parsePdf(payload: { data: ArrayBuffer; fileName: string }): Promise<PayrollParseResult>
+    /** يستبدل دفعة الشهر/النوع بالملف الجديد ويوزّع الأظرف على الموظفين. */
+    importPdf(payload: { data: ArrayBuffer; fileName: string }): Promise<{
+      created: number
+      unmatched: number
+      period: string
+    }>
+    /** صفحة الظرف الواحدة كـ PDF مع البيانات المستخرجة. */
+    previewEntry(id: string): Promise<{
+      originalName: string
+      page: number
+      data: Uint8Array
+    }>
+    remove(id: string): Promise<void>
   }
   export: {
     /** Returns the saved path, or `null` when the user cancels the dialog. */

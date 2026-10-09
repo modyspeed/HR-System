@@ -110,6 +110,40 @@ CREATE TABLE IF NOT EXISTS "Leave" (
     CONSTRAINT "Leave_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PayrollBatch" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "type" TEXT NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "period" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "storedName" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "pageCount" INTEGER NOT NULL,
+    "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PayrollEntry" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "batchId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "period" TEXT NOT NULL,
+    "page" INTEGER NOT NULL,
+    "basicSalary" REAL,
+    "totalEarned" REAL,
+    "totalDeductions" REAL,
+    "netSalary" REAL,
+    "sourceText" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PayrollEntry_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "PayrollBatch" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PayrollEntry_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
 
@@ -148,3 +182,12 @@ CREATE INDEX IF NOT EXISTS "Leave_status_idx" ON "Leave"("status");
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Leave_year_idx" ON "Leave"("year");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PayrollBatch_type_period_idx" ON "PayrollBatch"("type", "period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PayrollEntry_employeeId_type_period_idx" ON "PayrollEntry"("employeeId", "type", "period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PayrollEntry_period_idx" ON "PayrollEntry"("period");

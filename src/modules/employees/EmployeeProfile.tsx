@@ -37,6 +37,7 @@ import { EmptyState } from '@/components/feedback/EmptyState'
 import { leaveStatusTone, leaveTypeTone } from '@/modules/leaves/leaveMeta'
 import { LeaveDetailsModal } from '@/modules/leaves/LeaveDetailsModal'
 import { LeaveFormModal } from '@/modules/leaves/LeaveFormModal'
+import { PayrollEmployeeView } from '@/modules/payrolls/PayrollEmployeeView'
 import { EmployeeFileModal } from './EmployeeFileModal'
 import { EmployeeFormModal } from './EmployeeFormModal'
 import { EmployeeStatusDialog } from './EmployeeStatusDialog'
@@ -62,7 +63,7 @@ const TABS: TabDef[] = [
   { key: 'status', labelKey: 'employees.tabStatus', icon: Activity, available: true },
   { key: 'file', labelKey: 'employees.tabFile', icon: Paperclip, available: true },
   { key: 'leaves', labelKey: 'employees.tabLeaves', icon: CalendarDays, available: true },
-  { key: 'salary', labelKey: 'employees.tabSalary', icon: Banknote, available: false },
+  { key: 'salary', labelKey: 'employees.tabSalary', icon: Banknote, available: true },
   { key: 'attendance', labelKey: 'employees.tabAttendance', icon: Clock3, available: false },
   { key: 'reports', labelKey: 'employees.tabReports', icon: FileText, available: false }
 ]
@@ -607,6 +608,13 @@ export function EmployeeProfile() {
               </div>
             )}
           </div>
+        )}
+
+        {tab === 'salary' && (
+          <PayrollEmployeeView
+            employeeId={employee.id}
+            onChanged={() => void queryClient.invalidateQueries({ queryKey: ['payrolls'] })}
+          />
         )}
 
         {!TABS.find((item) => item.key === tab)?.available && (

@@ -88,6 +88,7 @@ model Employee {
   rehiredFromId     String? // عند إعادة التعيين بعقد جديد: يشير هذا الملف إلى الملف الأصلي السابق
   rehiredFrom       Employee? @relation("Rehire", fields: [rehiredFromId], references: [id], onDelete: SetNull)
   rehiredTo         Employee[] @relation("Rehire")
+  payroll           PayrollEntry[]
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -129,4 +130,42 @@ model Leave {
   @@index([type])
   @@index([status])
   @@index([year])
+}
+
+model PayrollBatch {
+  id           String         @id @default(cuid())
+  type         String // salary | incentive | other — يُستنتج من اسم الملف
+  month        Int
+  year         Int
+  period       String // "2026-09" — مفتاح الشهر
+  originalName String
+  storedName   String
+  size         Int
+  pageCount    Int
+  uploadedAt   DateTime       @default(now())
+  entries      PayrollEntry[]
+
+  @@index([type, period])
+}
+
+model PayrollEntry {
+  id              String        @id @default(cuid())
+  batchId         String
+  batch           PayrollBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type            String
+  month           Int
+  year            Int
+  period          String
+  page            Int // رقم صفحة الظرف داخل ملف الكشف الأصلي
+  basicSalary     Float?
+  totalEarned     Float?
+  totalDeductions Float?
+  netSalary       Float?
+  sourceText      String? // النص المُستخرج من الظرف (للأرشفة والفحص)
+  createdAt       DateTime      @default(now())
+
+  @@index([employeeId, type, period])
+  @@index([period])
 }

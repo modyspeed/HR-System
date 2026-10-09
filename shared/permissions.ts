@@ -21,6 +21,7 @@ export const MODULE_PERMISSIONS = {
     'employees.manage_status'
   ],
   leaves: ['leaves.view', 'leaves.create', 'leaves.edit', 'leaves.delete'],
+  payrolls: ['payrolls.view', 'payrolls.create', 'payrolls.delete'],
   settings: ['settings.view', 'settings.edit']
 } as const
 

@@ -66,6 +66,14 @@ const api: ApiShape = {
     previewFile: (id) => ipcRenderer.invoke('leaves:previewFile', id),
     revealFilesDir: () => ipcRenderer.invoke('leaves:revealFilesDir')
   },
+  payrolls: {
+    list: (query) => ipcRenderer.invoke('payrolls:list', query),
+    listByEmployee: (employeeId) => ipcRenderer.invoke('payrolls:listByEmployee', employeeId),
+    parsePdf: (payload) => ipcRenderer.invoke('payrolls:parsePdf', payload),
+    importPdf: (payload) => ipcRenderer.invoke('payrolls:importPdf', payload),
+    previewEntry: (id) => ipcRenderer.invoke('payrolls:previewEntry', id),
+    remove: (id) => ipcRenderer.invoke('payrolls:remove', id)
+  },
   settings: {
     getAll: () => ipcRenderer.invoke('settings:getAll'),
     setLanguage: (language) => ipcRenderer.invoke('settings:setLanguage', language),

@@ -8,7 +8,8 @@ import type { IpcRegistry } from './registry'
 const PERMISSION_BY_SCOPE: Record<string, string> = {
   employees: 'employees.view',
   departments: 'departments.view',
-  leaves: 'leaves.view'
+  leaves: 'leaves.view',
+  payrolls: 'payrolls.view'
 }
 
 function guard(payload: ExportPayload): void {
