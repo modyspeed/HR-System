@@ -11,10 +11,12 @@ import { getSession, requirePermission } from '../auth'
 import { ACTIVE_EMPLOYEE_STATUS } from '../../../shared/employeeStatuses'
 import {
   attachEmployeeFile,
+  deleteStoredEmployeeFile,
   previewEmployeeFile,
   removeEmployeeFile,
   revealEmployeeFilesDir
 } from '../employee-files'
+import { deleteStoredLeaveFile } from '../leave-files'
 import { parseEmployeesFile } from '../import/employeesImport'
 import { importEmployees } from '../import/employeesPersist'
 import {
@@ -156,9 +158,11 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
     const statusFilter = query.status?.trim()
     if (statusFilter) where.status = statusFilter
 
-    const order = query.order ?? 'asc'
+    const SORT_FIELDS = new Set(['code', 'name', 'grade', 'hireDate', 'createdAt'])
+    const sort = SORT_FIELDS.has(query.sort ?? 'code') ? (query.sort ?? 'code') : 'code'
+    const order = query.order === 'desc' ? 'desc' : 'asc'
     const orderBy: Prisma.EmployeeOrderByWithRelationInput = {
-      [query.sort ?? 'code']: order
+      [sort]: order
     }
 
     const employees = await prisma.employee.findMany({
@@ -196,6 +200,14 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
 
   ipc.handle('employees:remove', async (_event, id: string) => {
     requirePermission('employees.delete')
+    // حذف الملفات الفعلية أولًا (ملف الموظف + مستندات إجازاته) قبل حذف الصفوف.
+    const target = await prisma.employee.findUnique({
+      where: { id },
+      select: { fileStoredName: true, leaves: { select: { fileStoredName: true } } }
+    })
+    if (!target) throw new ApiError('NOT_FOUND', 'Employee not found')
+    deleteStoredEmployeeFile(target.fileStoredName)
+    for (const leave of target.leaves) deleteStoredLeaveFile(leave.fileStoredName)
     await prisma.employee.delete({ where: { id } })
   })
 

@@ -5,6 +5,7 @@ import { LEAVE_STATUS_KEYS, LEAVE_TYPE_KEYS } from '../../../shared/leaves'
 import { requirePermission } from '../auth'
 import {
   attachLeaveFile,
+  deleteStoredLeaveFile,
   previewLeaveFile,
   removeLeaveFile,
   revealLeaveFilesDir
@@ -150,6 +151,9 @@ export function registerLeavesIpc(prisma: PrismaClient, ipc: IpcRegistry): void 
 
   ipc.handle('leaves:remove', async (_event, id: string) => {
     requirePermission('leaves.delete')
+    const leave = await prisma.leave.findUnique({ where: { id } })
+    if (!leave) throw new ApiError('NOT_FOUND', 'Leave not found')
+    deleteStoredLeaveFile(leave.fileStoredName)
     await prisma.leave.delete({ where: { id } })
   })
 

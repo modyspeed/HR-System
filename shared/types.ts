@@ -462,6 +462,7 @@ export type ApiErrorCode =
   | 'SUPER_ADMIN_PROTECTED'
   | 'LAST_SUPER_ADMIN'
   | 'INVALID_CREDENTIALS'
+  | 'TOO_MANY_ATTEMPTS'
   | 'INTERNAL'
 
 export class ApiError extends Error {

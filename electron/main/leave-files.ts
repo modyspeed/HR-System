@@ -13,6 +13,7 @@ import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { ApiError } from '../../shared/types'
 import type { LeaveFilePreview } from '../../shared/types'
+import { assertFileSignature } from './file-guard'
 
 const ALLOWED_EXTENSIONS = new Set([
   '.pdf',
@@ -89,6 +90,12 @@ function deleteQuietly(filePath: string): void {
   }
 }
 
+/** Removes a stored leave document by its stored name (no-op when null/missing). */
+export function deleteStoredLeaveFile(storedName: string | null | undefined): void {
+  if (!storedName) return
+  deleteQuietly(resolveStoredPath(storedName))
+}
+
 /** Writes the document into the files folder and links it to the leave. */
 export async function attachLeaveFile(
   prisma: PrismaClient,
@@ -101,6 +108,7 @@ export async function attachLeaveFile(
   if (data.byteLength > MAX_FILE_SIZE) {
     throw new ApiError('VALIDATION', 'File exceeds the 25 MB limit')
   }
+  assertFileSignature(originalName, data)
 
   const leave = await prisma.leave.findUnique({
     where: { id: leaveId },

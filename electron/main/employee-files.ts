@@ -12,6 +12,7 @@ import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { ApiError } from '../../shared/types'
 import type { EmployeeFilePreview } from '../../shared/types'
+import { assertFileSignature } from './file-guard'
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.xlsx', '.xls', '.xlsm', '.csv'])
 const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25 MB
@@ -65,6 +66,12 @@ function deleteQuietly(filePath: string): void {
   }
 }
 
+/** Removes a stored employee file by its stored name (no-op when null/missing). */
+export function deleteStoredEmployeeFile(storedName: string | null | undefined): void {
+  if (!storedName) return
+  deleteQuietly(resolveStoredPath(storedName))
+}
+
 export interface EmployeeWithFile {
   id: string
   code: string
@@ -84,6 +91,7 @@ export async function attachEmployeeFile(
   if (data.byteLength > MAX_FILE_SIZE) {
     throw new ApiError('VALIDATION', 'File exceeds the 25 MB limit')
   }
+  assertFileSignature(originalName, data)
 
   const employee = await prisma.employee.findUnique({ where: { id: employeeId } })
   if (!employee) throw new ApiError('NOT_FOUND', 'Employee not found')

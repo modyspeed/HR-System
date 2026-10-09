@@ -549,6 +549,7 @@
     "SUPER_ADMIN_PROTECTED": "The super admin account cannot be disabled or deleted",
     "LAST_SUPER_ADMIN": "At least one active super admin must remain",
     "INVALID_CREDENTIALS": "Invalid credentials",
+    "TOO_MANY_ATTEMPTS": "Too many failed attempts — wait a moment and try again",
     "INTERNAL": "An unexpected error occurred",
     "default": "Something went wrong. Please try again."
   },
