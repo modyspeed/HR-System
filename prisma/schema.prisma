@@ -85,6 +85,9 @@ model Employee {
   leaves            Leave[]
   status            String      @default("active") // الحالة الوظيفية — مفتاح من كتالوج الحالات (نشط/معاش/وفاة/استقالة…)
   statusHistory     EmployeeStatusHistory[]
+  rehiredFromId     String? // عند إعادة التعيين بعقد جديد: يشير هذا الملف إلى الملف الأصلي السابق
+  rehiredFrom       Employee? @relation("Rehire", fields: [rehiredFromId], references: [id], onDelete: SetNull)
+  rehiredTo         Employee[] @relation("Rehire")
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

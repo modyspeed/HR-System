@@ -364,7 +364,22 @@
     "statusHistoryTitle": "التاريخ الكامل للحالات",
     "statusHistoryEmpty": "لا يوجد سجل تغييرات بعد",
     "statusHistoryEmptyBody": "عند تغيير الحالة (نشط، معاش، استقالة، وفاة…) يسجَّل هنا تلقائيًا كل انتقال مع سببه وتاريخه.",
-    "statusChangedBy": "بواسطة"
+    "statusChangedBy": "بواسطة",
+    "rehireTitle": "عقد جديد (إعادة تعيين)",
+    "rehireHint": "نفس بيانات الملف الحالي بسجل جديد ورقم مختلف — الملف القديم يبقى كما هو",
+    "rehireSave": "إنشاء العقد الجديد",
+    "rehireCopied": "تُنسَخ تلقائيًا من الملف الحالي:",
+    "rehireNewCode": "كود الموظف الجديد",
+    "rehireContractType": "نوع التعاقد الجديد",
+    "rehireHireDate": "تاريخ التعيين الجديد",
+    "rehireDepartment": "القسم",
+    "rehireNoteTitle": "تنبيه",
+    "rehireNote": "الملف الحالي يبقى بحالته وسجله — والملف الجديد يُنشأ نشطًا ومرتبطًا به، ويمكنك التنقل بين الملفين من الشارات أعلى الصفحة.",
+    "rehiredFromChip": "عقد جديد لموظف سابق — الملف الأصلي: {{code}}",
+    "rehiredToChip": "أعيد تعيينه بعقد جديد — {{code}}",
+    "rehiredListHint": "إعادة تعيين — الملف الأصلي في السجل",
+    "retirementDateLine": "سن المعاش القانوني: {{date}} ({{age}} سنة)",
+    "retirementAuto": "يُحوَّل الموظف تلقائيًا إلى «محال للمعاش» عند بلوغ السن."
   },
   "employeeStatuses": {
     "active": "نشط",
@@ -503,7 +518,8 @@
     "pctRange": "النسبة يجب أن تكون بين 0 و100",
     "dateInvalid": "صيغة التاريخ غير صحيحة",
     "yearInvalid": "سنة من 4 أرقام (مثل 1986)",
-    "numberInvalid": "أدخل رقمًا صحيحًا"
+    "numberInvalid": "أدخل رقمًا صحيحًا",
+    "codePattern": "حروف وأرقام ونقاط وشرطات فقط"
   },
   "permissions": {
     "modules": {
@@ -545,6 +561,7 @@
     "leaveUpdated": "تم تحديث الإجازة",
     "leaveDeleted": "تم حذف الإجازة",
     "employeeStatusChanged": "تم تحديث حالة الموظف وتسجيلها في السجل",
+    "employeeRehired": "تم إنشاء العقد الجديد للموظف",
     "userActivated": "تم تفعيل الحساب",
     "userDeactivated": "تم تعطيل الحساب",
     "roleCreated": "تم إنشاء الدور بنجاح",

@@ -17,10 +17,18 @@ import {
 } from '../employee-files'
 import { parseEmployeesFile } from '../import/employeesImport'
 import { importEmployees } from '../import/employeesPersist'
-import { changeEmployeeStatus, getStatusHistory } from '../employee-status'
+import {
+  applyAutomaticRetirement,
+  changeEmployeeStatus,
+  getStatusHistory,
+  rehireEmployee
+} from '../employee-status'
 import type { IpcRegistry } from './registry'
 
-const DEPARTMENT_INCLUDE = { department: { select: { name: true } } } as const
+const DEPARTMENT_INCLUDE = {
+  department: { select: { name: true } },
+  rehiredFrom: { select: { id: true, code: true, name: true } }
+} as const
 
 type EmployeeRow = Prisma.EmployeeGetPayload<{ include: typeof DEPARTMENT_INCLUDE }>
 
@@ -28,7 +36,10 @@ function isoOrNull(value: Date | null): string | null {
   return value ? value.toISOString().slice(0, 10) : null
 }
 
-function toEmployeeRecord(employee: EmployeeRow): EmployeeRecord {
+function toEmployeeRecord(
+  employee: EmployeeRow,
+  rehiredTo: { id: string; code: string; name: string } | null = null
+): EmployeeRecord {
   return {
     id: employee.id,
     code: employee.code,
@@ -50,6 +61,8 @@ function toEmployeeRecord(employee: EmployeeRow): EmployeeRecord {
     fileLinkedAt: employee.fileLinkedAt ? employee.fileLinkedAt.toISOString() : null,
     status: employee.status,
     isActive: employee.isActive,
+    rehiredFrom: employee.rehiredFrom,
+    rehiredTo,
     createdAt: employee.createdAt.toISOString(),
     updatedAt: employee.updatedAt.toISOString()
   }
@@ -125,6 +138,7 @@ async function assertDepartmentExists(
 export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): void {
   ipc.handle('employees:list', async (_event, query: ListEmployeesQuery = {}) => {
     requirePermission('employees.view')
+    await applyAutomaticRetirement(prisma)
 
     const where: Prisma.EmployeeWhereInput = {}
     const search = query.search?.trim()
@@ -152,16 +166,22 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
       orderBy,
       include: DEPARTMENT_INCLUDE
     })
-    return employees.map(toEmployeeRecord)
+    return employees.map((employee) => toEmployeeRecord(employee))
   })
 
   ipc.handle('employees:getById', async (_event, id: string) => {
     requirePermission('employees.view')
+    await applyAutomaticRetirement(prisma)
     const employee = await prisma.employee.findUnique({
       where: { id },
       include: DEPARTMENT_INCLUDE
     })
-    return employee ? toEmployeeRecord(employee) : null
+    if (!employee) return null
+    const rehiredTo = await prisma.employee.findFirst({
+      where: { rehiredFromId: employee.id },
+      select: { id: true, code: true, name: true }
+    })
+    return toEmployeeRecord(employee, rehiredTo)
   })
 
   ipc.handle('employees:create', async (_event, input: EmployeeUpsertInput) => {
@@ -178,6 +198,20 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
     requirePermission('employees.delete')
     await prisma.employee.delete({ where: { id } })
   })
+
+  ipc.handle(
+    'employees:rehire',
+    async (_event, id: string, input: { code: string; contractType?: string | null; hireDate?: string | null }) => {
+      requirePermission('employees.create')
+      const created = await rehireEmployee(prisma, id, input)
+      const employee = await prisma.employee.findUnique({
+        where: { id: created.id },
+        include: DEPARTMENT_INCLUDE
+      })
+      if (!employee) throw new ApiError('NOT_FOUND', 'Employee not found')
+      return toEmployeeRecord(employee)
+    }
+  )
 
   ipc.handle(
     'employees:setStatus',

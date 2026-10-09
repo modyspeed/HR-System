@@ -364,7 +364,22 @@
     "statusHistoryTitle": "Full status timeline",
     "statusHistoryEmpty": "No changes logged yet",
     "statusHistoryEmptyBody": "Once you change the status (active, retired, resignation, deceased…) every transition is recorded here with its reason and date.",
-    "statusChangedBy": "By"
+    "statusChangedBy": "By",
+    "rehireTitle": "New contract (rehire)",
+    "rehireHint": "Same personal data in a new record with a different code — the old file stays untouched",
+    "rehireSave": "Create new contract",
+    "rehireCopied": "Copied automatically from the current file:",
+    "rehireNewCode": "New employee code",
+    "rehireContractType": "New contract type",
+    "rehireHireDate": "New hire date",
+    "rehireDepartment": "Department",
+    "rehireNoteTitle": "Note",
+    "rehireNote": "The current file keeps its status and history — the new file is created active and linked to it; jump between the two from the chips at the top.",
+    "rehiredFromChip": "Rehired — original file: {{code}}",
+    "rehiredToChip": "Rehired on a new contract — {{code}}",
+    "rehiredListHint": "Rehired — check the original file in the record",
+    "retirementDateLine": "Legal retirement age: {{date}} (age {{age}})",
+    "retirementAuto": "Converts to retired automatically once the age is reached."
   },
   "employeeStatuses": {
     "active": "Active",
@@ -503,7 +518,8 @@
     "pctRange": "The percentage must be between 0 and 100",
     "dateInvalid": "Invalid date format",
     "yearInvalid": "A 4-digit year (e.g. 1986)",
-    "numberInvalid": "Enter a valid number"
+    "numberInvalid": "Enter a valid number",
+    "codePattern": "Letters, numbers, dots, dashes and underscores only"
   },
   "permissions": {
     "modules": {
@@ -545,6 +561,7 @@
     "leaveUpdated": "Leave updated",
     "leaveDeleted": "Leave deleted",
     "employeeStatusChanged": "Employee status updated and logged",
+    "employeeRehired": "New contract created for the employee",
     "userActivated": "Account activated",
     "userDeactivated": "Account disabled",
     "roleCreated": "Role created successfully",

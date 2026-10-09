@@ -10,7 +10,9 @@ import { PrismaClient } from '@prisma/client'
 import { ApiError } from '../../shared/types'
 import type { EmployeeStatusHistoryRecord } from '../../shared/types'
 import {
+  ACTIVE_EMPLOYEE_STATUS,
   EMPLOYEE_STATUS_KEYS,
+  RETIREMENT_AGE_YEARS,
   isActiveStatus
 } from '../../shared/employeeStatuses'
 
@@ -83,4 +85,89 @@ export async function getStatusHistory(
     orderBy: { changedAt: 'desc' }
   })
   return rows.map(toStatusHistoryRecord)
+}
+
+/** اليوم الذي يبلغ فيه المولود في `birthDate` السن القانونية للمعاش. */
+export function retirementThreshold(now: Date = new Date()): Date {
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear() - RETIREMENT_AGE_YEARS,
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      23,
+      59,
+      59
+    )
+  )
+}
+
+/**
+ * التحويل الديناميكي للمعاش: كل موظف نشط بلغ سن المعاش القانوني يُحوَّل
+ * تلقائيًا إلى «محال للمعاش» مرة واحدة، مع تسجيل الانتقال في السجل التاريخي.
+ * الملف القديم يحتفظ بحالته بعد إعادة التعيين — الملف الجديد يُنشأ مستقلاً.
+ */
+export async function applyAutomaticRetirement(prisma: PrismaClient): Promise<number> {
+  const threshold = retirementThreshold()
+  const candidates = await prisma.employee.findMany({
+    where: {
+      status: ACTIVE_EMPLOYEE_STATUS,
+      birthDate: { not: null, lte: threshold }
+    },
+    select: { id: true }
+  })
+
+  let converted = 0
+  for (const candidate of candidates) {
+    await changeEmployeeStatus(
+      prisma,
+      candidate.id,
+      { status: 'retired', reason: 'بلوغ سن المعاش القانوني — تحويل تلقائي' },
+      'النظام'
+    )
+    converted += 1
+  }
+  return converted
+}
+
+/**
+ * عقد جديد بنفس بيانات الملف السابق: يُنشأ سجل موظف جديد (رقم جديد + نوع
+ * تعاقد جديد) منسوخًا منه البيانات الشخصية، ويربط `rehiredFromId` بالملف
+ * الأصلي الذي يبقى كما هو بحالته المحفوظة.
+ */
+export async function rehireEmployee(
+  prisma: PrismaClient,
+  sourceId: string,
+  input: { code: string; contractType?: string | null; hireDate?: string | null }
+): Promise<{ id: string }> {
+  const source = await prisma.employee.findUnique({ where: { id: sourceId } })
+  if (!source) throw new ApiError('NOT_FOUND', 'Employee not found')
+
+  const code = input.code.trim()
+  if (!code) throw new ApiError('VALIDATION', 'Employee code is required')
+  const clash = await prisma.employee.findUnique({ where: { code } })
+  if (clash) throw new ApiError('CONFLICT', 'An employee with this code already exists')
+
+  const hireDate =
+    input.hireDate && /^\d{4}-\d{2}-\d{2}$/.test(input.hireDate.trim())
+      ? new Date(`${input.hireDate.trim()}T00:00:00.000Z`)
+      : new Date()
+
+  const created = await prisma.employee.create({
+    data: {
+      code,
+      name: source.name,
+      insuranceNo: source.insuranceNo,
+      nationalId: source.nationalId,
+      birthDate: source.birthDate,
+      qualification: source.qualification,
+      qualificationYear: source.qualificationYear,
+      departmentId: source.departmentId,
+      contractType: input.contractType?.trim() || null,
+      hireDate,
+      status: ACTIVE_EMPLOYEE_STATUS,
+      isActive: true,
+      rehiredFromId: source.id
+    }
+  })
+  return { id: created.id }
 }

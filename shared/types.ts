@@ -161,6 +161,10 @@ export interface EmployeeRecord {
   /** حالة الموظف الوظيفية — مفتاح من `EMPLOYEE_STATUS_KEYS`. */
   status: string
   isActive: boolean
+  /** ملف إعادة التعيين الأصلي (عقد جديد لموظف سابق)، عند وجوده. */
+  rehiredFrom: { id: string; code: string; name: string } | null
+  /** الملف الجديد المُنشأ من هذا الملف عبر «عقد جديد»، عند وجوده. */
+  rehiredTo: { id: string; code: string; name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -391,6 +395,11 @@ export interface ApiShape {
     create(input: EmployeeUpsertInput): Promise<EmployeeRecord>
     update(id: string, input: EmployeeUpsertInput): Promise<EmployeeRecord>
     remove(id: string): Promise<void>
+    /** عقد جديد بنفس بيانات الملف السابق — يُنشئ سجل موظف جديد برقم مختلف. */
+    rehire(
+      id: string,
+      input: { code: string; contractType?: string | null; hireDate?: string | null }
+    ): Promise<EmployeeRecord>
     /** يُسجِّل تغيير الحالة في سجل الموظف ويُحدِّث `isActive` تلقائيًا. */
     setStatus(
       id: string,

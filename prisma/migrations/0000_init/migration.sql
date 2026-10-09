@@ -70,10 +70,12 @@ CREATE TABLE IF NOT EXISTS "Employee" (
     "contractType" TEXT,
     "departmentId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'active',
+    "rehiredFromId" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Employee_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "Employee_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Employee_rehiredFromId_fkey" FOREIGN KEY ("rehiredFromId") REFERENCES "Employee" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable

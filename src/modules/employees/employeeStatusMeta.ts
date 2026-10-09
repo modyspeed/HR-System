@@ -1,7 +1,13 @@
-import { EMPLOYEE_STATUS_KEYS, isActiveStatus } from '@shared/employeeStatuses'
+import {
+  EMPLOYEE_STATUS_KEYS,
+  RETIREMENT_AGE_YEARS,
+  isActiveStatus,
+  retirementDateOf
+} from '@shared/employeeStatuses'
 
 export type { EmployeeStatusKey } from '@shared/employeeStatuses'
 export { EMPLOYEE_STATUS_KEYS, isActiveStatus }
+export { RETIREMENT_AGE_YEARS, retirementDateOf }
 
 export type BadgeTone = 'gold' | 'teal' | 'violet' | 'rose' | 'neutral'
 

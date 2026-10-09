@@ -12,11 +12,13 @@ import {
   Contact,
   Eye,
   FileSpreadsheet,
+  FilePlus2,
   FileText,
   FolderOpen,
   Paperclip,
   Pencil,
   Plus,
+  Repeat2,
   Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -38,8 +40,13 @@ import { LeaveFormModal } from '@/modules/leaves/LeaveFormModal'
 import { EmployeeFileModal } from './EmployeeFileModal'
 import { EmployeeFormModal } from './EmployeeFormModal'
 import { EmployeeStatusDialog } from './EmployeeStatusDialog'
+import { RehireDialog } from './RehireDialog'
 import { DetailField, SectionTitle } from './detailFields'
-import { employeeStatusTone } from './employeeStatusMeta'
+import {
+  RETIREMENT_AGE_YEARS,
+  employeeStatusTone,
+  retirementDateOf
+} from './employeeStatusMeta'
 
 type TabKey = 'basic' | 'status' | 'file' | 'leaves' | 'salary' | 'attendance' | 'reports'
 
@@ -79,6 +86,7 @@ export function EmployeeProfile() {
   const queryClient = useQueryClient()
 
   const canEditEmployee = usePermission('employees.edit')
+  const canCreate = usePermission('employees.create')
   const canManageStatus = usePermission('employees.manage_status')
   const canCreateLeave = usePermission('leaves.create')
   const canEditLeave = usePermission('leaves.edit')
@@ -86,6 +94,7 @@ export function EmployeeProfile() {
 
   const [tab, setTab] = useState<TabKey>('basic')
   const [editOpen, setEditOpen] = useState(false)
+  const [rehireOpen, setRehireOpen] = useState(false)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [fileOpen, setFileOpen] = useState(false)
   const [leaveForm, setLeaveForm] = useState<{ leave: LeaveRecord | null; presetEmployeeId: string } | null>(null)
@@ -172,6 +181,9 @@ export function EmployeeProfile() {
   const isPdf = ext === '.pdf'
 
   const date = (value: string | null) => formatDateOnly(value, language)
+  const retirementDate = retirementDateOf(employee.birthDate)
+  const rehiredFrom = employee.rehiredFrom
+  const rehiredTo = employee.rehiredTo
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
@@ -201,6 +213,26 @@ export function EmployeeProfile() {
                 <Badge tone={employeeStatusTone(employee.status)} dot>
                   {t(`employeeStatuses.${employee.status}`)}
                 </Badge>
+                {rehiredFrom && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/employees/${rehiredFrom.id}`)}
+                    className="flex items-center gap-1.5 rounded-full border border-accent-500/30 bg-accent-500/10 px-2.5 py-1 text-[10px] font-medium text-accent-300 transition-colors hover:bg-accent-500/20"
+                  >
+                    <Repeat2 className="size-3" />
+                    {t('employees.rehiredFromChip', { code: rehiredFrom.code })}
+                  </button>
+                )}
+                {rehiredTo && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/employees/${rehiredTo.id}`)}
+                    className="flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-400/10 px-2.5 py-1 text-[10px] font-medium text-teal-400 transition-colors hover:bg-teal-400/20"
+                  >
+                    <Repeat2 className="size-3" />
+                    {t('employees.rehiredToChip', { code: rehiredTo.code })}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -243,6 +275,15 @@ export function EmployeeProfile() {
                 onClick={() => setLeaveForm({ leave: null, presetEmployeeId: employee.id })}
               >
                 {t('leaves.new')}
+              </SoftButton>
+            )}
+            {canCreate && (
+              <SoftButton
+                variant="primary"
+                icon={<FilePlus2 className="size-4" />}
+                onClick={() => setRehireOpen(true)}
+              >
+                {t('employees.rehireTitle')}
               </SoftButton>
             )}
           </div>
@@ -424,6 +465,16 @@ export function EmployeeProfile() {
                   </SoftButton>
                 )}
               </span>
+              {retirementDate && (
+                <p className="mt-3 w-full text-[11px] leading-relaxed text-ink-low">
+                  {t('employees.retirementDateLine', {
+                    date: retirementDate,
+                    age: String(RETIREMENT_AGE_YEARS)
+                  })}
+                  {' — '}
+                  {t('employees.retirementAuto')}
+                </p>
+              )}
             </div>
 
             <SectionTitle>{t('employees.statusHistoryTitle')}</SectionTitle>
@@ -583,6 +634,17 @@ export function EmployeeProfile() {
         employee={employee}
         onClose={() => setStatusDialogOpen(false)}
         onChanged={() => invalidateEmployee()}
+      />
+
+      <RehireDialog
+        open={rehireOpen}
+        source={employee}
+        onClose={() => setRehireOpen(false)}
+        onRehired={(newEmployeeId) => {
+          setRehireOpen(false)
+          void queryClient.invalidateQueries({ queryKey: ['employees'] })
+          navigate(`/employees/${newEmployeeId}`)
+        }}
       />
 
       <EmployeeFileModal

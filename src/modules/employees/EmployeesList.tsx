@@ -11,6 +11,7 @@ import {
   Paperclip,
   Pencil,
   Plus,
+  Repeat2,
   Search,
   Trash2,
   Upload,
@@ -351,8 +352,17 @@ export function EmployeesList() {
                     className="transition-colors hover:bg-surface-soft"
                   >
                     <td className="whitespace-nowrap px-5 py-3.5">
-                      <span dir="ltr" className="font-mono text-sm text-ink-med">
+                      <span dir="ltr" className="inline-flex items-center gap-1.5 font-mono text-sm text-ink-med">
                         {employee.code}
+                        {employee.rehiredFrom && (
+                          <span
+                            className="grid size-3.5 place-items-center text-accent-300"
+                            title={t('employees.rehiredListHint')}
+                            aria-label={t('employees.rehiredListHint')}
+                          >
+                            <Repeat2 className="size-3.5" />
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="max-w-[240px] px-5 py-3.5 text-sm font-medium text-ink-high">
