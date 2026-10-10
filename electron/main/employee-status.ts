@@ -137,7 +137,12 @@ export async function applyAutomaticRetirement(prisma: PrismaClient): Promise<nu
 export async function rehireEmployee(
   prisma: PrismaClient,
   sourceId: string,
-  input: { code: string; contractType?: string | null; hireDate?: string | null }
+  input: {
+    code: string
+    contractType?: string | null
+    contractTypeId?: string | null
+    hireDate?: string | null
+  }
 ): Promise<{ id: string }> {
   const source = await prisma.employee.findUnique({ where: { id: sourceId } })
   if (!source) throw new ApiError('NOT_FOUND', 'Employee not found')
@@ -152,6 +157,16 @@ export async function rehireEmployee(
       ? new Date(`${input.hireDate.trim()}T00:00:00.000Z`)
       : new Date()
 
+  // نوع التعاقد من الكتالوج يسبق النص الحر — الاسم يُشتق من المعرف.
+  let contractType = input.contractType?.trim() || null
+  if (input.contractTypeId?.trim()) {
+    const type = await prisma.contractType.findUnique({
+      where: { id: input.contractTypeId.trim() }
+    })
+    if (!type) throw new ApiError('VALIDATION', 'Unknown contract type')
+    contractType = type.name
+  }
+
   const created = await prisma.employee.create({
     data: {
       code,
@@ -162,7 +177,7 @@ export async function rehireEmployee(
       qualification: source.qualification,
       qualificationYear: source.qualificationYear,
       departmentId: source.departmentId,
-      contractType: input.contractType?.trim() || null,
+      contractType,
       hireDate,
       status: ACTIVE_EMPLOYEE_STATUS,
       isActive: true,

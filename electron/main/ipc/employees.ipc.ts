@@ -233,7 +233,16 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
 
   ipc.handle(
     'employees:rehire',
-    async (_event, id: string, input: { code: string; contractType?: string | null; hireDate?: string | null }) => {
+    async (
+      _event,
+      id: string,
+      input: {
+        code: string
+        contractType?: string | null
+        contractTypeId?: string | null
+        hireDate?: string | null
+      }
+    ) => {
       requirePermission('employees.create')
       const created = await rehireEmployee(prisma, id, input)
       const employee = await prisma.employee.findUnique({

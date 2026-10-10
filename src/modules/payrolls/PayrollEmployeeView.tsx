@@ -8,6 +8,7 @@ import { SoftButton } from '@/components/ui/SoftButton'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { PAYROLL_TYPE_KEYS } from './payrollMeta'
 import { PayrollSlipPickerDialog } from './PayrollSlipPickerDialog'
+import { SalaryGradeTimeline } from './SalaryGradeTimeline'
 
 interface PayrollEmployeeViewProps {
   employeeId: string
@@ -15,9 +16,9 @@ interface PayrollEmployeeViewProps {
 }
 
 /**
- * رواتب موظف واحد: ملخص الدفعات (مرتب/حافز/أخرى) واختيار كل شيء من نافذة
- * المعاينة (النوع + الشهر + الظرف + الحذف) — يُستخدم في تبويب «الرواتب»
- * بالملف الكامل وداخل نافذة من قائمة الموظفين.
+ * رواتب موظف واحد: تدرج الأساسي حسب التاريخ (مع مستندات) + ملخص الدفعات
+ * (مرتب/حافز/أخرى) واختيار كل شيء من نافذة المعاينة — يُستخدم في تبويب
+ * «الرواتب» بالملف الكامل وداخل نافذة من قائمة الموظفين.
  */
 export function PayrollEmployeeView({ employeeId, onChanged }: PayrollEmployeeViewProps) {
   const { t } = useTranslation()
@@ -38,41 +39,45 @@ export function PayrollEmployeeView({ employeeId, onChanged }: PayrollEmployeeVi
     return byType
   }, [entries])
 
-  if (entries.length === 0) {
-    return (
-      <EmptyState
-        icon={<Banknote className="size-7" />}
-        title={t('payrolls.empty')}
-        body={t('payrolls.emptyEmployeeBody')}
-      />
-    )
-  }
-
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface-soft px-5 py-4">
-      <div className="flex items-center gap-3">
-        <span className="grid size-11 place-items-center rounded-xl bg-surface-strong text-accent-300">
-          <Banknote className="size-5" />
-        </span>
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold text-ink-high">
-            {t('payrolls.entriesCount', { count: entries.length })}
-          </p>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {PAYROLL_TYPE_KEYS.filter((key) => counts.has(key)).map((key) => (
-              <span
-                key={key}
-                className="rounded-full bg-surface-strong px-2.5 py-0.5 text-[11px] font-medium text-ink-med"
-              >
-                {t(`payrolls.types.${key}`)} · {counts.get(key)}
-              </span>
-            ))}
+    <div className="flex flex-col gap-6">
+      {/* تدرج الأساسي حسب التاريخ */}
+      <SalaryGradeTimeline employeeId={employeeId} onChanged={onChanged} />
+
+      {/* ملخص دفعات المرتبات + المعاينة */}
+      {entries.length === 0 ? (
+        <EmptyState
+          icon={<Banknote className="size-7" />}
+          title={t('payrolls.empty')}
+          body={t('payrolls.emptyEmployeeBody')}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface-soft px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-xl bg-surface-strong text-accent-300">
+              <Banknote className="size-5" />
+            </span>
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-semibold text-ink-high">
+                {t('payrolls.entriesCount', { count: entries.length })}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {PAYROLL_TYPE_KEYS.filter((key) => counts.has(key)).map((key) => (
+                  <span
+                    key={key}
+                    className="rounded-full bg-surface-strong px-2.5 py-0.5 text-[11px] font-medium text-ink-med"
+                  >
+                    {t(`payrolls.types.${key}`)} · {counts.get(key)}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
+          <SoftButton variant="primary" icon={<Eye className="size-4" />} onClick={() => setPickerOpen(true)}>
+            {t('payrolls.preview')}
+          </SoftButton>
         </div>
-      </div>
-      <SoftButton variant="primary" icon={<Eye className="size-4" />} onClick={() => setPickerOpen(true)}>
-        {t('payrolls.preview')}
-      </SoftButton>
+      )}
 
       {pickerOpen && (
         <PayrollSlipPickerDialog
@@ -109,7 +114,7 @@ export function PayrollByEmployeeModal({
       onClose={onClose}
       title={t('payrolls.employeePayrolls')}
       description={employeeName ?? undefined}
-      size="md"
+      size="lg"
       footer={
         <SoftButton variant="subtle" onClick={onClose}>
           {t('common.close')}

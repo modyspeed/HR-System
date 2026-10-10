@@ -339,6 +339,28 @@ export interface PayrollParseResult {
   unmatched: number
 }
 
+export interface SalaryGradeRecord {
+  id: string
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  /** تاريخ بدء سريان الأساسي. */
+  date: string
+  amount: number
+  note: string | null
+  fileOriginalName: string | null
+  fileSize: number | null
+  fileLinkedAt: string | null
+  createdAt: string
+}
+
+export interface SalaryGradeUpsertInput {
+  employeeId: string
+  date: string
+  amount: number
+  note?: string | null
+}
+
 export interface ListPayrollsQuery {
   search?: string
   type?: string
@@ -462,7 +484,12 @@ export interface ApiShape {
     /** عقد جديد بنفس بيانات الملف السابق — يُنشئ سجل موظف جديد برقم مختلف. */
     rehire(
       id: string,
-      input: { code: string; contractType?: string | null; hireDate?: string | null }
+      input: {
+        code: string
+        contractType?: string | null
+        contractTypeId?: string | null
+        hireDate?: string | null
+      }
     ): Promise<EmployeeRecord>
     /** يُسجِّل تغيير الحالة في سجل الموظف ويُحدِّث `isActive` تلقائيًا. */
     setStatus(
@@ -521,6 +548,15 @@ export interface ApiShape {
       data: Uint8Array
     }>
     remove(id: string): Promise<void>
+    salaryGrades: {
+      listByEmployee(employeeId: string): Promise<SalaryGradeRecord[]>
+      create(input: SalaryGradeUpsertInput): Promise<SalaryGradeRecord>
+      update(id: string, input: SalaryGradeUpsertInput): Promise<SalaryGradeRecord>
+      remove(id: string): Promise<void>
+      attachFile(payload: { id: string; data: ArrayBuffer; fileName: string }): Promise<SalaryGradeRecord>
+      removeFile(id: string): Promise<SalaryGradeRecord>
+      previewFile(id: string): Promise<EmployeeFilePreview>
+    }
   }
   export: {
     /** Returns the saved path, or `null` when the user cancels the dialog. */

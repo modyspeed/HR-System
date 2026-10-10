@@ -101,6 +101,22 @@ CREATE TABLE IF NOT EXISTS "ContractType" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "BasicSalaryGrade" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "employeeId" TEXT NOT NULL,
+    "date" DATETIME NOT NULL,
+    "amount" REAL NOT NULL,
+    "note" TEXT,
+    "fileOriginalName" TEXT,
+    "fileStoredName" TEXT,
+    "fileSize" INTEGER,
+    "fileLinkedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "BasicSalaryGrade_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "Leave" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "employeeId" TEXT NOT NULL,
@@ -183,6 +199,9 @@ CREATE INDEX IF NOT EXISTS "EmployeeStatusHistory_changedAt_idx" ON "EmployeeSta
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "ContractType_name_key" ON "ContractType"("name");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BasicSalaryGrade_employeeId_date_idx" ON "BasicSalaryGrade"("employeeId", "date");
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Leave_employeeId_idx" ON "Leave"("employeeId");

@@ -1,6 +1,11 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { ApiError } from '../../../shared/types'
-import type { ListPayrollsQuery, PayrollRecord } from '../../../shared/types'
+import type {
+  ListPayrollsQuery,
+  PayrollRecord,
+  SalaryGradeRecord,
+  SalaryGradeUpsertInput
+} from '../../../shared/types'
 import { requirePermission } from '../auth'
 import { parsePayrollPdf } from '../payroll-parser'
 import type { PayrollEmployeeRef } from '../payroll-parser'
@@ -9,6 +14,12 @@ import {
   slicePayrollPage,
   storePayrollBatch
 } from '../payroll-files'
+import {
+  attachSalaryGradeFile,
+  deleteStoredSalaryGradeFile,
+  previewSalaryGradeFile,
+  removeSalaryGradeFile
+} from '../salary-grade-files'
 import type { IpcRegistry } from './registry'
 
 const ENTRY_INCLUDE = {
@@ -37,6 +48,52 @@ function toPayrollRecord(entry: EntryRow): PayrollRecord {
     netSalary: entry.netSalary,
     fileName: entry.batch.originalName,
     uploadedAt: entry.batch.uploadedAt.toISOString()
+  }
+}
+
+const GRADE_INCLUDE = {
+  employee: { select: { code: true, name: true } }
+} as const
+
+type GradeRow = Prisma.BasicSalaryGradeGetPayload<{ include: typeof GRADE_INCLUDE }>
+
+function toSalaryGradeRecord(grade: GradeRow): SalaryGradeRecord {
+  return {
+    id: grade.id,
+    employeeId: grade.employeeId,
+    employeeCode: grade.employee.code,
+    employeeName: grade.employee.name,
+    date: grade.date.toISOString().slice(0, 10),
+    amount: grade.amount,
+    note: grade.note,
+    fileOriginalName: grade.fileOriginalName,
+    fileSize: grade.fileSize,
+    fileLinkedAt: grade.fileLinkedAt ? grade.fileLinkedAt.toISOString() : null,
+    createdAt: grade.createdAt.toISOString()
+  }
+}
+
+function normaliseGradeInput(input: SalaryGradeUpsertInput): {
+  employeeId: string
+  date: Date
+  amount: number
+  note: string | null
+} {
+  const employeeId = input.employeeId?.trim()
+  if (!employeeId) throw new ApiError('VALIDATION', 'Employee is required')
+  const date = input.date?.trim()
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new ApiError('VALIDATION', 'Grade date must use the yyyy-mm-dd format')
+  }
+  const amount = Number(input.amount)
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 10_000_000) {
+    throw new ApiError('VALIDATION', 'Invalid basic-salary amount')
+  }
+  return {
+    employeeId,
+    date: new Date(`${date}T00:00:00.000Z`),
+    amount: Math.round(amount * 100) / 100,
+    note: input.note?.trim() || null
   }
 }
 
@@ -202,6 +259,77 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
         }
       }
     })
+  })
+
+  // ---------------- تدرج الأساسي حسب التاريخ ----------------
+  ipc.handle('payrolls:salaryGrades.listByEmployee', async (_event, employeeId: string) => {
+    requirePermission('payrolls.view')
+    const grades = await prisma.basicSalaryGrade.findMany({
+      where: { employeeId },
+      include: GRADE_INCLUDE,
+      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }]
+    })
+    return grades.map(toSalaryGradeRecord)
+  })
+
+  ipc.handle('payrolls:salaryGrades.create', async (_event, input: SalaryGradeUpsertInput) => {
+    requirePermission('payrolls.create')
+    const data = normaliseGradeInput(input)
+    const employee = await prisma.employee.findUnique({ where: { id: data.employeeId } })
+    if (!employee) throw new ApiError('NOT_FOUND', 'Employee not found')
+    const grade = await prisma.basicSalaryGrade.create({ data, include: GRADE_INCLUDE })
+    return toSalaryGradeRecord(grade)
+  })
+
+  ipc.handle(
+    'payrolls:salaryGrades.update',
+    async (_event, id: string, input: SalaryGradeUpsertInput) => {
+      requirePermission('payrolls.edit')
+      const data = normaliseGradeInput(input)
+      const target = await prisma.basicSalaryGrade.findUnique({ where: { id } })
+      if (!target) throw new ApiError('NOT_FOUND', 'Salary grade not found')
+      const grade = await prisma.basicSalaryGrade.update({
+        where: { id },
+        data: { ...data, employeeId: target.employeeId },
+        include: GRADE_INCLUDE
+      })
+      return toSalaryGradeRecord(grade)
+    }
+  )
+
+  ipc.handle('payrolls:salaryGrades.remove', async (_event, id: string) => {
+    requirePermission('payrolls.delete')
+    const grade = await prisma.basicSalaryGrade.findUnique({ where: { id } })
+    if (!grade) throw new ApiError('NOT_FOUND', 'Salary grade not found')
+    deleteStoredSalaryGradeFile(grade.fileStoredName)
+    await prisma.basicSalaryGrade.delete({ where: { id } })
+  })
+
+  ipc.handle(
+    'payrolls:salaryGrades.attachFile',
+    async (_event, payload: { id: string; data: ArrayBuffer; fileName: string }) => {
+      requirePermission('payrolls.edit')
+      await attachSalaryGradeFile(prisma, payload.id, Buffer.from(payload.data), payload.fileName)
+      const grade = await prisma.basicSalaryGrade.findUnique({
+        where: { id: payload.id },
+        include: GRADE_INCLUDE
+      })
+      if (!grade) throw new ApiError('NOT_FOUND', 'Salary grade not found')
+      return toSalaryGradeRecord(grade)
+    }
+  )
+
+  ipc.handle('payrolls:salaryGrades.removeFile', async (_event, id: string) => {
+    requirePermission('payrolls.edit')
+    await removeSalaryGradeFile(prisma, id)
+    const grade = await prisma.basicSalaryGrade.findUnique({ where: { id }, include: GRADE_INCLUDE })
+    if (!grade) throw new ApiError('NOT_FOUND', 'Salary grade not found')
+    return toSalaryGradeRecord(grade)
+  })
+
+  ipc.handle('payrolls:salaryGrades.previewFile', async (_event, id: string) => {
+    requirePermission('payrolls.view')
+    return previewSalaryGradeFile(prisma, id)
   })
 }
 

@@ -11,8 +11,10 @@ import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
 import { Badge } from '@/components/ui/Badge'
+import { useQuery } from '@tanstack/react-query'
 
 interface RehireDialogProps {
   open: boolean
@@ -62,6 +64,8 @@ export function RehireDialog({ open, source, onClose, onRehired }: RehireDialogP
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting }
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -76,10 +80,20 @@ export function RehireDialog({ open, source, onClose, onRehired }: RehireDialogP
     mutationFn: (values: FormValues) =>
       api.employees.rehire(source!.id, {
         code: values.code.trim(),
-        contractType: values.contractType.trim(),
+        contractTypeId: values.contractType,
         hireDate: values.hireDate
       })
   })
+
+  const contractTypesQuery = useQuery({
+    queryKey: ['employees', 'contractTypes'],
+    queryFn: () => api.employees.contractTypeList(),
+    enabled: open
+  })
+  const contractTypeOptions = (contractTypesQuery.data ?? []).map((type) => ({
+    value: type.id,
+    label: type.name
+  }))
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -151,12 +165,13 @@ export function RehireDialog({ open, source, onClose, onRehired }: RehireDialogP
               autoFocus
               {...register('code')}
             />
-            <Input
+            <Select
               label={t('employees.rehireContractType')}
-              dir="auto"
-              placeholder={t('employees.contractType')}
+              value={watch('contractType')}
+              onChange={(event) => setValue('contractType', event.target.value, { shouldValidate: true })}
+              options={contractTypeOptions}
+              placeholder={t('employees.contractTypePlaceholder')}
               error={errors.contractType?.message}
-              {...register('contractType')}
             />
             <Input
               label={t('employees.rehireHireDate')}
