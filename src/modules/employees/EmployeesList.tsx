@@ -9,6 +9,7 @@ import {
   Banknote,
   Contact,
   Eye,
+  ListPlus,
   Paperclip,
   Pencil,
   Plus,
@@ -42,6 +43,7 @@ import { EmployeeFormModal } from './EmployeeFormModal'
 import { EmployeeFileModal } from './EmployeeFileModal'
 import { ImportEmployeesModal } from './ImportEmployeesModal'
 import { EmployeeStatusDialog } from './EmployeeStatusDialog'
+import { ContractTypesDialog } from './ContractTypesDialog'
 import { PayrollByEmployeeModal } from '@/modules/payrolls/PayrollEmployeeView'
 import { EMPLOYEE_STATUS_KEYS, employeeStatusTone } from './employeeStatusMeta'
 
@@ -55,6 +57,7 @@ export function EmployeesList() {
   const canEdit = usePermission('employees.edit')
   const canDelete = usePermission('employees.delete')
   const canManageStatus = usePermission('employees.manage_status')
+  const canManageTypes = usePermission('employees.manage_contract_types')
   const canViewPayrolls = usePermission('payrolls.view')
   const canImport = usePermission('employees.import')
   const language = i18n.language
@@ -62,6 +65,7 @@ export function EmployeesList() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 260)
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [contractTypeFilter, setContractTypeFilter] = useState<string>('')
   const [sort, setSort] = useState<SortField>('code')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
   const [formOpen, setFormOpen] = useState(false)
@@ -72,16 +76,27 @@ export function EmployeesList() {
   const [viewing, setViewing] = useState<EmployeeRecord | null>(null)
   const [statusEmployee, setStatusEmployee] = useState<EmployeeRecord | null>(null)
   const [payrollEmployee, setPayrollEmployee] = useState<EmployeeRecord | null>(null)
+  const [contractTypesOpen, setContractTypesOpen] = useState(false)
 
   const query: ListEmployeesQuery = useMemo(
     () => ({
       search: debouncedSearch || undefined,
       status: statusFilter || undefined,
+      contractTypeId: contractTypeFilter || undefined,
       sort,
       order
     }),
-    [debouncedSearch, statusFilter, sort, order]
+    [debouncedSearch, statusFilter, contractTypeFilter, sort, order]
   )
+
+  const contractTypesQuery = useQuery({
+    queryKey: ['employees', 'contractTypes'],
+    queryFn: () => api.employees.contractTypeList()
+  })
+  const contractTypeOptions = (contractTypesQuery.data ?? []).map((type) => ({
+    value: type.id,
+    label: type.name
+  }))
 
   const employeesQuery = useQuery({
     queryKey: ['employees', 'list', query],
@@ -107,6 +122,7 @@ export function EmployeesList() {
   const clearFilters = () => {
     setSearch('')
     setStatusFilter('')
+    setContractTypeFilter('')
   }
 
   const toggleSort = (field: SortField) => {
@@ -118,7 +134,7 @@ export function EmployeesList() {
     }
   }
 
-  const hasFilters = Boolean(debouncedSearch || statusFilter !== '')
+  const hasFilters = Boolean(debouncedSearch || statusFilter !== '' || contractTypeFilter !== '')
 
   /**
    * Export mirrors the current list (same filters, same order) and carries the
@@ -129,7 +145,8 @@ export function EmployeesList() {
     if (employees.length === 0) return null
     const filters = [
       debouncedSearch ? `«${debouncedSearch}»` : null,
-      statusFilter ? t(`employeeStatuses.${statusFilter}`) : null
+      statusFilter ? t(`employeeStatuses.${statusFilter}`) : null,
+      contractTypeOptions.find((option) => option.value === contractTypeFilter)?.label
     ]
       .filter(Boolean)
       .join(' · ')
@@ -182,7 +199,7 @@ export function EmployeesList() {
         t(`employeeStatuses.${employee.status}`)
       ])
     }
-  }, [employees, debouncedSearch, statusFilter, t, i18n])
+  }, [employees, debouncedSearch, statusFilter, contractTypeFilter, contractTypeOptions, t, i18n])
 
   const cell = (value: string | null) => (value ? value : <span className="text-ink-low">—</span>)
 
@@ -195,6 +212,15 @@ export function EmployeesList() {
         actions={
           <>
             <ExportMenu payload={exportPayload} />
+            {canManageTypes && (
+              <SoftButton
+                variant="ghost"
+                icon={<ListPlus className="size-4" />}
+                onClick={() => setContractTypesOpen(true)}
+              >
+                {t('employees.contractTypesManage')}
+              </SoftButton>
+            )}
             {canImport && (
               <SoftButton
                 variant="ghost"
@@ -239,6 +265,13 @@ export function EmployeesList() {
               label: t(`employeeStatuses.${key}`)
             }))}
             placeholder={t('employees.allStatuses')}
+          />
+          <Select
+            containerClassName="lg:w-44"
+            value={contractTypeFilter}
+            onChange={(event) => setContractTypeFilter(event.target.value)}
+            options={contractTypeOptions}
+            placeholder={t('employees.allContractTypes')}
           />
           {hasFilters && (
             <SoftButton variant="subtle" onClick={clearFilters}>
@@ -521,6 +554,11 @@ export function EmployeesList() {
         employeeId={payrollEmployee?.id ?? null}
         employeeName={payrollEmployee?.name ?? null}
         onClose={() => setPayrollEmployee(null)}
+      />
+
+      <ContractTypesDialog
+        open={contractTypesOpen}
+        onClose={() => setContractTypesOpen(false)}
       />
 
       <EmployeeDetailsModal

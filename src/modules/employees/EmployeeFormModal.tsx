@@ -1,14 +1,16 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { BadgeCheck, Hash, User } from 'lucide-react'
+import { BadgeCheck, Hash, Settings2, User } from 'lucide-react'
 import type { EmployeeRecord } from '@shared/types'
 import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
+import { usePermission } from '@/hooks/usePermission'
+import { ContractTypesDialog } from './ContractTypesDialog'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -33,7 +35,7 @@ interface FormValues {
   hireDate: string
   qualification: string
   qualificationYear: string
-  contractType: string
+  contractTypeId: string
   departmentId: string
 }
 
@@ -42,6 +44,8 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 export function EmployeeFormModal({ open, employee, onClose, onSaved }: EmployeeFormModalProps) {
   const { t } = useTranslation()
   const isEdit = employee !== null
+  const canManageTypes = usePermission('employees.manage_contract_types')
+  const [manageTypesOpen, setManageTypesOpen] = useState(false)
 
   const schema = useMemo(() => {
     const optionalDate = z
@@ -66,7 +70,7 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
         .trim()
         .optional()
         .refine((value) => !value || /^\d{4}$/.test(value), { message: t('validation.yearInvalid') }),
-      contractType: z.string().trim().optional(),
+      contractTypeId: z.string().trim().optional(),
       departmentId: z.string().trim().optional()
     })
   }, [t])
@@ -75,6 +79,8 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting }
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -90,7 +96,7 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
       hireDate: '',
       qualification: '',
       qualificationYear: '',
-      contractType: '',
+      contractTypeId: '',
       departmentId: ''
     }
   })
@@ -109,7 +115,9 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
       hireDate: employee?.hireDate ?? '',
       qualification: employee?.qualification ?? '',
       qualificationYear: employee?.qualificationYear ? String(employee.qualificationYear) : '',
-      contractType: employee?.contractType ?? '',
+      contractTypeId:
+        employee?.contractTypeId ??
+        (employee?.contractType ? `__legacy__${employee.contractType}` : ''),
       departmentId: employee?.departmentId ?? ''
     })
   }, [open, employee, reset])
@@ -125,6 +133,23 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
     label: department.name
   }))
 
+  const contractTypesQuery = useQuery({
+    queryKey: ['employees', 'contractTypes'],
+    queryFn: () => api.employees.contractTypeList(),
+    enabled: open
+  })
+  const catalogTypes = contractTypesQuery.data ?? []
+  const currentName = employee?.contractType?.trim()
+  const currentInCatalog = Boolean(
+    currentName && catalogTypes.some((type) => type.name === currentName)
+  )
+  const contractOptions = [
+    ...catalogTypes.map((type) => ({ value: type.id, label: type.name })),
+    ...(currentName && !currentInCatalog
+      ? [{ value: `__legacy__${currentName}`, label: `${currentName} *` }]
+      : [])
+  ]
+
   const toInput = (values: FormValues) => ({
     code: values.code.trim(),
     name: values.name.trim(),
@@ -137,7 +162,12 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
     hireDate: values.hireDate || null,
     qualification: values.qualification.trim() || null,
     qualificationYear: values.qualificationYear ? Number(values.qualificationYear) : null,
-    contractType: values.contractType.trim() || null,
+    contractType: values.contractTypeId.startsWith('__legacy__')
+      ? values.contractTypeId.slice('__legacy__'.length)
+      : undefined,
+    contractTypeId: values.contractTypeId.startsWith('__legacy__')
+      ? null
+      : values.contractTypeId || null,
     departmentId: values.departmentId || null
   })
 
@@ -239,13 +269,35 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
           autoComplete="off"
           {...register('qualificationYear')}
         />
-        <Input
-          label={t('employees.contractType')}
-          placeholder={t('employees.contractTypeHint')}
-          error={errors.contractType?.message}
-          autoComplete="off"
-          {...register('contractType')}
-        />
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="contract-type" className="text-xs font-medium text-ink-med">
+              {t('employees.contractType')}
+            </label>
+            {canManageTypes && (
+              <button
+                type="button"
+                onClick={() => setManageTypesOpen(true)}
+                className="focus-ring flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-accent-300 transition-colors hover:bg-surface-strong"
+              >
+                <Settings2 className="size-3" />
+                {t('employees.contractTypesManage')}
+              </button>
+            )}
+          </div>
+          <Select
+            containerClassName="w-full"
+            id="contract-type"
+            value={watch('contractTypeId')}
+            onChange={(event) => setValue('contractTypeId', event.target.value)}
+            options={contractOptions}
+            placeholder={t('employees.contractTypePlaceholder')}
+            error={errors.contractTypeId?.message}
+          />
+          {currentName && !currentInCatalog && (
+            <p className="text-[11px] leading-relaxed text-ink-low">{t('employees.contractTypeLegacy')}</p>
+          )}
+        </div>
         <Select
           label={t('employees.department')}
           options={departmentOptions}
@@ -281,6 +333,11 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Employee
           dir="ltr"
           error={errors.gradeDate?.message}
           {...register('gradeDate')}
+        />
+
+        <ContractTypesDialog
+          open={manageTypesOpen}
+          onClose={() => setManageTypesOpen(false)}
         />
       </form>
     </Modal>

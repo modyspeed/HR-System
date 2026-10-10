@@ -57,6 +57,7 @@ function toEmployeeRecord(
     qualification: employee.qualification,
     qualificationYear: employee.qualificationYear,
     contractType: employee.contractType,
+    contractTypeId: employee.contractTypeId,
     departmentId: employee.departmentId,
     departmentName: employee.department?.name ?? null,
     fileOriginalName: employee.fileOriginalName,
@@ -95,11 +96,15 @@ interface NormalisedEmployee {
   qualification: string | null
   qualificationYear: number | null
   contractType: string | null
+  contractTypeId: string | null
   departmentId: string | null
   isActive: boolean
 }
 
-function normaliseInput(input: EmployeeUpsertInput): NormalisedEmployee {
+async function normaliseInput(
+  input: EmployeeUpsertInput,
+  prisma: PrismaClient
+): Promise<NormalisedEmployee> {
   const code = input.code.trim()
   const name = input.name.trim()
   if (!code) throw new ApiError('VALIDATION', 'Employee code is required')
@@ -108,6 +113,17 @@ function normaliseInput(input: EmployeeUpsertInput): NormalisedEmployee {
   const year = input.qualificationYear ?? null
   if (year !== null && (year < 1900 || year > 2200)) {
     throw new ApiError('VALIDATION', 'Qualification year looks invalid')
+  }
+
+  // نوع التعاقد: يسبق المعرف المُدار الاسم الحر — الاسم يُشتق من الكتالوج.
+  let contractType = input.contractType?.trim() || null
+  let contractTypeId = input.contractTypeId?.trim() || null
+  if (contractTypeId) {
+    const type = await prisma.contractType.findUnique({ where: { id: contractTypeId } })
+    if (!type) throw new ApiError('VALIDATION', 'Unknown contract type')
+    contractType = type.name
+  } else if (input.contractType && input.contractTypeId === undefined) {
+    contractTypeId = null
   }
 
   return {
@@ -122,7 +138,8 @@ function normaliseInput(input: EmployeeUpsertInput): NormalisedEmployee {
     hireDate: dateOrNull(input.hireDate),
     qualification: input.qualification?.trim() || null,
     qualificationYear: year,
-    contractType: input.contractType?.trim() || null,
+    contractType,
+    contractTypeId,
     departmentId: input.departmentId?.trim() || null,
     isActive: input.isActive ?? true
   }
@@ -156,6 +173,7 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
     if (query.isActive !== null && query.isActive !== undefined) {
       where.isActive = query.isActive
     }
+    if (query.contractTypeId) where.contractTypeId = query.contractTypeId
     const statusFilter = query.status?.trim()
     if (statusFilter) where.status = statusFilter
 
@@ -299,13 +317,76 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
     requirePermission('employees.view')
     await revealEmployeeFilesDir()
   })
+
+  // ---------- كتالوج أنواع التعاقد (إضافة/تعديل/حذف) ----------
+  ipc.handle('employees:contractTypeList', async () => {
+    requirePermission('employees.view')
+    const types = await prisma.contractType.findMany({
+      include: { _count: { select: { employees: true } } },
+      orderBy: { name: 'asc' }
+    })
+    return types.map((type) => ({
+      id: type.id,
+      name: type.name,
+      employeesCount: type._count.employees,
+      createdAt: type.createdAt.toISOString()
+    }))
+  })
+
+  ipc.handle('employees:contractTypeCreate', async (_event, input: { name: string }) => {
+    requirePermission('employees.manage_contract_types')
+    const name = input.name.trim()
+    if (!name) throw new ApiError('VALIDATION', 'Contract type name is required')
+    const clash = await prisma.contractType.findUnique({ where: { name } })
+    if (clash) throw new ApiError('CONFLICT', 'This contract type already exists')
+    const type = await prisma.contractType.create({
+      data: { name },
+      include: { _count: { select: { employees: true } } }
+    })
+    return {
+      id: type.id,
+      name: type.name,
+      employeesCount: type._count.employees,
+      createdAt: type.createdAt.toISOString()
+    }
+  })
+
+  ipc.handle(
+    'employees:contractTypeUpdate',
+    async (_event, id: string, input: { name: string }) => {
+      requirePermission('employees.manage_contract_types')
+      const name = input.name.trim()
+      if (!name) throw new ApiError('VALIDATION', 'Contract type name is required')
+      const clash = await prisma.contractType.findFirst({
+        where: { name, NOT: { id } }
+      })
+      if (clash) throw new ApiError('CONFLICT', 'This contract type already exists')
+      const type = await prisma.contractType.update({
+        where: { id },
+        data: { name },
+        include: { _count: { select: { employees: true } } }
+      })
+      return {
+        id: type.id,
+        name: type.name,
+        employeesCount: type._count.employees,
+        createdAt: type.createdAt.toISOString()
+      }
+    }
+  )
+
+  ipc.handle('employees:contractTypeRemove', async (_event, id: string) => {
+    requirePermission('employees.manage_contract_types')
+    // حذف النوع يحرر الروابط فقط — أسماء الموظفين تبقى لقطة محفوظة لديهم.
+    await prisma.contractType.delete({ where: { id } })
+  })
 }
 
 async function createEmployee(
   prisma: PrismaClient,
   input: EmployeeUpsertInput
 ): Promise<EmployeeRecord> {
-  const data = normaliseInput(input)
+  const data = await normaliseInput(input, prisma)
 
   const existing = await prisma.employee.findUnique({ where: { code: data.code } })
   if (existing) throw new ApiError('CONFLICT', 'An employee with this code already exists')
@@ -323,7 +404,7 @@ async function updateEmployee(
   id: string,
   input: EmployeeUpsertInput
 ): Promise<EmployeeRecord> {
-  const data = normaliseInput(input)
+  const data = await normaliseInput(input, prisma)
 
   const target = await prisma.employee.findUnique({ where: { id } })
   if (!target) throw new ApiError('NOT_FOUND', 'Employee not found')

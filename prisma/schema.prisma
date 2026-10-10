@@ -82,6 +82,8 @@ model Employee {
   contractType      String? // نوع التعاقد (free text — permanent, temporary, …)
   departmentId      String? // القسم — soft link to Department; unlinking a department nulls this
   department        Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  contractTypeId    String? // نوع التعاقد المُدار (كتالوج)
+  contractTypeRef   ContractType? @relation(fields: [contractTypeId], references: [id], onDelete: SetNull)
   leaves            Leave[]
   status            String      @default("active") // الحالة الوظيفية — مفتاح من كتالوج الحالات (نشط/معاش/وفاة/استقالة…)
   statusHistory     EmployeeStatusHistory[]
@@ -106,6 +108,14 @@ model EmployeeStatusHistory {
 
   @@index([employeeId])
   @@index([changedAt])
+}
+
+model ContractType {
+  id        String     @id @default(cuid())
+  name      String     @unique // دائم، مؤقت، موسمي، دوام جزئي…
+  employees Employee[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Leave {

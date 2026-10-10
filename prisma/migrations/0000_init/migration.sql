@@ -69,12 +69,14 @@ CREATE TABLE IF NOT EXISTS "Employee" (
     "fileLinkedAt" DATETIME,
     "contractType" TEXT,
     "departmentId" TEXT,
+    "contractTypeId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'active',
     "rehiredFromId" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "Employee_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Employee_contractTypeId_fkey" FOREIGN KEY ("contractTypeId") REFERENCES "ContractType" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "Employee_rehiredFromId_fkey" FOREIGN KEY ("rehiredFromId") REFERENCES "Employee" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
@@ -88,6 +90,14 @@ CREATE TABLE IF NOT EXISTS "EmployeeStatusHistory" (
     "changedBy" TEXT,
     "changedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "EmployeeStatusHistory_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ContractType" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
 -- CreateTable
@@ -170,6 +180,9 @@ CREATE INDEX IF NOT EXISTS "EmployeeStatusHistory_employeeId_idx" ON "EmployeeSt
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "EmployeeStatusHistory_changedAt_idx" ON "EmployeeStatusHistory"("changedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "ContractType_name_key" ON "ContractType"("name");
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Leave_employeeId_idx" ON "Leave"("employeeId");

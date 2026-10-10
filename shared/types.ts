@@ -149,8 +149,10 @@ export interface EmployeeRecord {
   hireDate: EmployeeDate
   qualification: string | null
   qualificationYear: number | null
-  /** نوع التعاقد — free text. */
+  /** نوع التعاقد — اسم محفوظ (لقطة) حتى لو حُذف النوع من الكتالوج. */
   contractType: string | null
+  /** نوع التعاقد المُدار (كتالوج) — null لو لم يُربط. */
+  contractTypeId: string | null
   /** القسم — linked Department (resolved name included for display). */
   departmentId: string | null
   departmentName: string | null
@@ -172,6 +174,7 @@ export interface EmployeeRecord {
 export interface ListEmployeesQuery {
   search?: string
   isActive?: boolean | null
+  contractTypeId?: string
   sort?: 'code' | 'name' | 'grade' | 'hireDate' | 'createdAt'
   order?: 'asc' | 'desc'
   status?: string
@@ -200,8 +203,17 @@ export interface EmployeeUpsertInput {
   qualification?: string | null
   qualificationYear?: number | null
   contractType?: string | null
+  contractTypeId?: string | null
   departmentId?: string | null
   isActive?: boolean
+}
+
+export interface ContractTypeRecord {
+  id: string
+  name: string
+  /** عدد الموظفين المرتبطين به حاليًا. */
+  employeesCount: number
+  createdAt: string
 }
 
 /** One normalized row coming out of the Excel/PDF importer. */
@@ -458,6 +470,10 @@ export interface ApiShape {
       input: { status: string; reason?: string }
     ): Promise<EmployeeRecord>
     statusHistory(id: string): Promise<EmployeeStatusHistoryRecord[]>
+    contractTypeList(): Promise<ContractTypeRecord[]>
+    contractTypeCreate(input: { name: string }): Promise<ContractTypeRecord>
+    contractTypeUpdate(id: string, input: { name: string }): Promise<ContractTypeRecord>
+    contractTypeRemove(id: string): Promise<void>
     parseImportFile(payload: {
       data: ArrayBuffer
       fileName: string

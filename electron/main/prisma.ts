@@ -40,7 +40,8 @@ const SCHEMA_UPGRADES = [
   `ALTER TABLE "Employee" ADD COLUMN "contractType" TEXT`,
   `ALTER TABLE "Employee" ADD COLUMN "departmentId" TEXT`,
   `ALTER TABLE "Employee" ADD COLUMN "status" TEXT DEFAULT 'active'`,
-  `ALTER TABLE "Employee" ADD COLUMN "rehiredFromId" TEXT`
+  `ALTER TABLE "Employee" ADD COLUMN "rehiredFromId" TEXT`,
+  `ALTER TABLE "Employee" ADD COLUMN "contractTypeId" TEXT`
 ]
 
 export async function applySnapshot(prisma: PrismaClient): Promise<void> {

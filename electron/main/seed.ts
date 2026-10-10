@@ -33,6 +33,61 @@ const SYSTEM_ROLE_PERMISSIONS: Record<string, (keys: readonly string[]) => strin
   [EMPLOYEE.key]: () => ['settings.view']
 }
 
+/** أنواع العقود الافتراضية وفق قانون العمل المصري والممارسات الشائعة. */
+export const CONTRACT_TYPE_DEFAULTS = [
+  'دائم',
+  'مؤقت',
+  'موسمي',
+  'دوام جزئي',
+  'تدريب / اختبار',
+  'مهمة محددة',
+  'مكافأة شاملة',
+  'سنوي'
+]
+
+/**
+ * مزامنة كتالوج أنواع التعاقد: يضمن وجود القائمة الافتراضية + كل اسم مستخدم
+ * حاليًا عند الموظفين (حتى «م شاملة» من البيانات القديمة)، ويربط الأعمدة
+ * القديمة بالكتالوج مرة واحدة.
+ */
+export async function syncContractTypes(prisma: PrismaClient): Promise<void> {
+  const used = await prisma.employee.findMany({
+    where: { contractType: { not: null } },
+    distinct: ['contractType'],
+    select: { contractType: true }
+  })
+  const names = new Map<string, string>()
+  for (const name of CONTRACT_TYPE_DEFAULTS) names.set(name, name)
+  for (const row of used) {
+    const name = row.contractType?.trim()
+    if (name) names.set(name, name)
+  }
+  for (const name of names.keys()) {
+    await prisma.contractType.upsert({
+      where: { name },
+      create: { name },
+      update: {}
+    })
+  }
+
+  // ربط أعمدة التعاقد النصية القديمة بأصناف الكتالوج (مرة واحدة، Idempotent).
+  const unlinked = await prisma.employee.findMany({
+    where: { contractTypeId: null, contractType: { not: null } },
+    select: { id: true, contractType: true }
+  })
+  for (const employee of unlinked) {
+    const type = await prisma.contractType.findUnique({
+      where: { name: employee.contractType!.trim() }
+    })
+    if (type) {
+      await prisma.employee.update({
+        where: { id: employee.id },
+        data: { contractTypeId: type.id }
+      })
+    }
+  }
+}
+
 export async function seedIfNeeded(prisma: PrismaClient): Promise<void> {
   const flag = await prisma.setting.findUnique({ where: { key: SEED_FLAG } })
   if (!flag) {
@@ -50,6 +105,7 @@ export async function seedIfNeeded(prisma: PrismaClient): Promise<void> {
   // Always reconcile system roles with the catalogue — adds missing baseline
   // permissions only, never revokes, so manual tweaks by an admin survive.
   await syncSystemRolePermissions(prisma)
+  await syncContractTypes(prisma)
 }
 
 async function seedRoles(prisma: PrismaClient): Promise<void> {
