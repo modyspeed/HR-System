@@ -395,6 +395,134 @@ export interface DepartmentTransferUpsertInput {
   applyAsCurrent?: boolean
 }
 
+export interface IncentiveRateRecord {
+  id: string
+  batchId: string | null
+  departmentId: string
+  departmentName: string
+  month: number
+  year: number
+  period: string
+  page: number
+  rate: number
+  note: string | null
+  fileName: string | null
+  uploadedAt: string | null
+}
+
+export interface IncentiveRateParseRow {
+  page: number
+  code: string
+  name: string
+  departmentId: string | null
+  match: 'code' | 'name' | 'none'
+  rate: number
+}
+
+export interface IncentiveRateParseResult {
+  month: number
+  year: number
+  period: string
+  pageCount: number
+  rows: IncentiveRateParseRow[]
+  matched: number
+  unmatched: number
+}
+
+export interface IncentiveRateUpsertInput {
+  departmentId: string
+  period: string
+  rate: number
+  note?: string | null
+}
+
+export interface EmployeeIncentiveRateRecord {
+  id: string
+  batchId: string | null
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  month: number
+  year: number
+  period: string
+  page: number
+  rate: number
+  note: string | null
+  fileName: string | null
+  uploadedAt: string | null
+}
+
+export interface EmployeeIncentiveRateParseRow {
+  page: number
+  code: string
+  name: string
+  employeeId: string | null
+  match: 'code' | 'name' | 'none'
+  rate: number
+}
+
+export interface EmployeeIncentiveRateParseResult {
+  month: number
+  year: number
+  period: string
+  pageCount: number
+  rows: EmployeeIncentiveRateParseRow[]
+  matched: number
+  unmatched: number
+}
+
+export interface EmployeeIncentiveRateUpsertInput {
+  employeeId: string
+  period: string
+  rate: number
+  note?: string | null
+}
+
+export interface PenaltyRateRecord {
+  id: string
+  batchId: string | null
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  month: number
+  year: number
+  period: string
+  page: number
+  rate: number
+  amount: number
+  note: string | null
+  fileName: string | null
+  uploadedAt: string | null
+}
+
+export interface PenaltyRateParseRow {
+  page: number
+  code: string
+  name: string
+  employeeId: string | null
+  match: 'code' | 'name' | 'none'
+  rate: number
+  amount: number
+}
+
+export interface PenaltyRateParseResult {
+  month: number
+  year: number
+  period: string
+  pageCount: number
+  rows: PenaltyRateParseRow[]
+  matched: number
+  unmatched: number
+}
+
+export interface PenaltyRateUpsertInput {
+  employeeId: string
+  period: string
+  rate: number
+  amount?: number
+  note?: string | null
+}
+
 export interface ListPayrollsQuery {
   search?: string
   type?: string
@@ -625,6 +753,48 @@ export interface ApiShape {
       attachFile(payload: { id: string; data: ArrayBuffer; fileName: string }): Promise<SalaryGradeRecord>
       removeFile(id: string): Promise<SalaryGradeRecord>
       previewFile(id: string): Promise<EmployeeFilePreview>
+    }
+    incentiveRates: {
+      list(query: { period?: string; departmentId?: string }): Promise<IncentiveRateRecord[]>
+      listByDepartment(departmentId: string): Promise<IncentiveRateRecord[]>
+      create(input: IncentiveRateUpsertInput): Promise<IncentiveRateRecord>
+      update(id: string, input: IncentiveRateUpsertInput): Promise<IncentiveRateRecord>
+      remove(id: string): Promise<void>
+      parsePdf(payload: { data: ArrayBuffer; fileName: string }): Promise<IncentiveRateParseResult>
+      importPdf(payload: { data: ArrayBuffer; fileName: string }): Promise<{
+        created: number
+        unmatched: number
+        period: string
+      }>
+      preview(id: string): Promise<{ originalName: string; data: Uint8Array } | null>
+    }
+    employeeIncentiveRates: {
+      list(query: { period?: string; employeeId?: string }): Promise<EmployeeIncentiveRateRecord[]>
+      listByEmployee(employeeId: string): Promise<EmployeeIncentiveRateRecord[]>
+      create(input: EmployeeIncentiveRateUpsertInput): Promise<EmployeeIncentiveRateRecord>
+      update(id: string, input: EmployeeIncentiveRateUpsertInput): Promise<EmployeeIncentiveRateRecord>
+      remove(id: string): Promise<void>
+      parsePdf(payload: { data: ArrayBuffer; fileName: string }): Promise<EmployeeIncentiveRateParseResult>
+      importPdf(payload: { data: ArrayBuffer; fileName: string }): Promise<{
+        created: number
+        unmatched: number
+        period: string
+      }>
+      preview(id: string): Promise<{ originalName: string; data: Uint8Array } | null>
+    }
+    incentivePenalties: {
+      list(query: { period?: string; employeeId?: string }): Promise<PenaltyRateRecord[]>
+      listByEmployee(employeeId: string): Promise<PenaltyRateRecord[]>
+      create(input: PenaltyRateUpsertInput): Promise<PenaltyRateRecord>
+      update(id: string, input: PenaltyRateUpsertInput): Promise<PenaltyRateRecord>
+      remove(id: string): Promise<void>
+      parsePdf(payload: { data: ArrayBuffer; fileName: string }): Promise<PenaltyRateParseResult>
+      importPdf(payload: { data: ArrayBuffer; fileName: string }): Promise<{
+        created: number
+        unmatched: number
+        period: string
+      }>
+      preview(id: string): Promise<{ originalName: string; data: Uint8Array } | null>
     }
   }
   export: {

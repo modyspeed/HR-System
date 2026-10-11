@@ -9,6 +9,8 @@ import { EmptyState } from '@/components/feedback/EmptyState'
 import { PAYROLL_TYPE_KEYS } from './payrollMeta'
 import { PayrollSlipPickerDialog } from './PayrollSlipPickerDialog'
 import { SalaryGradeTimeline } from './SalaryGradeTimeline'
+import { EmployeeIncentiveRatesCard } from './EmployeeIncentiveRatesModal'
+import { IncentivePenaltiesCard } from './IncentivePenaltiesModal'
 
 interface PayrollEmployeeViewProps {
   employeeId: string
@@ -43,6 +45,16 @@ export function PayrollEmployeeView({ employeeId, onChanged }: PayrollEmployeeVi
     <div className="flex flex-col gap-6">
       {/* تدرج الأساسي حسب التاريخ */}
       <SalaryGradeTimeline employeeId={employeeId} onChanged={onChanged} />
+
+      <div className="rounded-2xl border border-line bg-surface-soft/60 p-4">
+        <EmployeeIncentiveRatesCard
+          employeeId={employeeId}
+          employeeOptions={[]}
+        />
+      </div>
+      <div className="rounded-2xl border border-rose-400/20 bg-rose-500/5 p-4">
+        <IncentivePenaltiesCard employeeId={employeeId} employeeOptions={[]} />
+      </div>
 
       {/* ملخص دفعات المرتبات + المعاينة */}
       {entries.length === 0 ? (

@@ -61,6 +61,7 @@ model Department {
   payrollEntries PayrollEntry[]
   transferFrom DepartmentTransfer[] @relation("TransferFrom")
   transferTo   DepartmentTransfer[] @relation("TransferTo")
+  incentiveRates DepartmentIncentiveRate[]
 
   // future relation columns (branches, cost centers, …) slot in here
 }
@@ -96,6 +97,8 @@ model Employee {
   payroll           PayrollEntry[]
   salaryGrades      BasicSalaryGrade[]
   departmentTransfers DepartmentTransfer[]
+  employeeIncentiveRates EmployeeIncentiveRate[]
+  incentivePenalties EmployeeIncentivePenalty[]
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -226,4 +229,101 @@ model DepartmentTransfer {
 
   @@index([employeeId])
   @@index([toDepartmentId])
+}
+
+model IncentiveRateBatch {
+  id           String   @id @default(cuid())
+  period       String // "2026-08"
+  originalName String
+  storedName   String
+  size         Int
+  pageCount    Int
+  uploadedAt   DateTime @default(now())
+  rates        DepartmentIncentiveRate[]
+
+  @@index([period])
+}
+
+model DepartmentIncentiveRate {
+  id           String   @id @default(cuid())
+  batchId      String?
+  batch        IncentiveRateBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  month        Int
+  year         Int
+  period       String
+  page         Int // صفحة القسم داخل المستند المرفوع
+  rate         Float // نسبة الحافز من الملف (مثال: 0.45)
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([departmentId, period])
+  @@index([period])
+}
+
+model EmployeeIncentiveRateBatch {
+  id           String   @id @default(cuid())
+  period       String
+  originalName String
+  storedName   String
+  size         Int
+  pageCount    Int
+  uploadedAt   DateTime @default(now())
+  rates        EmployeeIncentiveRate[]
+
+  @@index([period])
+}
+
+model EmployeeIncentiveRate {
+  id           String   @id @default(cuid())
+  batchId      String?
+  batch        EmployeeIncentiveRateBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month        Int
+  year         Int
+  period       String
+  page         Int
+  rate         Float
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([employeeId, period])
+  @@index([period])
+}
+
+model EmployeeIncentivePenaltyBatch {
+  id           String   @id @default(cuid())
+  period       String
+  originalName String
+  storedName   String
+  size         Int
+  pageCount    Int
+  uploadedAt   DateTime @default(now())
+  penalties    EmployeeIncentivePenalty[]
+
+  @@index([period])
+}
+
+model EmployeeIncentivePenalty {
+  id           String   @id @default(cuid())
+  batchId      String?
+  batch        EmployeeIncentivePenaltyBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month        Int
+  year         Int
+  period       String
+  page         Int
+  rate         Float // نسبة الخصم من الحافز (مثل 25)
+  amount       Float // قيمة الخصم بالجنيه
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([employeeId, period])
+  @@index([period])
 }

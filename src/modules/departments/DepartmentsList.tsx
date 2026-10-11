@@ -6,6 +6,7 @@ import {
   ArrowDownUp,
   Building2,
   Pencil,
+  Percent,
   Search,
   Trash2,
   Upload,
@@ -25,6 +26,7 @@ import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
 import { SkeletonRows } from '@/components/ui/Skeleton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { IncentiveRatesModal } from './IncentiveRatesModal'
 import { ExportMenu } from '@/components/ui/ExportMenu'
 import { RowActions } from '@/components/ui/RowActions'
 import { EmptyState } from '@/components/feedback/EmptyState'
@@ -41,6 +43,7 @@ export function DepartmentsList() {
   const canEdit = usePermission('departments.edit')
   const canDelete = usePermission('departments.delete')
   const canImport = usePermission('departments.import')
+  const canSeeIncentives = usePermission('payrolls.view')
 
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 260)
@@ -51,6 +54,8 @@ export function DepartmentsList() {
   const [importOpen, setImportOpen] = useState(false)
   const [editing, setEditing] = useState<DepartmentRecord | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<DepartmentRecord | null>(null)
+  const [incentivesOpen, setIncentivesOpen] = useState(false)
+  const [incentiveDepartment, setIncentiveDepartment] = useState<DepartmentRecord | null>(null)
 
   const query: ListDepartmentsQuery = useMemo(
     () => ({
@@ -154,6 +159,15 @@ export function DepartmentsList() {
         actions={
           <>
             <ExportMenu payload={exportPayload} />
+            {canSeeIncentives && (
+              <SoftButton
+                variant="ghost"
+                icon={<Percent className="size-4" />}
+                onClick={() => setIncentivesOpen(true)}
+              >
+                {t('departments.incentiveTitle')}
+              </SoftButton>
+            )}
             {canImport && (
               <SoftButton
                 variant="ghost"
@@ -345,6 +359,16 @@ export function DepartmentsList() {
                     <td className="px-5 py-3.5">
                       <RowActions
                         actions={[
+                          ...(canSeeIncentives
+                            ? [
+                                {
+                                  key: 'incentives',
+                                  label: t('departments.incentiveTitle'),
+                                  icon: <Percent className="size-3.5" />,
+                                  onClick: () => setIncentiveDepartment(department)
+                                }
+                              ]
+                            : []),
                           ...(canEdit
                             ? [
                                 {
@@ -396,6 +420,15 @@ export function DepartmentsList() {
         onImported={() => {
           setImportOpen(false)
           invalidate()
+        }}
+      />
+
+      <IncentiveRatesModal
+        open={incentivesOpen || incentiveDepartment !== null}
+        departmentId={incentiveDepartment?.id ?? null}
+        onClose={() => {
+          setIncentivesOpen(false)
+          setIncentiveDepartment(null)
         }}
       />
 

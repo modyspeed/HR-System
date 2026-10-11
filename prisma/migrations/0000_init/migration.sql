@@ -194,6 +194,91 @@ CREATE TABLE IF NOT EXISTS "DepartmentTransfer" (
     CONSTRAINT "DepartmentTransfer_toDepartmentId_fkey" FOREIGN KEY ("toDepartmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IncentiveRateBatch" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "period" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "storedName" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "pageCount" INTEGER NOT NULL,
+    "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "DepartmentIncentiveRate" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "batchId" TEXT,
+    "departmentId" TEXT NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "period" TEXT NOT NULL,
+    "page" INTEGER NOT NULL,
+    "rate" REAL NOT NULL,
+    "note" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "DepartmentIncentiveRate_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "IncentiveRateBatch" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "DepartmentIncentiveRate_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "EmployeeIncentiveRateBatch" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "period" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "storedName" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "pageCount" INTEGER NOT NULL,
+    "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "EmployeeIncentiveRate" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "batchId" TEXT,
+    "employeeId" TEXT NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "period" TEXT NOT NULL,
+    "page" INTEGER NOT NULL,
+    "rate" REAL NOT NULL,
+    "note" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "EmployeeIncentiveRate_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "EmployeeIncentiveRateBatch" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "EmployeeIncentiveRate_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "EmployeeIncentivePenaltyBatch" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "period" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "storedName" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "pageCount" INTEGER NOT NULL,
+    "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "EmployeeIncentivePenalty" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "batchId" TEXT,
+    "employeeId" TEXT NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "period" TEXT NOT NULL,
+    "page" INTEGER NOT NULL,
+    "rate" REAL NOT NULL,
+    "amount" REAL NOT NULL,
+    "note" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "EmployeeIncentivePenalty_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "EmployeeIncentivePenaltyBatch" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "EmployeeIncentivePenalty_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
 
@@ -253,3 +338,30 @@ CREATE INDEX IF NOT EXISTS "DepartmentTransfer_employeeId_idx" ON "DepartmentTra
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "DepartmentTransfer_toDepartmentId_idx" ON "DepartmentTransfer"("toDepartmentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IncentiveRateBatch_period_idx" ON "IncentiveRateBatch"("period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "DepartmentIncentiveRate_period_idx" ON "DepartmentIncentiveRate"("period");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "DepartmentIncentiveRate_departmentId_period_key" ON "DepartmentIncentiveRate"("departmentId", "period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "EmployeeIncentiveRateBatch_period_idx" ON "EmployeeIncentiveRateBatch"("period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "EmployeeIncentiveRate_period_idx" ON "EmployeeIncentiveRate"("period");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "EmployeeIncentiveRate_employeeId_period_key" ON "EmployeeIncentiveRate"("employeeId", "period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "EmployeeIncentivePenaltyBatch_period_idx" ON "EmployeeIncentivePenaltyBatch"("period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "EmployeeIncentivePenalty_period_idx" ON "EmployeeIncentivePenalty"("period");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "EmployeeIncentivePenalty_employeeId_period_key" ON "EmployeeIncentivePenalty"("employeeId", "period");

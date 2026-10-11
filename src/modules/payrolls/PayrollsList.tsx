@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Banknote, Plus, Search } from 'lucide-react'
+import { Banknote, Percent, Plus, Search, ShieldAlert } from 'lucide-react'
 import type { ExportPayload, ListPayrollsQuery, PayrollRecord } from '@shared/types'
 import { api } from '@/lib/ipc'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -18,6 +18,8 @@ import { EmptyState } from '@/components/feedback/EmptyState'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { periodLabel, PAYROLL_TYPE_KEYS } from './payrollMeta'
 import { PayrollImportModal } from './PayrollImportModal'
+import { EmployeeIncentiveRatesModal } from './EmployeeIncentiveRatesModal'
+import { IncentivePenaltiesModal } from './IncentivePenaltiesModal'
 import { PreviewButton } from './PayrollPreviewModal'
 import { PayrollSlipPickerDialog } from './PayrollSlipPickerDialog'
 
@@ -31,6 +33,8 @@ export function PayrollsList() {
   const [type, setType] = useState('')
   const [year, setYear] = useState<number | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [empRatesOpen, setEmpRatesOpen] = useState(false)
+  const [penaltiesOpen, setPenaltiesOpen] = useState(false)
   const [previewing, setPreviewing] = useState<PayrollRecord | null>(null)
 
   const query: ListPayrollsQuery = useMemo(
@@ -130,6 +134,20 @@ export function PayrollsList() {
         actions={
           <>
             <ExportMenu payload={exportPayload} />
+            <SoftButton
+              variant="ghost"
+              icon={<Percent className="size-4" />}
+              onClick={() => setEmpRatesOpen(true)}
+            >
+              {t('payrolls.empRatesTitle')}
+            </SoftButton>
+            <SoftButton
+              variant="ghost"
+              icon={<ShieldAlert className="size-4" />}
+              onClick={() => setPenaltiesOpen(true)}
+            >
+              {t('payrolls.penaltyTitle')}
+            </SoftButton>
             {canCreate && (
               <SoftButton
                 variant="primary"
@@ -265,6 +283,9 @@ export function PayrollsList() {
           void queryClient.invalidateQueries({ queryKey: ['payrolls'] })
         }}
       />
+
+      <EmployeeIncentiveRatesModal open={empRatesOpen} onClose={() => setEmpRatesOpen(false)} />
+      <IncentivePenaltiesModal open={penaltiesOpen} onClose={() => setPenaltiesOpen(false)} />
 
       {previewing !== null && (
         <PayrollSlipPickerDialog

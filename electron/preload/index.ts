@@ -98,6 +98,36 @@ const api: ApiShape = {
       attachFile: (payload) => ipcRenderer.invoke('payrolls:salaryGrades.attachFile', payload),
       removeFile: (id) => ipcRenderer.invoke('payrolls:salaryGrades.removeFile', id),
       previewFile: (id) => ipcRenderer.invoke('payrolls:salaryGrades.previewFile', id)
+    },
+    incentiveRates: {
+      list: (query) => ipcRenderer.invoke('payrolls:incentiveRates.list', query),
+      listByDepartment: (departmentId) => ipcRenderer.invoke('payrolls:incentiveRates.listByDepartment', departmentId),
+      create: (input) => ipcRenderer.invoke('payrolls:incentiveRates.create', input),
+      update: (id, input) => ipcRenderer.invoke('payrolls:incentiveRates.update', id, input),
+      remove: (id) => ipcRenderer.invoke('payrolls:incentiveRates.remove', id),
+      parsePdf: (payload) => ipcRenderer.invoke('payrolls:incentiveRates.parsePdf', payload),
+      importPdf: (payload) => ipcRenderer.invoke('payrolls:incentiveRates.importPdf', payload),
+      preview: (id) => ipcRenderer.invoke('payrolls:incentiveRates.preview', id)
+    },
+    employeeIncentiveRates: {
+      list: (query) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.list', query),
+      listByEmployee: (employeeId) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.listByEmployee', employeeId),
+      create: (input) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.create', input),
+      update: (id, input) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.update', id, input),
+      remove: (id) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.remove', id),
+      parsePdf: (payload) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.parsePdf', payload),
+      importPdf: (payload) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.importPdf', payload),
+      preview: (id) => ipcRenderer.invoke('payrolls:employeeIncentiveRates.preview', id)
+    },
+    incentivePenalties: {
+      list: (query) => ipcRenderer.invoke('payrolls:incentivePenalties.list', query),
+      listByEmployee: (employeeId) => ipcRenderer.invoke('payrolls:incentivePenalties.listByEmployee', employeeId),
+      create: (input) => ipcRenderer.invoke('payrolls:incentivePenalties.create', input),
+      update: (id, input) => ipcRenderer.invoke('payrolls:incentivePenalties.update', id, input),
+      remove: (id) => ipcRenderer.invoke('payrolls:incentivePenalties.remove', id),
+      parsePdf: (payload) => ipcRenderer.invoke('payrolls:incentivePenalties.parsePdf', payload),
+      importPdf: (payload) => ipcRenderer.invoke('payrolls:incentivePenalties.importPdf', payload),
+      preview: (id) => ipcRenderer.invoke('payrolls:incentivePenalties.preview', id)
     }
   },
   settings: {
