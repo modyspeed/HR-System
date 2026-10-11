@@ -1,20 +1,42 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Check, Database, Languages, Moon, Palette, Sun } from 'lucide-react'
+import {
+  Archive,
+  Check,
+  Database,
+  FolderOpen,
+  HardDriveUpload,
+  Languages,
+  Loader2,
+  Moon,
+  Palette,
+  RotateCcw,
+  Sun,
+  Trash2
+} from 'lucide-react'
 import { api } from '@/lib/ipc'
+import { resolveApiError } from '@/lib/errors'
+import { formatDate, formatFileSize } from '@/lib/utils'
+import { usePermission } from '@/hooks/usePermission'
 import { fadeUp, spring } from '@/lib/motion'
 import { useUiStore } from '@/store/uiStore'
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, type Language } from '@/i18n'
 import type { Theme } from '@shared/types'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { SoftButton } from '@/components/ui/SoftButton'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { toast } from 'sonner'
 
 export function Settings() {
-  const { t } = useTranslation()
-  const language = useUiStore((state) => state.language)
+  const { t, i18n } = useTranslation()
+  const language = i18n.language
+  const queryClient = useQueryClient()
+  const canEdit = usePermission('settings.edit')
+
+  const uiLanguage = useUiStore((state) => state.language)
   const setLanguage = useUiStore((state) => state.setLanguage)
   const theme = useUiStore((state) => state.theme)
   const setTheme = useUiStore((state) => state.setTheme)
@@ -22,6 +44,54 @@ export function Settings() {
   const versions = useQuery({
     queryKey: ['system', 'versions'],
     queryFn: () => api.system.versions()
+  })
+
+  // ---------------- النسخ الاحتياطي ----------------
+  const backupsQuery = useQuery({
+    queryKey: ['backups', 'list'],
+    queryFn: () => api.backups.list()
+  })
+  const backups = backupsQuery.data ?? []
+  const [confirmRestore, setConfirmRestore] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
+  const invalidateBackups = () => void queryClient.invalidateQueries({ queryKey: ['backups'] })
+
+  const createMutation = useMutation({
+    mutationFn: () => api.backups.create(),
+    onSuccess: (info) => {
+      toast.success(t('toasts.backupCreated'), { description: info.fileName })
+      invalidateBackups()
+    },
+    onError: (error) => toast.error(t('toasts.error'), { description: resolveApiError(error) })
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (fileName: string) => api.backups.restore(fileName),
+    onSuccess: ({ preRestore }) => {
+      toast.success(t('toasts.backupRestored'), {
+        description: preRestore ? t('toasts.backupPreRestore') : undefined
+      })
+      setConfirmRestore(null)
+      window.setTimeout(() => window.location.reload(), 1600)
+    },
+    onError: (error) => {
+      setConfirmRestore(null)
+      toast.error(t('toasts.error'), { description: resolveApiError(error) })
+    }
+  })
+
+  const removeMutation = useMutation({
+    mutationFn: (fileName: string) => api.backups.remove(fileName),
+    onSuccess: () => {
+      toast.success(t('toasts.backupDeleted'))
+      setConfirmDelete(null)
+      invalidateBackups()
+    },
+    onError: (error) => {
+      setConfirmDelete(null)
+      toast.error(t('toasts.error'), { description: resolveApiError(error) })
+    }
   })
 
   return (
@@ -59,7 +129,6 @@ export function Settings() {
                         : 'border-line bg-surface-soft hover:border-line-strong'
                     }`}
                   >
-                    {/* mini theme preview */}
                     <span
                       className="relative h-12 w-full overflow-hidden rounded-lg border border-line"
                       style={{
@@ -73,7 +142,7 @@ export function Settings() {
                         style={{
                           left: isDark ? 'auto' : '8px',
                           right: isDark ? '8px' : 'auto',
-                          background: isDark ? '#E9C898' : '#A26A32',
+                          background: isDark ? '#E9C898' : '#A26A32'
                         }}
                       />
                       <span
@@ -81,7 +150,7 @@ export function Settings() {
                         style={{
                           left: isDark ? '8px' : 'auto',
                           right: isDark ? 'auto' : '8px',
-                          background: isDark ? 'rgba(255,255,255,.28)' : 'rgba(74,52,32,.3)',
+                          background: isDark ? 'rgba(255,255,255,.28)' : 'rgba(74,52,32,.3)'
                         }}
                       />
                     </span>
@@ -116,7 +185,7 @@ export function Settings() {
 
             <div className="grid grid-cols-2 gap-3">
               {SUPPORTED_LANGUAGES.map((value) => {
-                const active = language === value
+                const active = uiLanguage === value
                 return (
                   <button
                     key={value}
@@ -150,26 +219,100 @@ export function Settings() {
           </GlassCard>
         </motion.div>
 
-        {/* data */}
-        <motion.div variants={fadeUp} initial="initial" animate="animate" transition={spring}>
+        {/* النسخ الاحتياطي */}
+        <motion.div
+          variants={fadeUp}
+          initial="initial"
+          animate="animate"
+          transition={spring}
+          className="xl:col-span-2"
+        >
           <GlassCard withLightBar={false} className="p-7">
             <div className="mb-5 flex items-center gap-3">
               <div className="grid size-11 place-items-center rounded-full border border-teal-400/25 bg-teal-400/10 text-teal-400">
-                <Database className="size-5" />
+                <Archive className="size-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-ink-high">{t('settings.dataSection')}</h2>
-                <p className="text-[11px] text-ink-low">{t('settings.revealDatabaseHint')}</p>
+                <h2 className="text-sm font-bold text-ink-high">{t('settings.backupSection')}</h2>
+                <p className="text-[11px] text-ink-low">{t('settings.backupHint')}</p>
               </div>
             </div>
 
-            <SoftButton
-              variant="ghost"
-              icon={<Database className="size-4" />}
-              onClick={() => void api.system.revealDatabase()}
-            >
-              {t('settings.revealDatabase')}
-            </SoftButton>
+            <div className="flex flex-wrap items-center gap-2">
+              {canEdit && (
+                <SoftButton
+                  variant="primary"
+                  icon={<HardDriveUpload className="size-4" />}
+                  loading={createMutation.isPending}
+                  onClick={() => createMutation.mutate()}
+                >
+                  {t('settings.backupCreate')}
+                </SoftButton>
+              )}
+              <SoftButton
+                variant="ghost"
+                icon={<FolderOpen className="size-4" />}
+                onClick={() => void api.backups.revealDir()}
+              >
+                {t('settings.backupOpenFolder')}
+              </SoftButton>
+              <SoftButton
+                variant="ghost"
+                icon={<Database className="size-4" />}
+                onClick={() => void api.system.revealDatabase()}
+              >
+                {t('settings.revealDatabase')}
+              </SoftButton>
+            </div>
+
+            <div className="mt-5 scroll-area max-h-[42vh] overflow-auto rounded-2xl border border-line">
+              {backupsQuery.isLoading ? (
+                <div className="flex h-20 items-center justify-center">
+                  <Loader2 className="size-4 animate-spin text-accent-300" />
+                </div>
+              ) : backups.length === 0 ? (
+                <p className="px-4 py-8 text-center text-xs text-ink-low">
+                  {t('settings.backupEmpty')}
+                </p>
+              ) : (
+                <ul className="divide-y divide-surface-base">
+                  {backups.map((backup) => (
+                    <li key={backup.fileName} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                      <Archive className="size-4 shrink-0 text-teal-400" />
+                      <span dir="ltr" className="min-w-0 flex-1 truncate font-mono text-xs text-ink-high">
+                        {backup.fileName}
+                      </span>
+                      <span className="text-[11px] tabular-nums text-ink-low">
+                        {formatFileSize(backup.size)}
+                      </span>
+                      <span className="text-[11px] tabular-nums text-ink-low">
+                        {formatDate(backup.createdAt, language)}
+                      </span>
+                      {canEdit && (
+                        <span className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            title={t('settings.backupRestore')}
+                            onClick={() => setConfirmRestore(backup.fileName)}
+                            className="focus-ring grid size-8 place-items-center rounded-lg text-teal-400 transition-colors hover:bg-surface-strong"
+                          >
+                            <RotateCcw className="size-4" />
+                          </button>
+                          <button
+                            type="button"
+                            title={t('common.delete')}
+                            onClick={() => setConfirmDelete(backup.fileName)}
+                            className="focus-ring grid size-8 place-items-center rounded-lg text-ink-low transition-colors hover:bg-rose-500/10 hover:text-rose-400"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </GlassCard>
         </motion.div>
 
@@ -205,6 +348,32 @@ export function Settings() {
           </GlassCard>
         </motion.div>
       </div>
+
+      <ConfirmDialog
+        open={confirmRestore !== null}
+        danger
+        loading={restoreMutation.isPending}
+        title={t('settings.backupRestoreTitle')}
+        body={t('settings.backupRestoreBody')}
+        confirmLabel={t('settings.backupRestore')}
+        onConfirm={() => {
+          if (confirmRestore) restoreMutation.mutate(confirmRestore)
+        }}
+        onClose={() => setConfirmRestore(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        danger
+        loading={removeMutation.isPending}
+        title={t('settings.backupDeleteTitle')}
+        body={confirmDelete ? t('settings.backupDeleteBody', { name: confirmDelete }) : ''}
+        confirmLabel={t('common.delete')}
+        onConfirm={() => {
+          if (confirmDelete) removeMutation.mutate(confirmDelete)
+        }}
+        onClose={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

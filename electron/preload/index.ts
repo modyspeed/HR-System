@@ -108,6 +108,16 @@ const api: ApiShape = {
   system: {
     versions: () => ipcRenderer.invoke('system:versions'),
     revealDatabase: () => ipcRenderer.invoke('system:revealDatabase')
+  },
+  backups: {
+    list: () => ipcRenderer.invoke('backup:list'),
+    create: () => ipcRenderer.invoke('backup:create'),
+    restore: (fileName) => ipcRenderer.invoke('backup:restore', fileName),
+    remove: (fileName) => ipcRenderer.invoke('backup:remove', fileName),
+    revealDir: () => ipcRenderer.invoke('backup:revealDir')
+  },
+  dashboard: {
+    summary: () => ipcRenderer.invoke('dashboard:summary')
   }
 }
 

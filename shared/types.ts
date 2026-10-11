@@ -439,6 +439,30 @@ export interface AppSettings {
   theme: Theme
 }
 
+export interface BackupInfo {
+  fileName: string
+  size: number
+  createdAt: string
+}
+
+export interface DashboardSummary {
+  employees: {
+    total: number
+    active: number
+    inactive: number
+    byStatus: Record<string, number>
+    byDepartment: { id: string; name: string; count: number }[]
+  } | null
+  departments: { total: number; active: number } | null
+  leaves: { total: number; byStatus: Record<string, number> } | null
+  payrolls: {
+    months: number
+    entries: number
+    latest: { period: string; type: string; originalName: string; uploadedAt: string } | null
+  } | null
+  transfers: { total: number; open: number } | null
+}
+
 /* --------------------------------- export --------------------------------- */
 
 /** Which module's data is being exported — drives the permission check. */
@@ -622,6 +646,16 @@ export interface ApiShape {
   system: {
     versions(): Promise<{ electron: string; node: string; chrome: string; app: string }>
     revealDatabase(): Promise<void>
+  }
+  backups: {
+    list(): Promise<BackupInfo[]>
+    create(): Promise<BackupInfo>
+    restore(fileName: string): Promise<{ preRestore: string | null }>
+    remove(fileName: string): Promise<void>
+    revealDir(): Promise<void>
+  }
+  dashboard: {
+    summary(): Promise<DashboardSummary>
   }
 }
 
