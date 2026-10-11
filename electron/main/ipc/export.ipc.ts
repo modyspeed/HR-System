@@ -1,7 +1,13 @@
 import { ApiError } from '../../../shared/types'
 import type { ExportPayload } from '../../../shared/types'
 import { requirePermission } from '../auth'
-import { exportToExcel, exportToPdf } from '../export/report'
+import {
+  exportToExcel,
+  exportToImage,
+  exportToPdf,
+  exportToPrint,
+  exportToWord
+} from '../export/report'
 import type { IpcRegistry } from './registry'
 
 /** Exporting a list is a read of that list — reuse the module's view right. */
@@ -27,5 +33,20 @@ export function registerExportIpc(ipc: IpcRegistry): void {
   ipc.handle('export:excel', async (_event, payload: ExportPayload) => {
     guard(payload)
     return exportToExcel(payload)
+  })
+
+  ipc.handle('export:word', async (_event, payload: ExportPayload) => {
+    guard(payload)
+    return exportToWord(payload)
+  })
+
+  ipc.handle('export:image', async (_event, payload: ExportPayload) => {
+    guard(payload)
+    return exportToImage(payload)
+  })
+
+  ipc.handle('export:print', async (_event, payload: ExportPayload) => {
+    guard(payload)
+    return exportToPrint(payload)
   })
 }

@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS "PayrollBatch" (
     "storedName" TEXT NOT NULL,
     "size" INTEGER NOT NULL,
     "pageCount" INTEGER NOT NULL,
+    "departmentsScanned" BOOLEAN NOT NULL DEFAULT false,
     "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -160,6 +161,8 @@ CREATE TABLE IF NOT EXISTS "PayrollEntry" (
     "year" INTEGER NOT NULL,
     "period" TEXT NOT NULL,
     "page" INTEGER NOT NULL,
+    "departmentId" TEXT,
+    "workshop" TEXT,
     "basicSalary" REAL,
     "totalEarned" REAL,
     "totalDeductions" REAL,
@@ -167,7 +170,28 @@ CREATE TABLE IF NOT EXISTS "PayrollEntry" (
     "sourceText" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PayrollEntry_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "PayrollBatch" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "PayrollEntry_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "PayrollEntry_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PayrollEntry_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "DepartmentTransfer" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "employeeId" TEXT NOT NULL,
+    "fromDepartmentId" TEXT,
+    "toDepartmentId" TEXT,
+    "fromDate" DATETIME NOT NULL,
+    "toDate" DATETIME,
+    "note" TEXT,
+    "decisionOriginalName" TEXT,
+    "decisionStoredName" TEXT,
+    "decisionSize" INTEGER,
+    "decisionLinkedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "DepartmentTransfer_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "DepartmentTransfer_fromDepartmentId_fkey" FOREIGN KEY ("fromDepartmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "DepartmentTransfer_toDepartmentId_fkey" FOREIGN KEY ("toDepartmentId") REFERENCES "Department" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -223,3 +247,9 @@ CREATE INDEX IF NOT EXISTS "PayrollEntry_employeeId_type_period_idx" ON "Payroll
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "PayrollEntry_period_idx" ON "PayrollEntry"("period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "DepartmentTransfer_employeeId_idx" ON "DepartmentTransfer"("employeeId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "DepartmentTransfer_toDepartmentId_idx" ON "DepartmentTransfer"("toDepartmentId");

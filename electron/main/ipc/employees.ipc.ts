@@ -1,6 +1,8 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { ApiError } from '../../../shared/types'
 import type {
+  DepartmentTransferRecord,
+  DepartmentTransferUpsertInput,
   EmployeeImportRow,
   EmployeeParseResult,
   EmployeeRecord,
@@ -18,6 +20,12 @@ import {
 } from '../employee-files'
 import { deleteStoredLeaveFile } from '../leave-files'
 import { sweepOrphanPayrollBatches } from './payrolls.ipc'
+import {
+  attachTransferDecision,
+  deleteStoredTransferDecision,
+  previewTransferDecision,
+  removeTransferDecision
+} from '../transfer-files'
 import { parseEmployeesFile } from '../import/employeesImport'
 import { importEmployees } from '../import/employeesPersist'
 import {
@@ -100,6 +108,77 @@ interface NormalisedEmployee {
   contractTypeId: string | null
   departmentId: string | null
   isActive: boolean
+}
+
+const TRANSFER_INCLUDE = {
+  fromDepartment: { select: { name: true } },
+  toDepartment: { select: { name: true } }
+} as const
+
+type TransferRow = Prisma.DepartmentTransferGetPayload<{ include: typeof TRANSFER_INCLUDE }>
+
+function toTransferRecord(transfer: TransferRow): DepartmentTransferRecord {
+  return {
+    id: transfer.id,
+    employeeId: transfer.employeeId,
+    fromDepartmentId: transfer.fromDepartmentId,
+    fromDepartmentName: transfer.fromDepartment?.name ?? null,
+    toDepartmentId: transfer.toDepartmentId,
+    toDepartmentName: transfer.toDepartment?.name ?? null,
+    fromDate: transfer.fromDate.toISOString().slice(0, 10),
+    toDate: transfer.toDate ? transfer.toDate.toISOString().slice(0, 10) : null,
+    note: transfer.note,
+    decisionOriginalName: transfer.decisionOriginalName,
+    decisionSize: transfer.decisionSize,
+    decisionLinkedAt: transfer.decisionLinkedAt ? transfer.decisionLinkedAt.toISOString() : null,
+    createdAt: transfer.createdAt.toISOString()
+  }
+}
+
+async function normaliseTransferInput(
+  prisma: PrismaClient,
+  input: DepartmentTransferUpsertInput,
+  employeeId: string
+): Promise<{
+  employeeId: string
+  fromDepartmentId: string | null
+  toDepartmentId: string | null
+  fromDate: Date
+  toDate: Date | null
+  note: string | null
+}> {
+  const fromDepartmentId = input.fromDepartmentId?.trim() || null
+  const toDepartmentId = input.toDepartmentId?.trim() || null
+  if (toDepartmentId) {
+    const department = await prisma.department.findUnique({ where: { id: toDepartmentId } })
+    if (!department) throw new ApiError('VALIDATION', 'Target department does not exist')
+  }
+  const fromDate = input.fromDate?.trim()
+  if (!fromDate || !/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
+    throw new ApiError('VALIDATION', 'Transfer start date is required (yyyy-mm-dd)')
+  }
+  const toDate = input.toDate?.trim() || null
+  if (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+    throw new ApiError('VALIDATION', 'Transfer end date must use the yyyy-mm-dd format')
+  }
+  const start = new Date(`${fromDate}T00:00:00.000Z`)
+  const end = toDate ? new Date(`${toDate}T00:00:00.000Z`) : null
+  if (end && end < start) {
+    throw new ApiError('VALIDATION', 'Transfer end date cannot be before its start date')
+  }
+  return {
+    employeeId,
+    fromDepartmentId,
+    toDepartmentId,
+    fromDate: start,
+    toDate: end,
+    note: input.note?.trim() || null
+  }
+}
+
+async function assertTransferEmployee(prisma: PrismaClient, employeeId: string): Promise<void> {
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId } })
+  if (!employee) throw new ApiError('NOT_FOUND', 'Employee not found')
 }
 
 async function normaliseInput(
@@ -401,6 +480,100 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
     requirePermission('employees.manage_contract_types')
     // حذف النوع يحرر الروابط فقط — أسماء الموظفين تبقى لقطة محفوظة لديهم.
     await prisma.contractType.delete({ where: { id } })
+  })
+
+  // ---------- التنقلات بين الأقسام (سجل تاريخي + قرار موثق) ----------
+  ipc.handle('employees:departmentTransfers.listByEmployee', async (_event, employeeId: string) => {
+    requirePermission('employees.view')
+    const transfers = await prisma.departmentTransfer.findMany({
+      where: { employeeId },
+      include: TRANSFER_INCLUDE,
+      orderBy: [{ fromDate: 'desc' }, { createdAt: 'desc' }]
+    })
+    return transfers.map(toTransferRecord)
+  })
+
+  ipc.handle(
+    'employees:departmentTransfers.create',
+    async (_event, input: DepartmentTransferUpsertInput) => {
+      requirePermission('employees.edit')
+      const employeeId = input.employeeId?.trim()
+      if (!employeeId) throw new ApiError('VALIDATION', 'Employee is required')
+      await assertTransferEmployee(prisma, employeeId)
+      const data = await normaliseTransferInput(prisma, input, employeeId)
+      const applyAsCurrent = input.applyAsCurrent === true
+
+      const transfer = await prisma.$transaction(async (tx) => {
+        if (applyAsCurrent && data.toDepartmentId) {
+          await tx.employee.update({
+            where: { id: employeeId },
+            data: { departmentId: data.toDepartmentId }
+          })
+        }
+        return tx.departmentTransfer.create({ data, include: TRANSFER_INCLUDE })
+      })
+      return toTransferRecord(transfer)
+    }
+  )
+
+  ipc.handle(
+    'employees:departmentTransfers.update',
+    async (_event, id: string, input: DepartmentTransferUpsertInput) => {
+      requirePermission('employees.edit')
+      const target = await prisma.departmentTransfer.findUnique({ where: { id } })
+      if (!target) throw new ApiError('NOT_FOUND', 'Transfer not found')
+      const data = await normaliseTransferInput(prisma, input, target.employeeId)
+      const applyAsCurrent = input.applyAsCurrent === true
+
+      const transfer = await prisma.$transaction(async (tx) => {
+        if (applyAsCurrent && data.toDepartmentId) {
+          await tx.employee.update({
+            where: { id: target.employeeId },
+            data: { departmentId: data.toDepartmentId }
+          })
+        }
+        return tx.departmentTransfer.update({ where: { id }, data, include: TRANSFER_INCLUDE })
+      })
+      return toTransferRecord(transfer)
+    }
+  )
+
+  ipc.handle('employees:departmentTransfers.remove', async (_event, id: string) => {
+    requirePermission('employees.edit')
+    const transfer = await prisma.departmentTransfer.findUnique({ where: { id } })
+    if (!transfer) throw new ApiError('NOT_FOUND', 'Transfer not found')
+    deleteStoredTransferDecision(transfer.decisionStoredName)
+    await prisma.departmentTransfer.delete({ where: { id } })
+  })
+
+  ipc.handle(
+    'employees:departmentTransfers.attachDecision',
+    async (_event, payload: { id: string; data: ArrayBuffer; fileName: string }) => {
+      requirePermission('employees.edit')
+      await attachTransferDecision(prisma, payload.id, Buffer.from(payload.data), payload.fileName)
+      const transfer = await prisma.departmentTransfer.findUnique({
+        where: { id: payload.id },
+        include: TRANSFER_INCLUDE
+      })
+      if (!transfer) throw new ApiError('NOT_FOUND', 'Transfer not found')
+      return toTransferRecord(transfer)
+    }
+  )
+
+  ipc.handle('employees:departmentTransfers.removeDecision', async (_event, id: string) => {
+    requirePermission('employees.edit')
+    await removeTransferDecision(prisma, id)
+    const transfer = await prisma.departmentTransfer.findUnique({
+      where: { id },
+      include: TRANSFER_INCLUDE
+    })
+    if (!transfer) throw new ApiError('NOT_FOUND', 'Transfer not found')
+    return toTransferRecord(transfer)
+  })
+
+  ipc.handle('employees:departmentTransfers.previewDecision', async (_event, id: string) => {
+    requirePermission('employees.view')
+    return previewTransferDecision(prisma, id)
   })
 }
 

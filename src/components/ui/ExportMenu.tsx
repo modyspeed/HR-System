@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, Download, FileText, Table2 } from 'lucide-react'
+import { ChevronDown, Download, FileText, FileType2, Image as ImageIcon, Printer, Table2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ExportPayload } from '@shared/types'
 import { api } from '@/lib/ipc'
@@ -24,7 +24,7 @@ interface ExportMenuProps {
 export function ExportMenu({ payload }: ExportMenuProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState<'pdf' | 'excel' | null>(null)
+  const [busy, setBusy] = useState<'pdf' | 'excel' | 'word' | 'image' | 'print' | null>(null)
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -84,14 +84,27 @@ export function ExportMenu({ payload }: ExportMenuProps) {
     }
   }, [open])
 
-  const run = async (kind: 'pdf' | 'excel') => {
+  const run = async (kind: 'pdf' | 'excel' | 'word' | 'image' | 'print') => {
     if (!payload) return
     setOpen(false)
     setBusy(kind)
     try {
-      const savedPath = kind === 'pdf' ? await api.export.toPdf(payload) : await api.export.toExcel(payload)
-      if (savedPath) toast.success(t('export.success'), { description: savedPath })
-      else toast.info(t('export.cancelled'))
+      if (kind === 'print') {
+        const printed = await api.export.toPrint(payload)
+        if (printed) toast.success(t('export.printSent'))
+        else toast.info(t('export.cancelled'))
+      } else {
+        const savedPath =
+          kind === 'pdf'
+            ? await api.export.toPdf(payload)
+            : kind === 'excel'
+              ? await api.export.toExcel(payload)
+              : kind === 'word'
+                ? await api.export.toWord(payload)
+                : await api.export.toImage(payload)
+        if (savedPath) toast.success(t('export.success'), { description: savedPath })
+        else toast.info(t('export.cancelled'))
+      }
     } catch (error) {
       toast.error(t('export.failed'), { description: resolveApiError(error) })
     } finally {
@@ -113,6 +126,27 @@ export function ExportMenu({ payload }: ExportMenuProps) {
       hint: t('export.excelHint'),
       icon: <Table2 className="size-4 shrink-0 text-teal-400" />,
       onClick: () => void run('excel')
+    },
+    {
+      key: 'word',
+      label: t('export.word'),
+      hint: t('export.wordHint'),
+      icon: <FileType2 className="size-4 shrink-0 text-violet-400" />,
+      onClick: () => void run('word')
+    },
+    {
+      key: 'image',
+      label: t('export.image'),
+      hint: t('export.imageHint'),
+      icon: <ImageIcon className="size-4 shrink-0 text-sky-400" />,
+      onClick: () => void run('image')
+    },
+    {
+      key: 'print',
+      label: t('export.print'),
+      hint: t('export.printHint'),
+      icon: <Printer className="size-4 shrink-0 text-ink-med" />,
+      onClick: () => void run('print')
     }
   ]
 

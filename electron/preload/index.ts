@@ -43,6 +43,15 @@ const api: ApiShape = {
     remove: (id) => ipcRenderer.invoke('employees:remove', id),
     rehire: (id, input) => ipcRenderer.invoke('employees:rehire', id, input),
     linkRehire: (id, sourceId) => ipcRenderer.invoke('employees:linkRehire', id, sourceId),
+    departmentTransfers: {
+      listByEmployee: (employeeId) => ipcRenderer.invoke('employees:departmentTransfers.listByEmployee', employeeId),
+      create: (input) => ipcRenderer.invoke('employees:departmentTransfers.create', input),
+      update: (id, input) => ipcRenderer.invoke('employees:departmentTransfers.update', id, input),
+      remove: (id) => ipcRenderer.invoke('employees:departmentTransfers.remove', id),
+      attachDecision: (payload) => ipcRenderer.invoke('employees:departmentTransfers.attachDecision', payload),
+      removeDecision: (id) => ipcRenderer.invoke('employees:departmentTransfers.removeDecision', id),
+      previewDecision: (id) => ipcRenderer.invoke('employees:departmentTransfers.previewDecision', id)
+    },
     setStatus: (id, input) => ipcRenderer.invoke('employees:setStatus', id, input),
     statusHistory: (id) => ipcRenderer.invoke('employees:statusHistory', id),
     contractTypeList: () => ipcRenderer.invoke('employees:contractTypeList'),
@@ -58,7 +67,10 @@ const api: ApiShape = {
   },
   export: {
     toPdf: (payload) => ipcRenderer.invoke('export:pdf', payload),
-    toExcel: (payload) => ipcRenderer.invoke('export:excel', payload)
+    toExcel: (payload) => ipcRenderer.invoke('export:excel', payload),
+    toWord: (payload) => ipcRenderer.invoke('export:word', payload),
+    toImage: (payload) => ipcRenderer.invoke('export:image', payload),
+    toPrint: (payload) => ipcRenderer.invoke('export:print', payload)
   },
   leaves: {
     list: (query) => ipcRenderer.invoke('leaves:list', query),

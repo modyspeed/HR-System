@@ -91,17 +91,15 @@ function alignmentClass(align: ExportColumn['align']): string {
 
 async function saveWithDialog(
   payload: ExportPayload,
-  extension: 'pdf' | 'xlsx',
+  extension: string,
   buffer: Buffer
 ): Promise<string | null> {
+  const filterName =
+    extension === 'pdf' ? 'PDF' : extension === 'xlsx' ? 'Excel' : extension === 'doc' ? 'Word' : 'Image'
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: payload.title,
     defaultPath: path.join(app.getPath('documents'), `${safeBaseName(payload)}.${extension}`),
-    filters: [
-      extension === 'pdf'
-        ? { name: 'PDF', extensions: ['pdf'] }
-        : { name: 'Excel', extensions: ['xlsx'] }
-    ]
+    filters: [{ name: filterName, extensions: [extension] }]
   })
   if (canceled || !filePath) return null
   await fs.promises.writeFile(filePath, buffer)
@@ -264,6 +262,77 @@ export async function renderPdfBuffer(payload: ExportPayload): Promise<Buffer> {
 export async function exportToPdf(payload: ExportPayload): Promise<string | null> {
   const buffer = await renderPdfBuffer(payload)
   return saveWithDialog(payload, 'pdf', buffer)
+}
+
+/**
+ * مستند Word: يُكتب نفس HTML التقرير بامتداد .doc — مايكروسوفت وورد يفتحه
+ * مباشرة بترميز HTML ويحافظ على RTL والجداول والتنسيق دون مكتبات إضافية.
+ */
+export async function exportToWord(payload: ExportPayload): Promise<string | null> {
+  const html = renderReportHtml(payload)
+  const wordSource = `${html}\n<!-- saved from HR System report -->\n`
+  return saveWithDialog(payload, 'doc', Buffer.from(wordSource, 'utf8'))
+}
+
+/**
+ * صورة PNG للتقرير: تُعرض الصفحة في نافذة خفية (مقاس A4) وتُلتقط بواسطة
+ * capturePage بدرجة تكبير أعلى لصفاء كافٍ، ثم تُحفظ كصورة.
+ */
+export async function renderImageBuffer(payload: ExportPayload): Promise<Buffer> {
+  const html = renderReportHtml(payload)
+  const imageWindow = new BrowserWindow({
+    show: false,
+    width: 1240,
+    height: 800,
+    useContentSize: true,
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+      offscreen: true,
+      backgroundThrottling: false
+    }
+  })
+  try {
+    await imageWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    // انتظار اكتمال التخطيط والرسم الأول
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    imageWindow.webContents.setZoomFactor(1.5)
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    const image = await imageWindow.webContents.capturePage()
+    if (image.isEmpty()) {
+      // ضمانة: إعادة المحاولة برسم إجباري للصفحة المخفية
+      await imageWindow.webContents.executeJavaScript('document.body.style.zoom = "150%"')
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      const retry = await imageWindow.webContents.capturePage()
+      if (retry.isEmpty()) throw new ApiError('INTERNAL', 'Could not capture the report image')
+      return retry.toPNG()
+    }
+    return image.toPNG()
+  } finally {
+    imageWindow.destroy()
+  }
+}
+
+export async function exportToImage(payload: ExportPayload): Promise<string | null> {
+  const buffer = await renderImageBuffer(payload)
+  return saveWithDialog(payload, 'png', buffer)
+}
+
+/** يفتح حوار طباعة النظام للتقرير (طباعة فعلية أو حفظ PDF من الحوار). */
+export async function exportToPrint(payload: ExportPayload): Promise<boolean> {
+  const html = renderReportHtml(payload)
+  const printWindow = new BrowserWindow({
+    show: false,
+    webPreferences: { sandbox: true, contextIsolation: true }
+  })
+  try {
+    await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    await printWindow.webContents.print({ printBackground: true })
+    return true
+  } finally {
+    printWindow.destroy()
+  }
 }
 
 /* ---------------------------------- Excel --------------------------------- */

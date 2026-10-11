@@ -8,12 +8,13 @@ import type {
 } from '../../../shared/types'
 import { requirePermission } from '../auth'
 import { parsePayrollPdf } from '../payroll-parser'
-import type { PayrollEmployeeRef } from '../payroll-parser'
+import type { PayrollDepartmentRef, PayrollEmployeeRef } from '../payroll-parser'
 import {
   deleteStoredPayrollFile,
   slicePayrollPage,
   storePayrollBatch
 } from '../payroll-files'
+import { syncPayrollDepartments } from '../payroll-transfers'
 import {
   attachSalaryGradeFile,
   deleteStoredSalaryGradeFile,
@@ -24,7 +25,8 @@ import type { IpcRegistry } from './registry'
 
 const ENTRY_INCLUDE = {
   batch: { select: { originalName: true, uploadedAt: true } },
-  employee: { select: { code: true, name: true, department: { select: { name: true } } } }
+  employee: { select: { code: true, name: true, department: { select: { name: true } } } },
+  department: { select: { name: true } }
 } as const
 
 type EntryRow = Prisma.PayrollEntryGetPayload<{ include: typeof ENTRY_INCLUDE }>
@@ -36,12 +38,14 @@ function toPayrollRecord(entry: EntryRow): PayrollRecord {
     employeeId: entry.employeeId,
     employeeCode: entry.employee.code,
     employeeName: entry.employee.name,
-    departmentName: entry.employee.department?.name ?? null,
     type: entry.type,
     month: entry.month,
     year: entry.year,
     period: entry.period,
     page: entry.page,
+    departmentId: entry.departmentId,
+    departmentName: entry.department?.name ?? null,
+    workshop: entry.workshop,
     basicSalary: entry.basicSalary,
     totalEarned: entry.totalEarned,
     totalDeductions: entry.totalDeductions,
@@ -103,6 +107,10 @@ async function employeeRefs(prisma: PrismaClient): Promise<PayrollEmployeeRef[]>
   })
 }
 
+async function departmentRefs(prisma: PrismaClient): Promise<PayrollDepartmentRef[]> {
+  return prisma.department.findMany({ select: { id: true, name: true } })
+}
+
 export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): void {
   ipc.handle('payrolls:list', async (_event, query: ListPayrollsQuery = {}) => {
     requirePermission('payrolls.view')
@@ -144,7 +152,8 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
       return parsePayrollPdf({
         buffer: Buffer.from(payload.data),
         fileName: payload.fileName,
-        employees: await employeeRefs(prisma)
+        employees: await employeeRefs(prisma),
+        departments: await departmentRefs(prisma)
       })
     }
   )
@@ -157,7 +166,8 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
       const parsed = await parsePayrollPdf({
         buffer: Buffer.from(payload.data),
         fileName: payload.fileName,
-        employees: await employeeRefs(prisma)
+        employees: await employeeRefs(prisma),
+        departments: await departmentRefs(prisma)
       })
       if (parsed.rows.length === 0) {
         throw new ApiError('VALIDATION', 'No employee slips found in the PDF')
@@ -209,6 +219,8 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
             year: parsed.year,
             period: parsed.period,
             page: row.page,
+            departmentId: row.departmentId,
+            workshop: row.workshop,
             basicSalary: row.basicSalary,
             totalEarned: row.totalEarned,
             totalDeductions: row.totalDeductions,
@@ -216,6 +228,8 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
           }))
         })
         created = matchedRows.length
+
+        await syncPayrollDepartments(tx, matchedRows, payload.fileName, parsed.year, parsed.month)
       })
 
       return { created, unmatched: parsed.unmatched, period: parsed.period }

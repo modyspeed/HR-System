@@ -3,6 +3,7 @@ import { join } from 'path'
 import { registerAllIpc } from './ipc'
 import { applySnapshot, getPrisma } from './prisma'
 import { seedIfNeeded } from './seed'
+import { backfillPayrollDepartments } from './payroll-transfers'
 import { applyNativeTheme, readSettings } from './ipc/settings.ipc'
 
 const isDev = !app.isPackaged
@@ -11,6 +12,7 @@ async function bootstrapDatabase(): Promise<void> {
   const prisma = getPrisma()
   await applySnapshot(prisma)
   await seedIfNeeded(prisma)
+  await backfillPayrollDepartments(prisma, (message) => console.log(`[startup] ${message}`))
 }
 
 function createWindow(): BrowserWindow {

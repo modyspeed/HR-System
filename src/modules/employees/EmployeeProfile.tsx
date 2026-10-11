@@ -20,6 +20,7 @@ import {
   Pencil,
   Plus,
   Repeat2,
+  Shuffle,
   Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -44,6 +45,7 @@ import { EmployeeFormModal } from './EmployeeFormModal'
 import { EmployeeStatusDialog } from './EmployeeStatusDialog'
 import { RehireDialog } from './RehireDialog'
 import { LinkRehireDialog } from './LinkRehireDialog'
+import { DepartmentTransfersTab } from './DepartmentTransfersTab'
 import { DetailField, SectionTitle } from './detailFields'
 import {
   RETIREMENT_AGE_YEARS,
@@ -51,7 +53,7 @@ import {
   retirementDateOf
 } from './employeeStatusMeta'
 
-type TabKey = 'basic' | 'status' | 'file' | 'leaves' | 'salary' | 'attendance' | 'reports'
+type TabKey = 'basic' | 'status' | 'transfers' | 'file' | 'leaves' | 'salary' | 'attendance' | 'reports'
 
 interface TabDef {
   key: TabKey
@@ -63,6 +65,7 @@ interface TabDef {
 const TABS: TabDef[] = [
   { key: 'basic', labelKey: 'employees.tabBasic', icon: Contact, available: true },
   { key: 'status', labelKey: 'employees.tabStatus', icon: Activity, available: true },
+  { key: 'transfers', labelKey: 'employees.tabTransfers', icon: Shuffle, available: true },
   { key: 'file', labelKey: 'employees.tabFile', icon: Paperclip, available: true },
   { key: 'leaves', labelKey: 'employees.tabLeaves', icon: CalendarDays, available: true },
   { key: 'salary', labelKey: 'employees.tabSalary', icon: Banknote, available: true },
@@ -626,6 +629,15 @@ export function EmployeeProfile() {
           <PayrollEmployeeView
             employeeId={employee.id}
             onChanged={() => void queryClient.invalidateQueries({ queryKey: ['payrolls'] })}
+          />
+        )}
+
+        {tab === 'transfers' && (
+          <DepartmentTransfersTab
+            employeeId={employee.id}
+            employeeCode={employee.code}
+            employeeName={employee.name}
+            currentDepartmentName={employee.departmentName}
           />
         )}
 

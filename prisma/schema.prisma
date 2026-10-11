@@ -57,7 +57,10 @@ model Department {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  employees Employee[]
+  employees   Employee[]
+  payrollEntries PayrollEntry[]
+  transferFrom DepartmentTransfer[] @relation("TransferFrom")
+  transferTo   DepartmentTransfer[] @relation("TransferTo")
 
   // future relation columns (branches, cost centers, …) slot in here
 }
@@ -92,6 +95,7 @@ model Employee {
   rehiredTo         Employee[] @relation("Rehire")
   payroll           PayrollEntry[]
   salaryGrades      BasicSalaryGrade[]
+  departmentTransfers DepartmentTransfer[]
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -170,6 +174,7 @@ model PayrollBatch {
   storedName   String
   size         Int
   pageCount    Int
+  departmentsScanned Boolean @default(false) // تم ردّ فحص الأقسام (مطابقة القسم وسجل التنقلات)
   uploadedAt   DateTime       @default(now())
   entries      PayrollEntry[]
 
@@ -187,6 +192,9 @@ model PayrollEntry {
   year            Int
   period          String
   page            Int // رقم صفحة الظرف داخل ملف الكشف الأصلي
+  departmentId    String? // القسم المستدل عليه من نص الظرف (مطابقة بأسماء تبويب الأقسام)
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  workshop        String? // جهة العمل الخام في الظرف (مثل «البلوف») — مرجع تشخيصي
   basicSalary     Float?
   totalEarned     Float?
   totalDeductions Float?
@@ -196,4 +204,26 @@ model PayrollEntry {
 
   @@index([employeeId, type, period])
   @@index([period])
+}
+
+model DepartmentTransfer {
+  id                 String    @id @default(cuid())
+  employeeId         String
+  employee           Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  fromDepartmentId   String?
+  fromDepartment     Department? @relation("TransferFrom", fields: [fromDepartmentId], references: [id], onDelete: SetNull)
+  toDepartmentId     String?
+  toDepartment       Department? @relation("TransferTo", fields: [toDepartmentId], references: [id], onDelete: SetNull)
+  fromDate           DateTime // بداية الفترة في القسم
+  toDate             DateTime? // نهاية الفترة — يبقى null للفترة الحالية
+  note               String? // ملاحظة (سبب النقل، رقم القرار، مصدر الكشف…)
+  decisionOriginalName String? // قرار النقل الموثق (PDF/Excel/صورة)
+  decisionStoredName   String?
+  decisionSize         Int?
+  decisionLinkedAt     DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([toDepartmentId])
 }

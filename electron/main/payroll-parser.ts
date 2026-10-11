@@ -23,6 +23,11 @@ export interface PayrollEmployeeRef {
   name: string
 }
 
+export interface PayrollDepartmentRef {
+  id: string
+  name: string
+}
+
 const MAX_PAGES = 2000
 
 /* ------------------------------- normalization ----------------------------- */
@@ -69,6 +74,47 @@ interface ParsedSlip {
   totalEarned: number | null
   totalDeductions: number | null
   netSalary: number | null
+}
+
+const WORKSHOP_STOPWORDS = [
+  'الاساسي',
+  'نوع الصرف',
+  'الاستقطاعات',
+  'الاستحقاقات',
+  'اجمالي',
+  'الرصيد',
+  'المصنع',
+  'شركة'
+]
+
+/** «مصنع البلوف» أو السطر بعد عبارة الصافي المكتوبة. */
+export function extractWorkshop(text: string): string | null {
+  const inline = text.match(/مصنع\s*(?::)?\s*([^\n]+)/)
+  if (inline) {
+    const value = inline[1].trim()
+    if (value && !WORKSHOP_STOPWORDS.some((word) => value.startsWith(word))) {
+      return value
+    }
+  }
+  const afterNet = text.match(/لاغير\s*\n([^\n]+)/)
+  return afterNet ? afterNet[1].trim() || null : null
+}
+
+/** أطول اسم قسم من كتالوج الأقسام يظهر داخل نص الظرف. */
+export function detectDepartment(
+  text: string,
+  departments: PayrollDepartmentRef[]
+): { id: string; name: string } | null {
+  const flatText = text.replace(/\s+/g, '')
+  let best: { id: string; name: string; length: number } | null = null
+  for (const department of departments) {
+    const key = nameKeyOf(department.name)
+    if (key.length < 4) continue
+    if (flatText.includes(key) && (!best || key.length > best.length)) {
+      best = { id: department.id, name: department.name, length: key.length }
+    }
+  }
+  return best ? { id: best.id, name: best.name } : null
 }
 
 export function parseSlipPage(text: string, page: number): ParsedSlip | null {
@@ -180,12 +226,14 @@ export interface ParsePayrollPdfOptions {
   buffer: Buffer
   fileName: string
   employees: PayrollEmployeeRef[]
+  departments: PayrollDepartmentRef[]
 }
 
 export async function parsePayrollPdf({
   buffer,
   fileName,
-  employees
+  employees,
+  departments
 }: ParsePayrollPdfOptions): Promise<PayrollParseResult> {
   const type = detectPayrollType(fileName)
   const detected = detectPayrollPeriod(fileName)
@@ -215,7 +263,8 @@ export async function parsePayrollPdf({
     let unmatched = 0
 
     pages.forEach((pageData, index) => {
-      const slip = parseSlipPage(normalizePayrollText(pageData.text ?? ''), index + 1)
+      const normalized = normalizePayrollText(pageData.text ?? '')
+      const slip = parseSlipPage(normalized, index + 1)
       if (!slip) return
 
       let matchedEmployee: PayrollEmployeeRef | null = null
@@ -229,6 +278,8 @@ export async function parsePayrollPdf({
         if (matchedEmployee) match = 'name'
       }
 
+      const dept = detectDepartment(normalized, departments)
+
       if (matchedEmployee) matched += 1
       else unmatched += 1
 
@@ -241,7 +292,10 @@ export async function parsePayrollPdf({
         basicSalary: slip.basicSalary,
         totalEarned: slip.totalEarned,
         totalDeductions: slip.totalDeductions,
-        netSalary: slip.netSalary
+        netSalary: slip.netSalary,
+        departmentId: dept?.id ?? null,
+        departmentName: dept?.name ?? null,
+        workshop: extractWorkshop(normalized)
       })
     })
 

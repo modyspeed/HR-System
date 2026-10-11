@@ -300,12 +300,16 @@ export interface PayrollRecord {
   employeeId: string
   employeeCode: string
   employeeName: string
-  departmentName: string | null
   type: string
   month: number
   year: number
   period: string
   page: number
+  /** القسم المستدل عليه من نص الظرف (تبويب الأقسام). */
+  departmentId: string | null
+  departmentName: string | null
+  /** جهة العمل الخام في الظرف (مثل «البلوف»). */
+  workshop: string | null
   basicSalary: number | null
   totalEarned: number | null
   totalDeductions: number | null
@@ -325,6 +329,9 @@ export interface PayrollParseRow {
   totalEarned: number | null
   totalDeductions: number | null
   netSalary: number | null
+  departmentId: string | null
+  departmentName: string | null
+  workshop: string | null
 }
 
 export interface PayrollParseResult {
@@ -359,6 +366,33 @@ export interface SalaryGradeUpsertInput {
   date: string
   amount: number
   note?: string | null
+}
+
+export interface DepartmentTransferRecord {
+  id: string
+  employeeId: string
+  fromDepartmentId: string | null
+  fromDepartmentName: string | null
+  toDepartmentId: string | null
+  toDepartmentName: string | null
+  fromDate: string
+  toDate: string | null
+  note: string | null
+  decisionOriginalName: string | null
+  decisionSize: number | null
+  decisionLinkedAt: string | null
+  createdAt: string
+}
+
+export interface DepartmentTransferUpsertInput {
+  employeeId?: string
+  fromDepartmentId?: string | null
+  toDepartmentId?: string | null
+  fromDate: string
+  toDate?: string | null
+  note?: string | null
+  /** عند الحفظ يضبط موظف على قسم الهدف مباشرة. */
+  applyAsCurrent?: boolean
 }
 
 export interface ListPayrollsQuery {
@@ -493,6 +527,15 @@ export interface ApiShape {
     ): Promise<EmployeeRecord>
     /** يربط موظفًا موجودًا بملفه الأصلي السابق ويكمل بياناته الناقصة. */
     linkRehire(id: string, sourceId: string): Promise<EmployeeRecord>
+    departmentTransfers: {
+      listByEmployee(employeeId: string): Promise<DepartmentTransferRecord[]>
+      create(input: DepartmentTransferUpsertInput): Promise<DepartmentTransferRecord>
+      update(id: string, input: DepartmentTransferUpsertInput): Promise<DepartmentTransferRecord>
+      remove(id: string): Promise<void>
+      attachDecision(payload: { id: string; data: ArrayBuffer; fileName: string }): Promise<DepartmentTransferRecord>
+      removeDecision(id: string): Promise<DepartmentTransferRecord>
+      previewDecision(id: string): Promise<EmployeeFilePreview>
+    }
     /** يُسجِّل تغيير الحالة في سجل الموظف ويُحدِّث `isActive` تلقائيًا. */
     setStatus(
       id: string,
@@ -564,6 +607,12 @@ export interface ApiShape {
     /** Returns the saved path, or `null` when the user cancels the dialog. */
     toPdf(payload: ExportPayload): Promise<string | null>
     toExcel(payload: ExportPayload): Promise<string | null>
+    /** مستند Word (يُكتب HTML متوافق يفتحه Word مباشرة). */
+    toWord(payload: ExportPayload): Promise<string | null>
+    /** صورة PNG لما يظهره التقرير (عبر النافذة الخفية). */
+    toImage(payload: ExportPayload): Promise<string | null>
+    /** يفتح نافذة طباعة النظام للتقرير. */
+    toPrint(payload: ExportPayload): Promise<boolean>
   }
   settings: {
     getAll(): Promise<AppSettings>
