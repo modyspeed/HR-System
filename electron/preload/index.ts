@@ -42,6 +42,7 @@ const api: ApiShape = {
     update: (id, input) => ipcRenderer.invoke('employees:update', id, input),
     remove: (id) => ipcRenderer.invoke('employees:remove', id),
     rehire: (id, input) => ipcRenderer.invoke('employees:rehire', id, input),
+    linkRehire: (id, sourceId) => ipcRenderer.invoke('employees:linkRehire', id, sourceId),
     setStatus: (id, input) => ipcRenderer.invoke('employees:setStatus', id, input),
     statusHistory: (id) => ipcRenderer.invoke('employees:statusHistory', id),
     contractTypeList: () => ipcRenderer.invoke('employees:contractTypeList'),

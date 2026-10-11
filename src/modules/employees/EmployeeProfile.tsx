@@ -15,6 +15,7 @@ import {
   FilePlus2,
   FileText,
   FolderOpen,
+  Link2,
   Paperclip,
   Pencil,
   Plus,
@@ -42,6 +43,7 @@ import { EmployeeFileModal } from './EmployeeFileModal'
 import { EmployeeFormModal } from './EmployeeFormModal'
 import { EmployeeStatusDialog } from './EmployeeStatusDialog'
 import { RehireDialog } from './RehireDialog'
+import { LinkRehireDialog } from './LinkRehireDialog'
 import { DetailField, SectionTitle } from './detailFields'
 import {
   RETIREMENT_AGE_YEARS,
@@ -96,6 +98,7 @@ export function EmployeeProfile() {
   const [tab, setTab] = useState<TabKey>('basic')
   const [editOpen, setEditOpen] = useState(false)
   const [rehireOpen, setRehireOpen] = useState(false)
+  const [linkOpen, setLinkOpen] = useState(false)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [fileOpen, setFileOpen] = useState(false)
   const [leaveForm, setLeaveForm] = useState<{ leave: LeaveRecord | null; presetEmployeeId: string } | null>(null)
@@ -285,6 +288,15 @@ export function EmployeeProfile() {
                 onClick={() => setRehireOpen(true)}
               >
                 {t('employees.rehireTitle')}
+              </SoftButton>
+            )}
+            {canEditEmployee && !employee.rehiredFrom && (
+              <SoftButton
+                variant="ghost"
+                icon={<Link2 className="size-4" />}
+                onClick={() => setLinkOpen(true)}
+              >
+                {t('employees.linkRehireTitle')}
               </SoftButton>
             )}
           </div>
@@ -652,6 +664,16 @@ export function EmployeeProfile() {
           setRehireOpen(false)
           void queryClient.invalidateQueries({ queryKey: ['employees'] })
           navigate(`/employees/${newEmployeeId}`)
+        }}
+      />
+
+      <LinkRehireDialog
+        open={linkOpen}
+        employee={employee}
+        onClose={() => setLinkOpen(false)}
+        onLinked={() => {
+          setLinkOpen(false)
+          void queryClient.invalidateQueries({ queryKey: ['employees'] })
         }}
       />
 

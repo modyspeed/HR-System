@@ -186,3 +186,40 @@ export async function rehireEmployee(
   })
   return { id: created.id }
 }
+
+/**
+ * يربط موظفًا جديدًا (أُضيف كملف مستقل) بملفه الأصلي السابق — مثل «عقد جديد»
+ * لكن على سجل موجود. يُكمل الحقول الشخصية الفارغة فقط من الملف القديم، ولا
+ * يمسّ حالة الملف القديم (ظروفه قبل المعاش وسجله يبقيان كما هما).
+ */
+export async function linkRehireEmployee(
+  prisma: PrismaClient,
+  newEmployeeId: string,
+  sourceId: string
+): Promise<void> {
+  if (newEmployeeId === sourceId) {
+    throw new ApiError('VALIDATION', 'Cannot link an employee to itself')
+  }
+  const [fresh, source] = await Promise.all([
+    prisma.employee.findUnique({ where: { id: newEmployeeId } }),
+    prisma.employee.findUnique({ where: { id: sourceId } })
+  ])
+  if (!fresh || !source) throw new ApiError('NOT_FOUND', 'Employee not found')
+  if (fresh.rehiredFromId && fresh.rehiredFromId !== sourceId) {
+    throw new ApiError('CONFLICT', 'This file is already linked to another original file')
+  }
+  if (fresh.rehiredFromId === sourceId) return
+
+  await prisma.employee.update({
+    where: { id: newEmployeeId },
+    data: {
+      rehiredFromId: sourceId,
+      insuranceNo: fresh.insuranceNo ?? source.insuranceNo,
+      nationalId: fresh.nationalId ?? source.nationalId,
+      birthDate: fresh.birthDate ?? source.birthDate,
+      qualification: fresh.qualification ?? source.qualification,
+      qualificationYear: fresh.qualificationYear ?? source.qualificationYear,
+      departmentId: fresh.departmentId ?? source.departmentId
+    }
+  })
+}

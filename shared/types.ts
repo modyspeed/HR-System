@@ -491,6 +491,8 @@ export interface ApiShape {
         hireDate?: string | null
       }
     ): Promise<EmployeeRecord>
+    /** يربط موظفًا موجودًا بملفه الأصلي السابق ويكمل بياناته الناقصة. */
+    linkRehire(id: string, sourceId: string): Promise<EmployeeRecord>
     /** يُسجِّل تغيير الحالة في سجل الموظف ويُحدِّث `isActive` تلقائيًا. */
     setStatus(
       id: string,

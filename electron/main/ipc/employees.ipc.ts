@@ -24,6 +24,7 @@ import {
   applyAutomaticRetirement,
   changeEmployeeStatus,
   getStatusHistory,
+  linkRehireEmployee,
   rehireEmployee
 } from '../employee-status'
 import type { IpcRegistry } from './registry'
@@ -253,6 +254,18 @@ export function registerEmployeesIpc(prisma: PrismaClient, ipc: IpcRegistry): vo
       return toEmployeeRecord(employee)
     }
   )
+
+  ipc.handle('employees:linkRehire', async (_event, id: string, sourceId: string) => {
+    requirePermission('employees.edit')
+    await linkRehireEmployee(prisma, id, sourceId)
+    const employee = await prisma.employee.findUnique({ where: { id }, include: DEPARTMENT_INCLUDE })
+    if (!employee) throw new ApiError('NOT_FOUND', 'Employee not found')
+    const rehiredTo = await prisma.employee.findFirst({
+      where: { rehiredFromId: employee.id },
+      select: { id: true, code: true, name: true }
+    })
+    return toEmployeeRecord(employee, rehiredTo)
+  })
 
   ipc.handle(
     'employees:setStatus',
