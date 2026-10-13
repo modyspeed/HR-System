@@ -1,7 +1,8 @@
 /**
  * النسخ الاحتياطي الشامل: أرشيف ZIP مؤرخ (backup-2026-10-11_10-52-30.zip)
  * يضم لقطة متسقة لقاعدة البيانات (VACUUM INTO) + كل ملفات المستندات
- * (موظفون/إجازات/مرتبات/تدرجات/قرارات نقل) داخل `<Documents>/HR-System/Backups`.
+ * (موظفون/إجازات/مرتبات/تدرجات/قرارات نقل/حوافز) داخل
+ * `<Documents>/HR-System/Backups`.
  */
 import { app, shell } from 'electron'
 import fs from 'fs'
@@ -10,21 +11,10 @@ import AdmZip from 'adm-zip'
 import { PrismaClient } from '@prisma/client'
 import { getDbPath } from './prisma'
 import { ApiError } from '../../shared/types'
-
-export const FILE_FOLDERS = [
-  'EmployeeFiles',
-  'LeaveFiles',
-  'PayrollFiles',
-  'SalaryGradeFiles',
-  'TransferDecisionFiles'
-] as const
+import { FILE_FOLDERS, getAppDocsDir, getDocumentFolderDir } from './document-folders'
 
 export function getBackupsDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'Backups')
-}
-
-function getAppDataDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System')
+  return path.join(getAppDocsDir(), 'Backups')
 }
 
 function ensureBackupsDir(): string {
@@ -88,7 +78,7 @@ export async function createBackup(prisma: PrismaClient): Promise<BackupInfo> {
   zip.addFile('hr-system.db', await captureDatabaseSnapshot(prisma))
 
   for (const folder of FILE_FOLDERS) {
-    const folderPath = path.join(getAppDataDir(), folder)
+    const folderPath = getDocumentFolderDir(folder)
     if (!fs.existsSync(folderPath)) continue
     const files = fs.readdirSync(folderPath).filter((name) => name !== '.keep')
     if (files.length > 0) zip.addLocalFolder(folderPath, `files/${folder}`)
@@ -115,8 +105,7 @@ export async function restoreBackup(
   const dbData = zip.readFile(dbEntry)
   if (!dbData) throw new ApiError('INTERNAL', 'Could not read the backup database')
 
-  const appDir = getAppDataDir()
-  const root = path.resolve(appDir)
+  const root = path.resolve(getAppDocsDir())
   zip.getEntries().forEach((entry) => {
     if (entry.isDirectory || !entry.entryName.startsWith('files/')) return
     const relative = entry.entryName.slice('files/'.length).split('/').join(path.sep)

@@ -2,13 +2,13 @@
  * مستندات استحقاق تدرج الأساسي (قرار زيادة/علاوة): PDF أو Excel، تُحفظ في
  * `<Documents>/HR-System/SalaryGradeFiles` مع فحص التوقيع والاستبدال الآمن.
  */
-import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { ApiError } from '../../shared/types'
 import type { EmployeeFilePreview } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
+import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.xlsx', '.xls', '.csv'])
 const MAX_FILE_SIZE = 25 * 1024 * 1024
@@ -16,7 +16,7 @@ const PREVIEW_MAX_ROWS = 2000
 const PREVIEW_MAX_COLS = 60
 
 export function getSalaryGradeFilesDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'SalaryGradeFiles')
+  return getDocumentFolderDir(DOCUMENT_FOLDERS.salaryGradeFiles)
 }
 
 function ensureDir(): string {

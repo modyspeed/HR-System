@@ -7,13 +7,14 @@
  * employee work-file module. Accepted formats: Excel, PDF and images, so a
  * documented leave can carry its paper proof.
  */
-import { app, shell } from 'electron'
+import { shell } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { ApiError } from '../../shared/types'
 import type { LeaveFilePreview } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
+import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
 
 const ALLOWED_EXTENSIONS = new Set([
   '.pdf',
@@ -42,7 +43,7 @@ const IMAGE_MIME: Record<string, string> = {
 }
 
 export function getLeaveFilesDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'LeaveFiles')
+  return getDocumentFolderDir(DOCUMENT_FOLDERS.leaveFiles)
 }
 
 function ensureDir(): string {

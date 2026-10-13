@@ -6,13 +6,14 @@
  * The database stores only a unique file name + metadata, so the folder can be
  * browsed/backed up independently of the app database.
  */
-import { app, shell } from 'electron'
+import { shell } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { ApiError } from '../../shared/types'
 import type { EmployeeFilePreview } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
+import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.xlsx', '.xls', '.xlsm', '.csv'])
 const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25 MB
@@ -20,7 +21,7 @@ const PREVIEW_MAX_ROWS = 2000
 const PREVIEW_MAX_COLS = 60
 
 export function getEmployeeFilesDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'EmployeeFiles')
+  return getDocumentFolderDir(DOCUMENT_FOLDERS.employeeFiles)
 }
 
 function ensureDir(): string {

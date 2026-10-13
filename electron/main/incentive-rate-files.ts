@@ -2,17 +2,17 @@
  * ملف «نسب الحوافز للأقسام»: يُحفظ المستند مرة واحدة لكل شهر (دفعة) ويُقطع
  * لمعاينة صفحة القسم عند الطلب.
  */
-import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { PDFDocument } from 'pdf-lib'
 import { ApiError } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
+import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
 export function getIncentiveRateFilesDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'IncentiveRateFiles')
+  return getDocumentFolderDir(DOCUMENT_FOLDERS.incentiveRateFiles)
 }
 
 function ensureDir(): string {

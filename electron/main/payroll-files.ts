@@ -3,17 +3,17 @@
  * `<Documents>/HR-System/PayrollFiles`، وكل موظف يحصل على صفحته (ظرفه) عند
  * المعاينة عبر تقطيع الصفحة بـ pdf-lib — بلا نسخ مكررة على القرص.
  */
-import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { PDFDocument } from 'pdf-lib'
 import { ApiError } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
+import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
 
 export function getPayrollFilesDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'PayrollFiles')
+  return getDocumentFolderDir(DOCUMENT_FOLDERS.payrollFiles)
 }
 
 function ensureDir(): string {

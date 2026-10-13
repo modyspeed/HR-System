@@ -1,15 +1,15 @@
 /** مستند «نسب الحوافز الفردية»: يُحفظ مرة لكل شهر ويُقطع لمعاينة الصفحة. */
-import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { PDFDocument } from 'pdf-lib'
 import { ApiError } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
+import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
 export function getEmployeeIncentiveFilesDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'EmployeeIncentiveFiles')
+  return getDocumentFolderDir(DOCUMENT_FOLDERS.employeeIncentiveFiles)
 }
 
 function ensureDir(): string {

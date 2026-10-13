@@ -2,13 +2,13 @@
  * قرارات النقل بين الأقسام الموثقة: PDF أو Excel أو صورة — تُحفظ في
  * `<Documents>/HR-System/TransferDecisionFiles` مع فحص توقيع الملف.
  */
-import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { ApiError } from '../../shared/types'
 import type { EmployeeFilePreview } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
+import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
 
 const ALLOWED_EXTENSIONS = new Set([
   '.pdf',
@@ -36,7 +36,7 @@ const IMAGE_MIME: Record<string, string> = {
 }
 
 export function getTransferDecisionFilesDir(): string {
-  return path.join(app.getPath('documents'), 'HR-System', 'TransferDecisionFiles')
+  return getDocumentFolderDir(DOCUMENT_FOLDERS.transferDecisionFiles)
 }
 
 function ensureDir(): string {
