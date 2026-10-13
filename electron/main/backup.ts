@@ -85,8 +85,9 @@ export async function createBackup(prisma: PrismaClient): Promise<BackupInfo> {
   }
 
   const fileName = timestampName()
-  fs.writeFileSync(path.join(dir, fileName), zip.toBuffer())
-  const stat = fs.statSync(path.join(dir, fileName))
+  const zipPath = path.join(dir, fileName)
+  zip.writeZip(zipPath)
+  const stat = fs.statSync(zipPath)
   return { fileName, size: stat.size, createdAt: stat.mtime.toISOString() }
 }
 
