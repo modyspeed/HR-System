@@ -15,6 +15,7 @@ import { ApiError } from '../../shared/types'
 import type { LeaveFilePreview } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
 import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
+import { MAX_UPLOAD_SIZE, MAX_UPLOAD_SIZE_MB } from '../../shared/upload-limits'
 
 const ALLOWED_EXTENSIONS = new Set([
   '.pdf',
@@ -29,7 +30,6 @@ const ALLOWED_EXTENSIONS = new Set([
   '.gif',
   '.bmp'
 ])
-const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25 MB
 const PREVIEW_MAX_ROWS = 2000
 const PREVIEW_MAX_COLS = 60
 
@@ -106,8 +106,8 @@ export async function attachLeaveFile(
 ): Promise<void> {
   assertAllowedExtension(originalName)
   if (data.byteLength === 0) throw new ApiError('VALIDATION', 'The file is empty')
-  if (data.byteLength > MAX_FILE_SIZE) {
-    throw new ApiError('VALIDATION', 'File exceeds the 25 MB limit')
+  if (data.byteLength > MAX_UPLOAD_SIZE) {
+    throw new ApiError('VALIDATION', `File exceeds the ${MAX_UPLOAD_SIZE_MB} MB limit`)
   }
   assertFileSignature(originalName, data)
 

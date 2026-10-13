@@ -78,6 +78,7 @@ npm run dev               # تشغيل التطبيق في وضع التطوير
 | `npm run prisma:snapshot` | تحديث لقطة DDL بعد أي تعديل على `schema.prisma` |
 | `node scripts/update-employee-dept-contract.mjs [--apply]` | تعبئة عمودي القسم ونوع التعاقد للموظفين من ملف Excel (معاينة افتراضياً) |
 | `node scripts/reconcile-rehires.mjs [--apply]` | ربط موظفين أُضيفوا كملفات جديدة بملفاتهم الأصلية وإكمال الفراغات — تطابق بدرجات ثقة (قومي/تأميني/اسم/أسرة) |
+| `node scripts/link-employee-files.mjs [--apply] [dir]` | ربط ملفات عمل خارجية بالموظفين بمطابقة اسم الملف مع كود الموظف، ونسخها باسم `<كود>_<اسم>` (معاينة افتراضياً) |
 | `npm run build:win` | بناء + تغليف نسخة Windows (مجلد غير مضغوط + مثبّت NSIS) |
 
 ---
@@ -136,6 +137,7 @@ HR-System/
 │   ├── leaves.ts             # كتالوج أنواع الإجازات (القانون المصري)
 │   ├── employeeStatuses.ts   # كتالوج الحالات الوظيفية (نشط/معاش/استقالة/وفاة…)
 │   ├── payrolls.ts           # أنواع الرواتب + استخراج الشهر/النوع من اسم الملف
+│   ├── upload-limits.ts      # الحد الأقصى لحجم الرفع (مصدر واحد لكل الوحدات)
 │   └── types.ts              # الأنواع المشتركة
 ├── src/                      # React renderer
 │   ├── main.tsx
@@ -176,7 +178,8 @@ HR-System/
 │   ├── prisma-snapshot.mjs   # توليد db-snapshot.ts من المخطط
 │   ├── smoke-db.mjs          # اختبار دقيقي لطبقة البيانات
 │   ├── update-employee-dept-contract.mjs # تعبئة القسم/نوع التعاقد من ملف Excel (يدوي)
-│   └── reconcile-rehires.mjs # ربط ملفات إعادة التعيين المضافة كجدد (معاينة/تطبيق)
+│   ├── reconcile-rehires.mjs # ربط ملفات إعادة التعيين المضافة كجدد (معاينة/تطبيق)
+│   └── link-employee-files.mjs # ربط ملفات عمل خارجية بالموظفين بالكود (معاينة/تطبيق)
 ├── electron.vite.config.ts
 ├── electron-builder.yml
 ├── tailwind.config.js
@@ -294,7 +297,7 @@ node scripts/update-employee-dept-contract.mjs --apply "D:\path\to\file.xlsx"
 - باتفاق الطرفين/إداريًا: بدون أجر، رياضية، تعويضية، امتحانات.
 - قانون الخدمة المدنية 81/2016: زواج (3 أيام)، وفاة قريب (3 أيام).
 
-**المستند الموثق:** كل إجازة يمكن أن تحمل مستندًا واحدًا (موافقة الإدارة، تقرير طبي، كشف…) بصيغة PDF أو Excel أو **صورة** (‎png/jpg/webp/gif/bmp) حتى 25MB، يُحفظ في `<Documents>/HR-System/LeaveFiles` مع معاينة داخلية (PDF في iframe، صورة مضمَّنة، أو جدول إكسل) وربط/استبدال/حذف — الصلاحيات: `leaves.view` / `leaves.create` / `leaves.edit` / `leaves.delete`.
+**المستند الموثق:** كل إجازة يمكن أن تحمل مستندًا واحدًا (موافقة الإدارة، تقرير طبي، كشف…) بصيغة PDF أو Excel أو **صورة** (‎png/jpg/webp/gif/bmp) حتى 200MB، يُحفظ في `<Documents>/HR-System/LeaveFiles` مع معاينة داخلية (PDF في iframe، صورة مضمَّنة، أو جدول إكسل) وربط/استبدال/حذف — الصلاحيات: `leaves.view` / `leaves.create` / `leaves.edit` / `leaves.delete`.
 
 - الأيام تُحتسب تلقائيًا من الفترة (شامل اليومين) ويمكن تعديلها، والسنة الإدارية تُشتق من تاريخ البدء.
 - حالة الإجازة: قيد الانتظار / موافقة / مرفوضة، مع شريط ملخص (الإجمالي، الموافق، قيد الانتظار، الأيام).

@@ -5,8 +5,7 @@ import { PDFDocument } from 'pdf-lib'
 import { ApiError } from '../../shared/types'
 import { assertFileSignature } from './file-guard'
 import { DOCUMENT_FOLDERS, getDocumentFolderDir } from './document-folders'
-
-const MAX_FILE_SIZE = 50 * 1024 * 1024
+import { MAX_UPLOAD_SIZE, MAX_UPLOAD_SIZE_MB } from '../../shared/upload-limits'
 
 export function getEmployeeIncentiveFilesDir(): string {
   return getDocumentFolderDir(DOCUMENT_FOLDERS.employeeIncentiveFiles)
@@ -42,8 +41,8 @@ export async function storeRateBatch(
   }
   assertFileSignature(originalName, data)
   if (data.byteLength === 0) throw new ApiError('VALIDATION', 'The file is empty')
-  if (data.byteLength > MAX_FILE_SIZE) {
-    throw new ApiError('VALIDATION', 'File exceeds the 50 MB limit')
+  if (data.byteLength > MAX_UPLOAD_SIZE) {
+    throw new ApiError('VALIDATION', `File exceeds the ${MAX_UPLOAD_SIZE_MB} MB limit`)
   }
   const dir = ensureDir()
   const safeBase =
