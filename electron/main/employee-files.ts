@@ -5,6 +5,9 @@
  *   <Documents>/HR-System/EmployeeFiles
  * The database stores only a unique file name + metadata, so the folder can be
  * browsed/backed up independently of the app database.
+ *
+ * Stored files are named `<code>_<employee name>.<ext>` (e.g.
+ * `2689_أحمد عبد القادر.pdf`) so the folder stays self-describing.
  */
 import { shell } from 'electron'
 import fs from 'fs'
@@ -30,16 +33,24 @@ function ensureDir(): string {
   return dir
 }
 
-function sanitizeBaseName(originalName: string): string {
-  const ext = path.extname(originalName).toLowerCase()
-  const base =
-    path
-      .basename(originalName, path.extname(originalName))
-      .replace(/[\\/:*?"<>|]+/g, '_')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 80) || 'file'
-  return `${base}${ext}`
+/** Makes a value safe as a single file-name segment (no path separators). */
+function sanitizeSegment(value: string): string {
+  return value
+    .replace(/[\\/:*?"<>|]+/g, '_')
+    .replace(/\s+/g, ' ')
+    .replace(/^[.\s]+|[.\s]+$/g, '')
+    .slice(0, 80)
+}
+
+/**
+ * Employee files are named after the employee so the folder is easy to browse:
+ * `<code>_<name><ext>` (e.g. `2689_أحمد عبد القادر.pdf`). The employee code is
+ * unique, so the stored name is unique per employee.
+ */
+export function buildStoredName(code: string | number, name: string, ext: string): string {
+  const codePart = sanitizeSegment(String(code)) || 'employee'
+  const namePart = sanitizeSegment(name) || 'employee'
+  return `${codePart}_${namePart}`.slice(0, 150) + ext
 }
 
 function assertAllowedExtension(originalName: string): string {
@@ -87,7 +98,7 @@ export async function attachEmployeeFile(
   data: Buffer,
   originalName: string
 ): Promise<void> {
-  assertAllowedExtension(originalName) // validates the extension (stored name keeps it lowercased)
+  const ext = assertAllowedExtension(originalName)
   if (data.byteLength === 0) throw new ApiError('VALIDATION', 'The file is empty')
   if (data.byteLength > MAX_FILE_SIZE) {
     throw new ApiError('VALIDATION', 'File exceeds the 25 MB limit')
@@ -98,18 +109,21 @@ export async function attachEmployeeFile(
   if (!employee) throw new ApiError('NOT_FOUND', 'Employee not found')
 
   const dir = ensureDir()
-  const storedName = `${String(employee.code).replace(/[^\w-]/g, '_')}_${Date.now()}_${sanitizeBaseName(originalName)}`
+  const storedName = buildStoredName(employee.code, employee.name, ext)
   const target = path.join(dir, storedName)
   fs.writeFileSync(target, data)
 
-  // replace: drop the previous physical file, then relink the record
-  if (employee.fileStoredName) deleteQuietly(resolveStoredPath(employee.fileStoredName))
+  // Replace: drop the previous physical file only when the name changed, so we
+  // never delete the file we just wrote (the stored name is now deterministic).
+  if (employee.fileStoredName && employee.fileStoredName !== storedName) {
+    deleteQuietly(resolveStoredPath(employee.fileStoredName))
+  }
 
   await prisma.employee.update({
     where: { id: employeeId },
     data: {
       fileStoredName: storedName,
-      fileOriginalName: originalName,
+      fileOriginalName: storedName,
       fileSize: data.byteLength,
       fileLinkedAt: new Date()
     }
