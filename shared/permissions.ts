@@ -23,6 +23,7 @@ export const MODULE_PERMISSIONS = {
   ],
   leaves: ['leaves.view', 'leaves.create', 'leaves.edit', 'leaves.delete'],
   payrolls: ['payrolls.view', 'payrolls.create', 'payrolls.edit', 'payrolls.delete'],
+  reviews: ['reviews.view', 'reviews.create', 'reviews.edit', 'reviews.delete'],
   settings: ['settings.view', 'settings.edit']
 } as const
 

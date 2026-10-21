@@ -1,0 +1,558 @@
+/**
+ * استخراج «مفردات» ظرف المرتب/الحافز إلى بنود مستقلة.
+ *
+ * كل ظرف (صفحة واحدة من كشف PDF) يطبع جدولاً من عمودين متجاورين لكل جهة:
+ *   الاستقطاعات (المسحوبات) | القيمة  ...  الاستحقاقات (المستحقات) | القيمة
+ * إضافةً إلى عمود «الرصيد» (رصيد السلفة المستحقة).
+ *
+ * القراءة تتم من مواضع عناصر النص (x/y) داخل الصفحة، لا من خلايا جدول مُكتشَف:
+ * فبعض الصفوف (مثل صفّ مكافأة التشجيعية) تُسندها خوارزمية الجداول إلى
+ * خلايا مزاحة، بينما مواضعها الحقيقية صحيحة تمامًا.
+ *
+ * النتيجة: قائمة بنود لكل صفحة (بند/قيمة/نوع/ترتيب) تُخزَّن في جدول
+ * PayrollItem، فيصبح لكل بند عمود واحد في مصفوفة «مفردات الشهر».
+ */
+import { PDFParse } from 'pdf-parse'
+import type {
+  PayrollItemColumn,
+  PayrollItemKind,
+  PayrollItemRow,
+  PayrollItemsMatrix
+} from '../../shared/types'
+
+/** المسافة القصوى بين عمود القيمة ومرجعه. */
+const VALUE_TOLERANCE = 26
+/** الحد الفاصل بين نطاق البند المستحَق ونطاق بند المسحوب. */
+const LABEL_TOLERANCE = 26
+/** تسامح تجميع العناصر في سطر واحد (الفرق بين y لعنصرين متجاورين). */
+const ROW_TOLERANCE = 3.5
+
+/** يوحّد شكل النص المستخرج: تشكيل وتطويل وحروف عربية متبدّلة. */
+export function normalizeItemText(raw: string): string {
+  return raw
+    .normalize('NFKC')
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, '') // حركات + تطويل
+    .replace(/[\u0660-\u0669]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[\u066B\u066C]/g, '.')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ؤ/g, 'و')
+    .replace(/[ىئ]/g, 'ي')
+    // الأقواس تخرج معكوسة من الـPDF في السياق العربي — نعيد ترتيبها.
+    .replace(/\)([^()]*)\(/g, '($1)')
+    .replace(/[^\S\n]+/g, ' ')
+    .trim()
+}
+
+/** مفتاح التجميع: نفس البند بأشكال إملائية مختلفة ⇒ عمود واحد. */
+export function itemLabelKey(label: string): string {
+  return normalizeItemText(label)
+    .replace(/ة/g, 'ه')
+    .replace(/\s+/g, '')
+    .replace(/^ال(?=.{3,})/, '')
+}
+
+const TOTAL_MARKERS = /(اجمالي|اجمالى|اجماليه|صافي|صافى|صافيه|الاجمالي)/
+
+/** يقرأ رقمًا بصيغة عربية أو لاتينية (الفاصلة العشرية «٫» أو «.»). */
+export function parseItemValue(raw: string | null | undefined): number | null {
+  if (!raw) return null
+  const cleaned = raw
+    .replace(/[\u0660-\u0669]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[\u066B]/g, '.')
+    .replace(/[,\u066C\s]/g, '')
+  if (!/^\d*\.?\d+$/.test(cleaned)) return null
+  const value = Number(cleaned)
+  return Number.isFinite(value) ? value : null
+}
+
+/* ------------------------------- page geometry ----------------------------- */
+
+interface PositionedText {
+  text: string
+  x: number
+  y: number
+}
+
+interface PageLike {
+  getTextContent: () => Promise<{ items: unknown[] }>
+  cleanup?: () => void
+}
+
+interface ParserInternals {
+  load: () => Promise<void>
+  doc?: { numPages: number; getPage: (pageNumber: number) => Promise<PageLike> }
+}
+
+interface TextItemLike {
+  str?: string
+  transform?: number[]
+}
+
+/** يجمع عناصر الصفحة في أسطر (بتجميع y المتقاربة) مرتّبة من اليمين لليسار. */
+function groupIntoRows(items: PositionedText[]): PositionedText[][] {
+  const sorted = [...items].sort((a, b) => b.y - a.y || b.x - a.x)
+  const rows: PositionedText[][] = []
+  let current: PositionedText[] = []
+  let anchor = 0
+
+  for (const item of sorted) {
+    if (current.length === 0 || Math.abs(item.y - anchor) <= ROW_TOLERANCE) {
+      current.push(item)
+      anchor = current.length === 1 ? item.y : (anchor + item.y) / 2
+      continue
+    }
+    rows.push(current)
+    current = [item]
+    anchor = item.y
+  }
+  if (current.length > 0) rows.push(current)
+  return rows
+}
+
+/** أعمدة الجدول كما تُستنتج من صف العنوان. */
+interface ColumnAnchors {
+  earnValue: number
+  earnLabel: number
+  deductionValue: number
+  deductionLabel: number
+  balance: number | null
+}
+
+function detectAnchors(row: PositionedText[]): ColumnAnchors | null {
+  const cells = row.map((item) => ({ ...item, label: normalizeItemText(item.text) }))
+  const earnLabelCell = cells.find((cell) => cell.label === 'الاستحقاقات')
+  const deductionLabelCell = cells.find((cell) => cell.label === 'الاستقطاعات')
+  if (!earnLabelCell && !deductionLabelCell) return null
+
+  const valueCells = cells.filter((cell) => cell.label === 'القيمة')
+  const valueBefore = (limit: number): number => {
+    const candidates = valueCells.filter((cell) => cell.x < limit)
+    return candidates.length > 0 ? Math.max(...candidates.map((cell) => cell.x)) : Number.NaN
+  }
+  const balanceCell = cells.find((cell) => cell.label === 'الرصيد')
+
+  const earnLabel = earnLabelCell?.x ?? Number.NaN
+  const deductionLabel = deductionLabelCell?.x ?? Number.NaN
+
+  return {
+    earnLabel,
+    earnValue: Number.isNaN(earnLabel) ? Number.NaN : valueBefore(earnLabel),
+    deductionLabel,
+    deductionValue: Number.isNaN(deductionLabel) ? Number.NaN : valueBefore(deductionLabel),
+    balance: balanceCell?.x ?? null
+  }
+}
+
+interface RowValues {
+  earningLabel: string | null
+  earningValue: number | null
+  deductionLabel: string | null
+  deductionValue: number | null
+  balance: number | null
+}
+
+/** يوزّع عناصر السطر على أعمدة الجدول بحسب موضعها ونوعها. */
+function readRow(row: PositionedText[], anchors: ColumnAnchors): RowValues {
+  const result: RowValues = {
+    earningLabel: null,
+    earningValue: null,
+    deductionLabel: null,
+    deductionValue: null,
+    balance: null
+  }
+
+  for (const item of row) {
+    const text = normalizeItemText(item.text)
+    if (!text) continue
+    const value = parseItemValue(text)
+
+    if (value !== null) {
+      const candidates: { key: string; x: number }[] = []
+      if (!Number.isNaN(anchors.earnValue)) {
+        candidates.push({ key: 'earn', x: anchors.earnValue })
+      }
+      if (!Number.isNaN(anchors.deductionValue)) {
+        candidates.push({ key: 'deduction', x: anchors.deductionValue })
+      }
+      if (anchors.balance !== null) {
+        candidates.push({ key: 'balance', x: anchors.balance })
+      }
+      const distance = candidates
+        .map((candidate) => ({ key: candidate.key, distance: Math.abs(item.x - candidate.x) }))
+        .sort((a, b) => a.distance - b.distance)
+
+      const nearest = distance[0]
+      if (nearest && nearest.distance <= VALUE_TOLERANCE) {
+        if (nearest.key === 'earn' && result.earningValue === null) result.earningValue = value
+        else if (nearest.key === 'deduction' && result.deductionValue === null) {
+          result.deductionValue = value
+        } else if (nearest.key === 'balance' && result.balance === null) result.balance = value
+        continue
+      }
+      // رقم لا يطابق عمودًا معروفًا — نتجاهله (أرقام خارج الجدول).
+      continue
+    }
+
+    // نص ⇒ اسم بند: يحدده نطاقه الأفقي.
+    if (!Number.isNaN(anchors.earnValue) && item.x > anchors.earnValue + LABEL_TOLERANCE) {
+      if (result.earningLabel === null) result.earningLabel = text
+      continue
+    }
+    if (
+      !Number.isNaN(anchors.deductionValue) &&
+      item.x > anchors.deductionValue + LABEL_TOLERANCE &&
+      (Number.isNaN(anchors.earnValue) || item.x <= anchors.earnValue - LABEL_TOLERANCE)
+    ) {
+      if (result.deductionLabel === null) result.deductionLabel = text
+      continue
+    }
+  }
+
+  return result
+}
+
+/** يحوّل صفحة واحدة إلى بنودها. */
+function extractPageItems(items: PositionedText[]): PayrollItemRow[] {
+  const rows = groupIntoRows(items)
+  const headerIndex = rows.findIndex((row) => {
+    const labels = row.map((item) => normalizeItemText(item.text))
+    return labels.includes('الاستحقاقات') || labels.includes('الاستقطاعات')
+  })
+  if (headerIndex < 0) return []
+
+  const anchors = detectAnchors(rows[headerIndex])
+  if (!anchors) return []
+
+  const result: PayrollItemRow[] = []
+  let sortOrder = 0
+
+  const push = (
+    kind: PayrollItemKind,
+    label: string | null,
+    value: number | null,
+    balance: number | null
+  ): void => {
+    if (!label || value === null) return
+    result.push({
+      kind,
+      label,
+      labelKey: itemLabelKey(label),
+      value,
+      balance,
+      sortOrder: sortOrder++
+    })
+  }
+
+  for (let i = headerIndex + 1; i < rows.length; i += 1) {
+    const values = readRow(rows[i], anchors)
+    const labels = [values.earningLabel, values.deductionLabel].filter(Boolean) as string[]
+
+    // صفوف الإجماليات والصافي تُوقف الجدول — ما بعدها ليس بنودًا.
+    if (labels.some((label) => TOTAL_MARKERS.test(label))) break
+    if (labels.length === 0 && values.balance === null) continue
+
+    // الرصيد يخصّ سلفة السطر (بند المسحوبات) — يُربط به مرة واحدة فقط.
+    push('earning', values.earningLabel, values.earningValue, null)
+    push('deduction', values.deductionLabel, values.deductionValue, values.balance)
+    if (!values.earningLabel && !values.deductionLabel && values.balance !== null) {
+      push('balance', 'الرصيد', values.balance, values.balance)
+    }
+  }
+
+  return result
+}
+
+export interface PayrollItemsParseResult {
+  /** بنود كل صفحة من الملف — المفتاح رقم الصفحة (يبدأ من 1). */
+  byPage: Map<number, PayrollItemRow[]>
+  pages: number
+}
+
+/**
+ * يقرأ كشف المرتب/الحافز كاملًا ويستخرج مفردات كل ظرف فيه.
+ * المسار الأساسي يعتمد مواضع عناصر النص، والبديل يعتمد خلايا الجدول
+ * المكتشَف (احتياط لو تغيّرت واجهة pdf-parse الداخلية).
+ */
+export async function extractPayrollItems(buffer: Buffer): Promise<PayrollItemsParseResult> {
+  const byGeometry = await extractByGeometry(buffer)
+  if (byGeometry.byPage.size > 0) return byGeometry
+
+  const byTable = await extractByTables(buffer)
+  if (byTable.byPage.size > 0) return byTable
+
+  return { byPage: new Map(), pages: 0 }
+}
+
+/** الاستخراج بالإحداثيات — الأدق: يقرأ موضع كل عنصر في الصفحة. */
+async function extractByGeometry(buffer: Buffer): Promise<PayrollItemsParseResult> {
+  const byPage = new Map<number, PayrollItemRow[]>()
+  const parser = new PDFParse({ data: new Uint8Array(buffer) })
+  const internals = parser as unknown as ParserInternals
+
+  try {
+    await internals.load()
+    const doc = internals.doc
+    if (!doc) return { byPage, pages: 0 }
+
+    for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
+      const page = await doc.getPage(pageNumber)
+      try {
+        const content = await page.getTextContent()
+        const items: PositionedText[] = (content.items as TextItemLike[])
+          .filter((item) => typeof item.str === 'string' && item.str.trim() !== '')
+          .map((item) => ({
+            text: item.str as string,
+            x: item.transform?.[4] ?? 0,
+            y: item.transform?.[5] ?? 0
+          }))
+        const parsed = extractPageItems(items)
+        if (parsed.length > 0) byPage.set(pageNumber, parsed)
+      } finally {
+        page.cleanup?.()
+      }
+    }
+
+    return { byPage, pages: doc.numPages }
+  } catch {
+    return { byPage: new Map(), pages: 0 }
+  }
+}
+
+/* --------------------------- fallback: table cells -------------------------- */
+
+interface TableColumns {
+  balance: number
+  deductionLabel: number
+  deductionValue: number
+  earningLabel: number
+  earningValue: number
+}
+
+/** يحدد أعمدة الجدول من صف العنوان («الرصيد | القيمة | الاستقطاعات | …»). */
+function detectColumns(header: string[]): TableColumns | null {
+  const cells = header.map((cell) => normalizeItemText(cell))
+  const indexOfCell = (needle: string): number => cells.findIndex((cell) => cell === needle)
+
+  const balance = indexOfCell('الرصيد')
+  const deductionLabel = indexOfCell('الاستقطاعات')
+  const earningLabel = indexOfCell('الاستحقاقات')
+  if (deductionLabel < 0 && earningLabel < 0) return null
+
+  const valueBefore = (from: number): number => {
+    for (let i = from - 1; i >= 0; i -= 1) {
+      if (cells[i] === 'القيمة') return i
+    }
+    return -1
+  }
+
+  return {
+    balance,
+    deductionLabel,
+    deductionValue: deductionLabel >= 0 ? valueBefore(deductionLabel) : -1,
+    earningLabel,
+    earningValue: earningLabel >= 0 ? valueBefore(earningLabel) : -1
+  }
+}
+
+function cellAt(row: string[], index: number): string {
+  if (index < 0 || index >= row.length) return ''
+  return normalizeItemText(row[index] ?? '')
+}
+
+/** يحوّل جدول ظرف واحد إلى بنوده (المسار الاحتياطي). */
+export function parseSlipTableItems(table: string[][]): PayrollItemRow[] {
+  const headerIndex = table.findIndex((row) => {
+    const cells = row.map((cell) => normalizeItemText(cell))
+    return cells.includes('الاستحقاقات') || cells.includes('الاستقطاعات')
+  })
+  if (headerIndex < 0) return []
+
+  const columns = detectColumns(table[headerIndex])
+  if (!columns) return []
+
+  const items: PayrollItemRow[] = []
+  let sortOrder = 0
+
+  const push = (
+    kind: PayrollItemKind,
+    rawLabel: string,
+    rawValue: string | null,
+    balance: number | null = null
+  ): void => {
+    const label = normalizeItemText(rawLabel)
+    if (!label) return
+    const value = parseItemValue(rawValue)
+    if (value === null) return
+    items.push({
+      kind,
+      label,
+      labelKey: itemLabelKey(label),
+      value,
+      balance,
+      sortOrder: sortOrder++
+    })
+  }
+
+  for (let i = headerIndex + 1; i < table.length; i += 1) {
+    const row = table[i]
+    const deductionLabel = cellAt(row, columns.deductionLabel)
+    const earningLabel = cellAt(row, columns.earningLabel)
+
+    if (
+      (deductionLabel && TOTAL_MARKERS.test(deductionLabel)) ||
+      (earningLabel && TOTAL_MARKERS.test(earningLabel))
+    ) {
+      break
+    }
+
+    const balance = parseItemValue(cellAt(row, columns.balance))
+
+    if (deductionLabel) {
+      push('deduction', deductionLabel, cellAt(row, columns.deductionValue), balance)
+    }
+    if (earningLabel) {
+      push('earning', earningLabel, cellAt(row, columns.earningValue), balance)
+    }
+    if (!deductionLabel && !earningLabel && balance !== null) {
+      push('balance', 'الرصيد', String(balance), balance)
+    }
+  }
+
+  return items
+}
+
+/** الاستخراج بخلايا الجدول المكتشَف (بديل). */
+async function extractByTables(buffer: Buffer): Promise<PayrollItemsParseResult> {
+  const byPage = new Map<number, PayrollItemRow[]>()
+  const parser = new PDFParse({ data: new Uint8Array(buffer) })
+  try {
+    const result = await parser.getTable()
+    for (const page of result.pages ?? []) {
+      const items: PayrollItemRow[] = []
+      for (const table of page.tables ?? []) {
+        items.push(...parseSlipTableItems(table))
+      }
+      if (items.length > 0) byPage.set(page.num, items)
+    }
+    return { byPage, pages: result.pages?.length ?? 0 }
+  } catch {
+    return { byPage, pages: 0 }
+  }
+}
+
+/* ----------------------------- matrix assembly ----------------------------- */
+
+/** ترتيب البنود داخل المصفوفة: المستحقات أولًا ثم المسحوبات. */
+const KIND_ORDER: Record<PayrollItemKind, number> = { earning: 0, deduction: 1, balance: 2 }
+
+/** ظرف واحد جاهز للتجميع في المصفوفة. */
+export interface MatrixEntry {
+  id: string
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentName: string | null
+  totalEarned: number | null
+  totalDeductions: number | null
+  netSalary: number | null
+  items: {
+    kind: string
+    label: string
+    labelKey: string
+    value: number
+    balance: number | null
+    sortOrder: number
+  }[]
+}
+
+/**
+ * يبني مصفوفة المفردات: الأعمدة من بنود الأظرف (بند واحد ⇒ عمود واحد)
+ * والصفوف من الموظفين — كل صف يحمل قيمة كل بند في موضعه.
+ */
+export function buildItemsMatrix(params: {
+  type: string
+  period: string
+  month: number
+  year: number
+  fileName: string | null
+  entries: MatrixEntry[]
+}): PayrollItemsMatrix {
+  const columnMap = new Map<string, PayrollItemColumn & { firstOrder: number }>()
+
+  for (const entry of params.entries) {
+    for (const item of entry.items) {
+      if (item.kind === 'balance') continue
+      const existing = columnMap.get(item.labelKey)
+      if (existing) {
+        existing.count += 1
+        existing.total += item.value
+        existing.firstOrder = Math.min(existing.firstOrder, item.sortOrder)
+        continue
+      }
+      columnMap.set(item.labelKey, {
+        key: item.labelKey,
+        label: item.label,
+        kind: item.kind as PayrollItemKind,
+        count: 1,
+        total: item.value,
+        firstOrder: item.sortOrder
+      })
+    }
+  }
+
+  const columns = [...columnMap.values()]
+    .sort(
+      (a, b) =>
+        KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+        a.firstOrder - b.firstOrder ||
+        a.label.localeCompare(b.label, 'ar')
+    )
+    .map(({ firstOrder: _firstOrder, ...column }) => column)
+
+  const indexByKey = new Map(columns.map((column, index) => [column.key, index]))
+
+  const rows = params.entries.map((entry) => {
+    const values: (number | null)[] = new Array(columns.length).fill(null)
+    let balance = 0
+    let earningsTotal = 0
+    let deductionsTotal = 0
+    for (const item of entry.items) {
+      balance += item.balance ?? 0
+      if (item.kind === 'balance') continue
+      if (item.kind === 'earning') earningsTotal += item.value
+      else deductionsTotal += item.value
+      const index = indexByKey.get(item.labelKey)
+      if (index === undefined) continue
+      values[index] = (values[index] ?? 0) + item.value
+    }
+    return {
+      entryId: entry.id,
+      employeeId: entry.employeeId,
+      employeeCode: entry.employeeCode,
+      employeeName: entry.employeeName,
+      departmentName: entry.departmentName,
+      values,
+      balance: Math.round(balance * 100) / 100,
+      earningsTotal: Math.round(earningsTotal * 100) / 100,
+      deductionsTotal: Math.round(deductionsTotal * 100) / 100,
+      totalEarned: entry.totalEarned,
+      totalDeductions: entry.totalDeductions,
+      netSalary: entry.netSalary
+    }
+  })
+
+  const extracted = params.entries.filter((entry) => entry.items.length > 0).length
+
+  return {
+    type: params.type,
+    period: params.period,
+    month: params.month,
+    year: params.year,
+    fileName: params.fileName,
+    columns,
+    rows,
+    totals: columns.map((column) => column.total),
+    extracted,
+    pending: params.entries.length - extracted
+  }
+}

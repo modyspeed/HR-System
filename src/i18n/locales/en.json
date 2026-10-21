@@ -70,7 +70,8 @@
     "signOut": "Sign out",
     "myAccount": "My account",
     "sectionManagement": "Management",
-    "sectionAccount": "Account"
+    "sectionAccount": "Account",
+    "reviews": "Reviews"
   },
   "login": {
     "title": "Human Resources System",
@@ -727,8 +728,7 @@
     "empRatesDeleteTitle": "Delete rate",
     "empRatesDeleteBody": "Delete the individual incentive rate of {{period}}? This cannot be undone.",
     "empRatesNoDocument": "No document uploaded for this rate",
-    "empRatesCount": "{{count}} rates"
-    ,
+    "empRatesCount": "{{count}} rates",
     "penaltyTitle": "Incentive deprivation",
     "penaltyHint": "A monthly history of each employee's incentive deduction (rate and amount) — imported from the \"incentive deprivation-month.pdf\" file or entered manually",
     "penaltyUpload": "Upload deprivation file",
@@ -878,5 +878,45 @@
     "title": "No access",
     "body": "You don't have permission to view this page. Contact an administrator to grant the required permission.",
     "back": "Back to dashboard"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "subtitle": "Payroll and incentive items matrix — one row per employee, one column per item",
+    "items": {
+      "tab": "Payroll & incentive items",
+      "title": "Payroll & incentive items",
+      "employees": "Employees",
+      "items": "Items",
+      "employeeCode": "Code",
+      "employeeName": "Name",
+      "departmentName": "Department",
+      "earnings": "Earnings",
+      "deductions": "Deductions",
+      "balance": "Balance",
+      "net": "Net",
+      "total": "Total",
+      "allPeriods": "All months",
+      "allDepartments": "All departments",
+      "searchPlaceholder": "Search by name or code...",
+      "earningsTotal": "Total earnings",
+      "deductionsTotal": "Total deductions",
+      "extracted": "extracted from {{extracted}} of {{total}} slips",
+      "extractedDone": "Extracted {{count}} items",
+      "pending": "{{count}} slips not extracted yet",
+      "columnTotal": "Total {{label}}: {{total}}",
+      "noPeriods": "No payroll files yet",
+      "noPeriodsBody": "Import a salary or incentive file from “Payroll” first, then it shows up here",
+      "emptyTitle": "No items for this month",
+      "emptyBody": "Press “Extract items” to read every slip line item from the payroll file",
+      "noResults": "No results",
+      "noResultsBody": "Try adjusting the search or filters",
+      "itemName": "Item",
+      "value": "Value",
+      "noBreakdown": "No items recorded for this employee",
+      "slipTotalNote": "The printed slip total differs from the extracted items sum: {{value}}",
+      "balanceNote": "Outstanding advances balance: {{value}}",
+      "clickHint": "Click a total to see the items",
+      "extractPending": "Extract missing items ({{count}} slips)"
+    }
   }
 }

@@ -68,7 +68,8 @@ module.exports = {
         cta: 'var(--shadow-cta), var(--shadow-rim)',
         pressed: 'var(--shadow-pressed)',
         pop: 'var(--shadow-pop)',
-        modal: 'var(--shadow-modal)'
+        modal: 'var(--shadow-modal)',
+        key: 'var(--shadow-key)'
       },
       transitionTimingFunction: {
         spring: 'cubic-bezier(.34,1.56,.64,1)'

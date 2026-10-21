@@ -90,6 +90,11 @@ const api: ApiShape = {
     importPdf: (payload) => ipcRenderer.invoke('payrolls:importPdf', payload),
     previewEntry: (id) => ipcRenderer.invoke('payrolls:previewEntry', id),
     remove: (id) => ipcRenderer.invoke('payrolls:remove', id),
+    items: {
+      list: (query) => ipcRenderer.invoke('payrolls:items.list', query),
+      periods: (query) => ipcRenderer.invoke('payrolls:items.periods', query),
+      sync: (query) => ipcRenderer.invoke('payrolls:items.sync', query)
+    },
     salaryGrades: {
       listByEmployee: (employeeId) => ipcRenderer.invoke('payrolls:salaryGrades.listByEmployee', employeeId),
       create: (input) => ipcRenderer.invoke('payrolls:salaryGrades.create', input),

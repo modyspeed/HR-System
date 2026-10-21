@@ -17,6 +17,7 @@ import { EmployeesList } from '@/modules/employees/EmployeesList'
 import { EmployeeProfile } from '@/modules/employees/EmployeeProfile'
 import { LeavesList } from '@/modules/leaves/LeavesList'
 import { PayrollsList } from '@/modules/payrolls/PayrollsList'
+import { ReviewsList } from '@/modules/reviews/ReviewsList'
 import { Profile } from '@/modules/profile/Profile'
 import { Settings } from '@/modules/settings/Settings'
 
@@ -106,6 +107,10 @@ export function App() {
         <Route
           path="payrolls"
           element={<Protected permission="payrolls.view" element={<PayrollsList />} />}
+        />
+        <Route
+          path="reviews"
+          element={<Protected permission="reviews.view" element={<ReviewsList />} />}
         />
         <Route path="profile" element={<Protected element={<Profile />} />} />
         <Route

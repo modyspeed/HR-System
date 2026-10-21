@@ -70,7 +70,8 @@
     "signOut": "تسجيل الخروج",
     "myAccount": "حسابي",
     "sectionManagement": "الإدارة",
-    "sectionAccount": "الحساب"
+    "sectionAccount": "الحساب",
+    "reviews": "المراجعة"
   },
   "login": {
     "title": "نظام إدارة الموارد البشرية",
@@ -700,8 +701,7 @@
     "gradeFileRemoveBody": "سيُحذف «{{name}}» نهائيًا من مجلد المستندات",
     "gradeFilePreview": "معاينة المستند",
     "gradeSheet": "ورقة «{{name}}» — {{count}} صف",
-    "gradeTruncated": "تُعرض أول صفوف الملف فقط"
-    ,
+    "gradeTruncated": "تُعرض أول صفوف الملف فقط",
     "empRatesTitle": "نسب الحوافز الفردية",
     "empRatesHint": "سجل شهري لنسبة الحافز لكل موظف (متغيرة كل شهر) — يُستورد من ملف «نسب الحافز الفردية-الشهر.pdf» أو يدويًا",
     "empRatesUpload": "رفع ملف النسب",
@@ -728,8 +728,7 @@
     "empRatesDeleteTitle": "حذف النسبة",
     "empRatesDeleteBody": "حذف نسبة حافز الفردية لشهر {{period}}؟ لا يمكن التراجع.",
     "empRatesNoDocument": "لا يوجد مستند مرفوع لهذه النسبة",
-    "empRatesCount": "{{count}} نسبة"
-    ,
+    "empRatesCount": "{{count}} نسبة",
     "penaltyTitle": "الحرمان من الحافز",
     "penaltyHint": "سجل شهري لخصم الحافز من كل موظف (نسبة الخصم وقيمته) — يُستورد من ملف «الحرمان من الحافز-الشهر.pdf» أو يدويًا",
     "penaltyUpload": "رفع ملف الحرمان",
@@ -879,5 +878,45 @@
     "title": "لا توجد صلاحية",
     "body": "ليست لديك صلاحية الوصول إلى هذه الصفحة. تواصل مع المدير لمنحك الصلاحية المناسبة.",
     "back": "العودة إلى الرئيسية"
+  },
+  "reviews": {
+    "title": "المراجعة",
+    "subtitle": "مصفوفة مفردات المرتب والحافز — صف لكل موظف وعمود لكل بند، للمراجعة الشهرية",
+    "items": {
+      "tab": "مفردات المرتب والحافز",
+      "title": "مفردات المرتب والحافز",
+      "employees": "الموظفون",
+      "items": "البنود",
+      "employeeCode": "الكود",
+      "employeeName": "الاسم",
+      "departmentName": "القسم",
+      "earnings": "الاستحقاقات",
+      "deductions": "الاستقطاعات",
+      "balance": "الرصيد",
+      "net": "الصافي",
+      "total": "الإجمالي",
+      "allPeriods": "كل الشهور",
+      "allDepartments": "كل الأقسام",
+      "searchPlaceholder": "بحث بالاسم أو الكود...",
+      "earningsTotal": "إجمالي الاستحقاقات",
+      "deductionsTotal": "إجمالي الاستقطاعات",
+      "extracted": "مستخرج من {{extracted}} من {{total}} ظرف",
+      "extractedDone": "تم استخراج {{count}} بند",
+      "pending": "لم تُستخرج مفردات {{count}} ظرف",
+      "columnTotal": "إجمالي {{label}}: {{total}}",
+      "noPeriods": "لا توجد كشوف مسجّلة",
+      "noPeriodsBody": "استورد كشف المرتب أو الحافز أولًا من قسم «الأجر والمرتبات» ليظهر هنا",
+      "emptyTitle": "لا توجد مفردات لهذا الشهر",
+      "emptyBody": "اضغط «استخراج المفردات» لقراءة بنود كل ظرف من ملف الكشف",
+      "noResults": "لا توجد نتائج",
+      "noResultsBody": "جرّب تعديل البحث أو الفلتر",
+      "itemName": "البند",
+      "value": "القيمة",
+      "noBreakdown": "لا توجد بنود مسجّلة لهذا الموظف",
+      "slipTotalNote": "إجمالي الظرف المطبوع يختلف عن مجموع البنود المستخرجة: {{value}}",
+      "balanceNote": "رصيد مستحق على السلف: {{value}}",
+      "clickHint": "اضغط على الإجمالي لعرض البنود",
+      "extractPending": "استكمال استخراج المفردات ({{count}} ظرف)"
+    }
   }
 }

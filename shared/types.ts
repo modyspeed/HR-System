@@ -346,6 +346,98 @@ export interface PayrollParseResult {
   unmatched: number
 }
 
+/* ------------------------------ payroll items ----------------------------- */
+
+/** نوع البند داخل ظرف المرتب/الحافز. */
+export type PayrollItemKind = 'earning' | 'deduction' | 'balance'
+
+/** بند مفردات كما يُستخرج من جدول الظرف (قبل التخزين). */
+export interface PayrollItemRow {
+  kind: PayrollItemKind
+  label: string
+  labelKey: string
+  value: number
+  /** الرصيد المستحق على السلف المرتبط بهذا البند (عمود «الرصيد» في الظرف). */
+  balance: number | null
+  sortOrder: number
+}
+
+/** بند مفردات مخزَّن في قاعدة البيانات. */
+export interface PayrollItemRecord extends PayrollItemRow {
+  id: string
+  entryId: string
+  employeeId: string
+  period: string
+  type: string
+}
+
+/** عمود في مصفوفة المفردات — بند واحد لكل الموظفين. */
+export interface PayrollItemColumn {
+  key: string
+  label: string
+  kind: PayrollItemKind
+  /** عدد الموظفين الذين تحمّلوا هذا البند. */
+  count: number
+  total: number
+}
+
+/** صف في مصفوفة المفردات — موظف واحد وكل بنوده. */
+export interface PayrollItemMatrixRow {
+  entryId: string
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentName: string | null
+  /** القيم محاذية مع أعمدة المصفوفة (null = لا يوجد بند للموظف). */
+  values: (number | null)[]
+  /** إجمالي الأرصدة المستحقة على السلف للموظف. */
+  balance: number
+  /** مجموع بنود الاستحقاقات المستخرجة من ظرف الموظف. */
+  earningsTotal: number
+  /** مجموع بنود الاستقطاعات. */
+  deductionsTotal: number
+  totalEarned: number | null
+  totalDeductions: number | null
+  netSalary: number | null
+}
+
+/** مصفوفة مفردات شهر ونوع معيّن (مرتب أو حافز). */
+export interface PayrollItemsMatrix {
+  type: string
+  period: string
+  month: number
+  year: number
+  fileName: string | null
+  columns: PayrollItemColumn[]
+  rows: PayrollItemMatrixRow[]
+  /** مجموع كل عمود (على مستوى كل الموظفين). */
+  totals: (number | null)[]
+  /** عدد الأظرف التي استُخرجت منها مفردات. */
+  extracted: number
+  /** عدد الأظرف التي لم يُستخرج منها مفردات بعد. */
+  pending: number
+}
+
+/** شهر متاح للمرتب أو الحافز مع حالة استخراج المفردات. */
+export interface PayrollItemsPeriod {
+  period: string
+  month: number
+  year: number
+  type: string
+  fileName: string
+  entries: number
+  extracted: number
+}
+
+export interface PayrollItemsQuery {
+  /** salary | incentive */
+  type: string
+  /** yyyy-mm */
+  period: string
+  search?: string
+  departmentId?: string
+}
+
 export interface SalaryGradeRecord {
   id: string
   employeeId: string
@@ -745,6 +837,18 @@ export interface ApiShape {
       data: Uint8Array
     }>
     remove(id: string): Promise<void>
+    /** مفردات الأظرف — مصفوفة: صف لكل موظف وعمود لكل بند. */
+    items: {
+      list(query: PayrollItemsQuery): Promise<PayrollItemsMatrix>
+      /** الشهور المتاحة للمرتب/الحافز مع حالة استخراج مفرداتها. */
+      periods(query?: { type?: string }): Promise<PayrollItemsPeriod[]>
+      /** يعيد استخراج المفردات من ملف الكشف المخزَّن ويحدّثها. */
+      sync(query: { type: string; period: string }): Promise<{
+        entries: number
+        items: number
+        periods: PayrollItemsPeriod[]
+      }>
+    }
     salaryGrades: {
       listByEmployee(employeeId: string): Promise<SalaryGradeRecord[]>
       create(input: SalaryGradeUpsertInput): Promise<SalaryGradeRecord>

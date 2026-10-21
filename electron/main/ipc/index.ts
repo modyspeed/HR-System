@@ -5,6 +5,7 @@ import { registerEmployeesIpc } from './employees.ipc'
 import { registerExportIpc } from './export.ipc'
 import { registerLeavesIpc } from './leaves.ipc'
 import { registerPayrollsIpc } from './payrolls.ipc'
+import { registerPayrollItemsIpc } from './payroll-items.ipc'
 import { registerBackupIpc } from './backup.ipc'
 import { registerDashboardIpc } from './dashboard.ipc'
 import { registerRolesIpc } from './roles.ipc'
@@ -23,6 +24,7 @@ export function registerAllIpc(prisma: PrismaClient): void {
   registerExportIpc(ipc)
   registerLeavesIpc(prisma, ipc)
   registerPayrollsIpc(prisma, ipc)
+  registerPayrollItemsIpc(prisma, ipc)
   registerBackupIpc(prisma, ipc)
   registerDashboardIpc(prisma, ipc)
   registerSettingsIpc(prisma, ipc)

@@ -204,9 +204,29 @@ model PayrollEntry {
   netSalary       Float?
   sourceText      String? // النص المُستخرج من الظرف (للأرشفة والفحص)
   createdAt       DateTime      @default(now())
+  items           PayrollItem[]
 
   @@index([employeeId, type, period])
   @@index([period])
+}
+
+/// بند واحد من مفردات الظرف (مرتب أو حافز) — يخزَّن كعمود مستقل في المصفوفة
+/// «مفردات الشهر»، فيُقرأ لكل موظف سطر بنفس البنود وبنفس الترتيب.
+model PayrollItem {
+  id        String       @id @default(cuid())
+  entryId   String
+  entry     PayrollEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  kind      String // earning | deduction | balance
+  label     String // اسم البند كما ورد في الظرف (للعرض)
+  labelKey  String // مفتاح موحّد لتجميع نفس البند في عمود واحد
+  value     Float
+  balance   Float? // الرصيد المستحق على السلف (عمود «الرصيد» في الظرف)
+  sortOrder Int          @default(0) // ترتيب البند داخل جدول الظرف
+  createdAt DateTime     @default(now())
+
+  @@index([entryId])
+  @@index([labelKey])
+  @@index([kind, labelKey])
 }
 
 model DepartmentTransfer {

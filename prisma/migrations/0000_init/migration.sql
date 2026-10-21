@@ -175,6 +175,20 @@ CREATE TABLE IF NOT EXISTS "PayrollEntry" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "PayrollItem" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "entryId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "labelKey" TEXT NOT NULL,
+    "value" REAL NOT NULL,
+    "balance" REAL,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PayrollItem_entryId_fkey" FOREIGN KEY ("entryId") REFERENCES "PayrollEntry" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "DepartmentTransfer" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "employeeId" TEXT NOT NULL,
@@ -332,6 +346,15 @@ CREATE INDEX IF NOT EXISTS "PayrollEntry_employeeId_type_period_idx" ON "Payroll
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "PayrollEntry_period_idx" ON "PayrollEntry"("period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PayrollItem_entryId_idx" ON "PayrollItem"("entryId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PayrollItem_labelKey_idx" ON "PayrollItem"("labelKey");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PayrollItem_kind_labelKey_idx" ON "PayrollItem"("kind", "labelKey");
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "DepartmentTransfer_employeeId_idx" ON "DepartmentTransfer"("employeeId");

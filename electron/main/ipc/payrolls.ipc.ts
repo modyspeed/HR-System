@@ -21,6 +21,7 @@ import {
   storePayrollBatch
 } from '../payroll-files'
 import { syncPayrollDepartments } from '../payroll-transfers'
+import { syncBatchItems } from './payroll-items.ipc'
 import { parseIncentiveRatePdf } from '../incentive-rate-parser'
 import { deleteStoredRateFile, sliceRatePage, storeRateBatch } from '../incentive-rate-files'
 import {
@@ -381,6 +382,7 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
 
       const matchedRows = parsed.rows.filter((row) => row.employeeId !== null)
       let created = 0
+      let batchId = ''
 
       await prisma.$transaction(async (tx) => {
         // استبدال دفعة نفس الشهر/النوع — يبقى لكل شهر نسخة واحدة فقط.
@@ -410,6 +412,7 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
             pageCount
           }
         })
+        batchId = batch.id
 
         await tx.payrollEntry.createMany({
           data: matchedRows.map((row) => ({
@@ -432,6 +435,9 @@ export function registerPayrollsIpc(prisma: PrismaClient, ipc: IpcRegistry): voi
 
         await syncPayrollDepartments(tx, matchedRows, payload.fileName, parsed.year, parsed.month)
       })
+
+      // استخراج مفردات كل ظرف (بنود المرتب/الحافز) لتظهر كأعمدة في المراجعة.
+      if (batchId) await syncBatchItems(prisma, batchId)
 
       return { created, unmatched: parsed.unmatched, period: parsed.period }
     }
