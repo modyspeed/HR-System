@@ -1,21 +1,24 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { ClipboardCheck, LayoutGrid } from 'lucide-react'
+import { ClipboardCheck, LayoutGrid, UserX } from 'lucide-react'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { AbsencesReport } from './AbsencesReport'
 import { PayrollItemsMatrix } from './PayrollItemsMatrix'
 
-type ReviewSection = 'items'
+type ReviewSection = 'items' | 'absences'
 
 const SECTIONS: { key: ReviewSection; labelKey: string; icon: typeof ClipboardCheck }[] = [
-  { key: 'items', labelKey: 'reviews.items.tab', icon: LayoutGrid }
+  { key: 'items', labelKey: 'reviews.items.tab', icon: LayoutGrid },
+  { key: 'absences', labelKey: 'reviews.absences.tab', icon: UserX }
 ]
 
 /**
  * المراجعة: شاشة تفتيش ومتابعة — تبدأ بمصفوفة مفردات المرتب والحافز
- * (صف لكل موظف وعمود لكل بند) وتتسع لبقية أقسام المراجعة لاحقًا.
+ * (صف لكل موظف وعمود لكل بند)، ويضمّها قسم الغيابات الذي يعرض من غاب
+ * عن الشهر المختار وكم خُصم منه بإذن أو بدون إذن.
  *
  * شريط الأقسام لا يظهر إلا عند وجود أكثر من قسم؛ فقسم واحد لا يحتاج اختيارًا.
  */
@@ -64,6 +67,7 @@ export function ReviewsList() {
         )}
 
         {section === 'items' && <PayrollItemsMatrix />}
+        {section === 'absences' && <AbsencesReport />}
       </motion.div>
     </div>
   )

@@ -14,6 +14,8 @@
  */
 import { PDFParse } from 'pdf-parse'
 import type {
+  AbsenceRow,
+  AbsencesReport,
   PayrollItemColumn,
   PayrollItemKind,
   PayrollItemRow,
@@ -262,10 +264,81 @@ function extractPageItems(items: PositionedText[]): PayrollItemRow[] {
   return result
 }
 
+/** مفتاح حقل الغياب: «غياب بدون اذن:-» ⇒ «غياببدوناذن». */
+function absenceFieldKey(text: string): string {
+  return normalizeItemText(text)
+    .replace(/\s+/g, '')
+    .replace(/[:\-–—،,.]+$/g, '')
+}
+
+/** يصنّف حقل رأس الظرف إلى نوع غياب، أو `null` لغير حقول الغياب. */
+export function classifyAbsenceField(text: string): 'withoutPermission' | 'withPermission' | null {
+  const key = absenceFieldKey(text)
+  if (!key.includes('غياب')) return null
+  if (key.includes('بدوناذن')) return 'withoutPermission'
+  if (key.includes('باذن')) return 'withPermission'
+  return null
+}
+
+/**
+ * يقرأ أيام الغياب من سطور رأس الظرف.
+ *
+ * الحقول المطلوبة تقع **فوق** جدول البنود: في ظرف الحافز عند y≈311 مقابل
+ * رأس الجدول عند y≈273، وفي ظرف المرتب رأس الجدول عند y≈313 بينما بند
+ * «غياب بدون اذن» (وهو **مبلغ** لا عدد أيام) عند y≈233 — أي أسفل الرأس.
+ * لذلك نقتصر على السطور التي تسبق رأس الجدول، فلا نخلط مبلغ الغياب بأيامه.
+ */
+function readAbsenceDays(rows: PositionedText[][]): SlipAbsenceDays {
+  const result: SlipAbsenceDays = { withoutPermission: null, withPermission: null }
+
+  const headerIndex = rows.findIndex((row) => {
+    const labels = row.map((item) => normalizeItemText(item.text))
+    return labels.includes('الاستحقاقات') || labels.includes('الاستقطاعات')
+  })
+  const headerRows = headerIndex >= 0 ? rows.slice(0, headerIndex) : rows
+
+  for (const row of headerRows) {
+    for (const item of row) {
+      const kind = classifyAbsenceField(item.text)
+      if (!kind) continue
+
+      // القيمة تقع يسار التسمية في السطر نفسه (اتجاه صفحة الـPDF من اليمين لليسار).
+      const candidates = row
+        .filter((candidate) => candidate.x < item.x)
+        .map((candidate) => ({
+          x: candidate.x,
+          value: parseItemValue(normalizeItemText(candidate.text))
+        }))
+        .filter((candidate): candidate is { x: number; value: number } => candidate.value !== null)
+        .sort((a, b) => b.x - a.x)
+
+      const value = candidates[0]?.value ?? null
+      if (kind === 'withoutPermission') result.withoutPermission = value
+      else result.withPermission = value
+    }
+  }
+
+  return result
+}
+
 export interface PayrollItemsParseResult {
   /** بنود كل صفحة من الملف — المفتاح رقم الصفحة (يبدأ من 1). */
   byPage: Map<number, PayrollItemRow[]>
+  /** أيام الغياب لكل صفحة — المفتاح رقم الصفحة (يبدأ من 1). */
+  absencesByPage: Map<number, SlipAbsenceDays>
   pages: number
+}
+
+/**
+ * أيام الغياب المقروءة من رأس الظرف (فوق جدول البنود):
+ *   «غياب بدون اذن:- ٨» ⇒ withoutPermission = 8
+ *   «غياب باذن:- ٠٫٥»  ⇒ withPermission = 0.5
+ */
+export interface SlipAbsenceDays {
+  /** أيام الغياب بدون إذن. */
+  withoutPermission: number | null
+  /** أيام الغياب بإذن. */
+  withPermission: number | null
 }
 
 /**
@@ -280,19 +353,20 @@ export async function extractPayrollItems(buffer: Buffer): Promise<PayrollItemsP
   const byTable = await extractByTables(buffer)
   if (byTable.byPage.size > 0) return byTable
 
-  return { byPage: new Map(), pages: 0 }
+  return { byPage: new Map(), absencesByPage: new Map(), pages: 0 }
 }
 
 /** الاستخراج بالإحداثيات — الأدق: يقرأ موضع كل عنصر في الصفحة. */
 async function extractByGeometry(buffer: Buffer): Promise<PayrollItemsParseResult> {
   const byPage = new Map<number, PayrollItemRow[]>()
+  const absencesByPage = new Map<number, SlipAbsenceDays>()
   const parser = new PDFParse({ data: new Uint8Array(buffer) })
   const internals = parser as unknown as ParserInternals
 
   try {
     await internals.load()
     const doc = internals.doc
-    if (!doc) return { byPage, pages: 0 }
+    if (!doc) return { byPage, absencesByPage, pages: 0 }
 
     for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
       const page = await doc.getPage(pageNumber)
@@ -305,6 +379,7 @@ async function extractByGeometry(buffer: Buffer): Promise<PayrollItemsParseResul
             x: item.transform?.[4] ?? 0,
             y: item.transform?.[5] ?? 0
           }))
+        absencesByPage.set(pageNumber, readAbsenceDays(groupIntoRows(items)))
         const parsed = extractPageItems(items)
         if (parsed.length > 0) byPage.set(pageNumber, parsed)
       } finally {
@@ -312,9 +387,9 @@ async function extractByGeometry(buffer: Buffer): Promise<PayrollItemsParseResul
       }
     }
 
-    return { byPage, pages: doc.numPages }
+    return { byPage, absencesByPage, pages: doc.numPages }
   } catch {
-    return { byPage: new Map(), pages: 0 }
+    return { byPage: new Map(), absencesByPage: new Map(), pages: 0 }
   }
 }
 
@@ -424,6 +499,8 @@ export function parseSlipTableItems(table: string[][]): PayrollItemRow[] {
 /** الاستخراج بخلايا الجدول المكتشَف (بديل). */
 async function extractByTables(buffer: Buffer): Promise<PayrollItemsParseResult> {
   const byPage = new Map<number, PayrollItemRow[]>()
+  // المسار البديل بلا إحداثيات، فلا تُقرأ منه أيام الغياب.
+  const absencesByPage = new Map<number, SlipAbsenceDays>()
   const parser = new PDFParse({ data: new Uint8Array(buffer) })
   try {
     const result = await parser.getTable()
@@ -434,9 +511,9 @@ async function extractByTables(buffer: Buffer): Promise<PayrollItemsParseResult>
       }
       if (items.length > 0) byPage.set(page.num, items)
     }
-    return { byPage, pages: result.pages?.length ?? 0 }
+    return { byPage, absencesByPage, pages: result.pages?.length ?? 0 }
   } catch {
-    return { byPage, pages: 0 }
+    return { byPage, absencesByPage, pages: 0 }
   }
 }
 
@@ -554,5 +631,112 @@ export function buildItemsMatrix(params: {
     totals: columns.map((column) => column.total),
     extracted,
     pending: params.entries.length - extracted
+  }
+}
+
+/* -------------------------------- absences -------------------------------- */
+
+/**
+ * ظرف واحد مساهم في تقرير الغيابات — أيامه مقروءة من رأس الظرف.
+ *
+ * الأيام من نوع `incentive` فقط: ظرف الحافز يحمل «غياب بدون اذن:- ٨» و
+ * «غياب باذن:- ٠٫٥» في رأسه، بينما في ظرف المرتب يظهر «غياب بدون اذن»
+ * **مبلغًا** ضمن بنود الجدول لا عددًا من الأيام.
+ */
+export interface AbsenceEntry {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentName: string | null
+  /** أيام الغياب بإذن كما وردت في رأس الظرف. */
+  withPermissionDays: number | null
+  /** أيام الغياب بدون إذن كما وردت في رأس الظرف. */
+  withoutPermissionDays: number | null
+}
+
+/**
+ * يبني تقرير الغيابات: صف لكل موظف له أيام غياب في الشهر، مرتَّب
+ * بالأشدّ أولًا (من غاب بدون إذن ثم من غاب بإذن).
+ */
+export function buildAbsencesReport(params: {
+  period: string
+  month: number
+  year: number
+  fileNames: string[]
+  /** أنواع الأظرف الموجودة في الشهر. */
+  slipTypes: string[]
+  entries: AbsenceEntry[]
+}): AbsencesReport {
+  // يُجمَّع للموظف الواحد كله: لو وردت أيامه في أكثر من ظرف (مرتب وحافز)
+  // صارت له صف واحد لا صف لكل ظرف. وتُؤخذ بيانات الموظف (الاسم والقسم) من
+  // الظرف الذي يحمل أيامه — وهو ظرف الحافز؛ فالقسم يُستنتج لكل ظرف على
+  // حدة، وقد يختلف بين ظرف المرتب وظرف الحافز لنفس الموظف في الشهر نفسه.
+  const byEmployee = new Map<string, AbsenceRow & { hasDays: boolean }>()
+  for (const entry of params.entries) {
+    const withPermission = entry.withPermissionDays ?? 0
+    const withoutPermission = entry.withoutPermissionDays ?? 0
+    const hasDays = withPermission !== 0 || withoutPermission !== 0
+    const existing = byEmployee.get(entry.employeeId)
+    if (existing) {
+      existing.withPermission += withPermission
+      existing.withoutPermission += withoutPermission
+      if (hasDays && !existing.hasDays) {
+        existing.employeeCode = entry.employeeCode
+        existing.employeeName = entry.employeeName
+        existing.departmentName = entry.departmentName
+        existing.hasDays = true
+      }
+      continue
+    }
+    byEmployee.set(entry.employeeId, {
+      employeeId: entry.employeeId,
+      employeeCode: entry.employeeCode,
+      employeeName: entry.employeeName,
+      departmentName: entry.departmentName,
+      withPermission,
+      withoutPermission,
+      total: 0,
+      hasDays
+    })
+  }
+
+  const rows = [...byEmployee.values()]
+    .map(({ hasDays: _hasDays, ...row }) => ({
+      ...row,
+      withPermission: Math.round(row.withPermission * 100) / 100,
+      withoutPermission: Math.round(row.withoutPermission * 100) / 100,
+      total: Math.round((row.withPermission + row.withoutPermission) * 100) / 100
+    }))
+    .filter((row) => row.total !== 0)
+    .sort(
+      (a, b) =>
+        b.withoutPermission - a.withoutPermission ||
+        b.withPermission - a.withPermission ||
+        b.total - a.total ||
+        a.employeeCode.localeCompare(b.employeeCode)
+    )
+
+  const totals = rows.reduce(
+    (acc, row) => ({
+      withPermission: acc.withPermission + row.withPermission,
+      withoutPermission: acc.withoutPermission + row.withoutPermission,
+      total: acc.total + row.total
+    }),
+    { withPermission: 0, withoutPermission: 0, total: 0 }
+  )
+
+  return {
+    period: params.period,
+    month: params.month,
+    year: params.year,
+    fileNames: params.fileNames,
+    slipTypes: params.slipTypes,
+    rows,
+    totals: {
+      withPermission: Math.round(totals.withPermission * 100) / 100,
+      withoutPermission: Math.round(totals.withoutPermission * 100) / 100,
+      total: Math.round(totals.total * 100) / 100
+    },
+    employees: rows.length
   }
 }

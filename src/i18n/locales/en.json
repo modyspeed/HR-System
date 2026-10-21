@@ -917,6 +917,31 @@
       "balanceNote": "Outstanding advances balance: {{value}}",
       "clickHint": "Click a total to see the items",
       "extractPending": "Extract missing items ({{count}} slips)"
+    },
+    "absences": {
+      "tab": "Absences",
+      "title": "Absence days report",
+      "absent": "Absent employees",
+      "absentCount": "{{count}} absent employees",
+      "employeeCode": "Code",
+      "employeeName": "Name",
+      "departmentName": "Department",
+      "withPermission": "Authorized absence (days)",
+      "withoutPermission": "Unauthorized absence (days)",
+      "total": "Total days",
+      "daysUnit": "days",
+      "allPeriods": "All months",
+      "allDepartments": "All departments",
+      "searchPlaceholder": "Search by name or code...",
+      "sources": "Source",
+      "noPeriods": "No payroll files yet",
+      "noPeriodsBody": "Import an incentive file from “Payroll” first, then it shows up here",
+      "emptyTitle": "No absence days this month",
+      "emptyBody": "No absence was recorded in this month's incentive slips",
+      "noIncentiveTitle": "No incentive file for this month",
+      "noIncentiveBody": "Absence days are read from the incentive slip header — import the incentive file for this month",
+      "noResults": "No results",
+      "noResultsBody": "Try adjusting the search or filters"
     }
   }
 }

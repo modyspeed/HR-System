@@ -7,9 +7,18 @@
  */
 import { Prisma, PrismaClient } from '@prisma/client'
 import { ApiError } from '../../../shared/types'
-import type { PayrollItemsPeriod, PayrollItemsQuery } from '../../../shared/types'
+import type {
+  AbsencesQuery,
+  PayrollItemsPeriod,
+  PayrollItemsQuery
+} from '../../../shared/types'
 import { requirePermission } from '../auth'
-import { buildItemsMatrix, extractPayrollItems } from '../payroll-items'
+import {
+  buildAbsencesReport,
+  buildItemsMatrix,
+  extractPayrollItems,
+  type SlipAbsenceDays
+} from '../payroll-items'
 import { resolvePayrollStoredPath } from '../payroll-files'
 import fs from 'fs'
 import type { IpcRegistry } from './registry'
@@ -21,6 +30,13 @@ const ENTRY_INCLUDE = {
 } as const
 
 type EntryRow = Prisma.PayrollEntryGetPayload<{ include: typeof ENTRY_INCLUDE }>
+
+const ABSENCE_INCLUDE = {
+  ...ENTRY_INCLUDE,
+  items: false
+} as const
+
+type AbsenceEntryRow = Prisma.PayrollEntryGetPayload<{ include: typeof ABSENCE_INCLUDE }>
 
 function assertType(type: string): void {
   if (type !== 'salary' && type !== 'incentive' && type !== 'other') {
@@ -66,7 +82,7 @@ async function listPeriods(prisma: PrismaClient, type?: string): Promise<Payroll
 export async function syncBatchItems(
   prisma: PrismaClient,
   batchId: string
-): Promise<{ entries: number; items: number }> {
+): Promise<{ entries: number; items: number; absences: number }> {
   const batch = await prisma.payrollBatch.findUnique({
     where: { id: batchId },
     include: { entries: { select: { id: true, page: true } } }
@@ -78,7 +94,7 @@ export async function syncBatchItems(
     throw new ApiError('NOT_FOUND', 'The payroll file is missing from the archive')
   }
 
-  const { byPage } = await extractPayrollItems(fs.readFileSync(filePath))
+  const { byPage, absencesByPage } = await extractPayrollItems(fs.readFileSync(filePath))
   const byPageNumber = new Map(batch.entries.map((entry) => [entry.page, entry.id]))
 
   const rows: {
@@ -116,7 +132,53 @@ export async function syncBatchItems(
     })
   }
 
-  return { entries: byPage.size, items: total }
+  const absences = await applyAbsenceDays(prisma, batch.entries, absencesByPage)
+
+  return { entries: byPage.size, items: total, absences }
+}
+
+/**
+ * يكتب أيام الغياب على أظرف الدفعة.
+ *
+ * الصفحات التي فشلت قراءتها تُترك كما هي (لا تمحو بيانات سليمة)، أما
+ * الصفحات التي قُرئت بلا حقول غياب فتُصفَّر — حتى لا تبقى أيام قديمة
+ * بعد إعادة الاستخراج.
+ */
+async function applyAbsenceDays(
+  prisma: PrismaClient,
+  entries: { id: string; page: number }[],
+  absencesByPage: Map<number, SlipAbsenceDays>
+): Promise<number> {
+  const updates: { id: string; withPermission: number | null; withoutPermission: number | null }[] =
+    []
+
+  for (const entry of entries) {
+    const absence = absencesByPage.get(entry.page)
+    if (!absence) continue
+    updates.push({
+      id: entry.id,
+      withPermission: absence.withPermission,
+      withoutPermission: absence.withoutPermission
+    })
+  }
+
+  if (updates.length === 0) return 0
+
+  let written = 0
+  await prisma.$transaction(
+    updates.map((update) =>
+      prisma.payrollEntry.update({
+        where: { id: update.id },
+        data: {
+          absenceWithPermissionDays: update.withPermission,
+          absenceWithoutPermissionDays: update.withoutPermission
+        }
+      })
+    )
+  )
+  written = updates.filter((u) => u.withPermission !== null || u.withoutPermission !== null).length
+
+  return written
 }
 
 export function registerPayrollItemsIpc(prisma: PrismaClient, ipc: IpcRegistry): void {
@@ -196,4 +258,48 @@ export function registerPayrollItemsIpc(prisma: PrismaClient, ipc: IpcRegistry):
       return { entries, items, periods: await listPeriods(prisma, query.type) }
     }
   )
+
+  ipc.handle('payrolls:items.absences', async (_event, query: AbsencesQuery) => {
+    requirePermission('payrolls.view')
+    assertPeriod(query.period)
+
+    // الأيام تُقرأ من رأس ظرف الحافز؛ فهي مُخزَّنة على الظرف نفسه.
+    const where: Prisma.PayrollEntryWhereInput = { period: query.period }
+    const search = query.search?.trim()
+    if (search) {
+      where.OR = [
+        { employee: { code: { contains: search } } },
+        { employee: { name: { contains: search } } }
+      ]
+    }
+    if (query.departmentId) where.departmentId = query.departmentId
+
+    const entries = await prisma.payrollEntry.findMany({
+      where,
+      include: ABSENCE_INCLUDE,
+      orderBy: { employee: { code: 'asc' } }
+    })
+
+    const batches = await prisma.payrollBatch.findMany({
+      where: { period: query.period },
+      orderBy: { uploadedAt: 'desc' },
+      select: { originalName: true, month: true, year: true, type: true }
+    })
+
+    return buildAbsencesReport({
+      period: query.period,
+      month: batches[0]?.month ?? Number(query.period.split('-')[1]),
+      year: batches[0]?.year ?? Number(query.period.split('-')[0]),
+      fileNames: [...new Set(batches.map((batch) => batch.originalName))],
+      slipTypes: [...new Set(batches.map((batch) => batch.type))],
+      entries: entries.map((entry: AbsenceEntryRow) => ({
+        employeeId: entry.employeeId,
+        employeeCode: entry.employee.code,
+        employeeName: entry.employee.name,
+        departmentName: entry.department?.name ?? entry.employee.department?.name ?? null,
+        withPermissionDays: entry.absenceWithPermissionDays,
+        withoutPermissionDays: entry.absenceWithoutPermissionDays
+      }))
+    })
+  })
 }

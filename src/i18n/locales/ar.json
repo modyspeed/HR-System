@@ -917,6 +917,31 @@
       "balanceNote": "رصيد مستحق على السلف: {{value}}",
       "clickHint": "اضغط على الإجمالي لعرض البنود",
       "extractPending": "استكمال استخراج المفردات ({{count}} ظرف)"
+    },
+    "absences": {
+      "tab": "الغيابات",
+      "title": "تقرير أيام الغياب",
+      "absent": "الموظفون الغائبون",
+      "absentCount": "{{count}} موظف غائب",
+      "employeeCode": "الكود",
+      "employeeName": "الاسم",
+      "departmentName": "القسم",
+      "withPermission": "غياب بإذن (أيام)",
+      "withoutPermission": "غياب بدون إذن (أيام)",
+      "total": "إجمالي الأيام",
+      "daysUnit": "أيام",
+      "allPeriods": "كل الشهور",
+      "allDepartments": "كل الأقسام",
+      "searchPlaceholder": "بحث بالاسم أو الكود...",
+      "sources": "المصدر",
+      "noPeriods": "لا توجد كشوف مسجّلة",
+      "noPeriodsBody": "استورد كشف الحافز أولًا من قسم «الأجور والمرتبات» ليظهر هنا",
+      "emptyTitle": "لا توجد أيام غياب في هذا الشهر",
+      "emptyBody": "لم يُسجَّل أي غياب في أظرف الحافز لهذا الشهر",
+      "noIncentiveTitle": "لا يوجد كشف حافز لهذا الشهر",
+      "noIncentiveBody": "أيام الغياب تُقرأ من رأس ظرف الحافز — استورد كشف الحافز لهذا الشهر",
+      "noResults": "لا توجد نتائج",
+      "noResultsBody": "جرّب تعديل البحث أو الفلتر"
     }
   }
 }

@@ -202,6 +202,8 @@ model PayrollEntry {
   totalEarned     Float?
   totalDeductions Float?
   netSalary       Float?
+  absenceWithPermissionDays    Float? // أيام الغياب بإذن — من رأس ظرف الحافز («غياب باذن:- ٠٫٥»)
+  absenceWithoutPermissionDays Float? // أيام الغياب بدون إذن — من رأس ظرف الحافز («غياب بدون اذن:- ٨»)
   sourceText      String? // النص المُستخرج من الظرف (للأرشفة والفحص)
   createdAt       DateTime      @default(now())
   items           PayrollItem[]

@@ -438,6 +438,48 @@ export interface PayrollItemsQuery {
   departmentId?: string
 }
 
+/* -------------------------------- absences -------------------------------- */
+
+/** صف في تقرير الغيابات — موظف واحد ومقادير غيابه عن الشهر. */
+export interface AbsenceRow {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentName: string | null
+  /** أيام الغياب بإذن. */
+  withPermission: number
+  /** أيام الغياب بدون إذن. */
+  withoutPermission: number
+  /** مجموع أيام الغياب. */
+  total: number
+}
+
+/** تقرير غيابات شهر — الموظفون الذين لديهم أيام غياب فقط. */
+export interface AbsencesReport {
+  period: string
+  month: number
+  year: number
+  /** ملفات الكشوف الموجودة في الشهر. */
+  fileNames: string[]
+  /** أنواع الأظرف الموجودة في الشهر (salary / incentive). */
+  slipTypes: string[]
+  rows: AbsenceRow[]
+  totals: {
+    withPermission: number
+    withoutPermission: number
+    total: number
+  }
+  /** عدد الموظفين الذين لديهم أيام غياب. */
+  employees: number
+}
+
+export interface AbsencesQuery {
+  /** yyyy-mm */
+  period: string
+  search?: string
+  departmentId?: string
+}
+
 export interface SalaryGradeRecord {
   id: string
   employeeId: string
@@ -842,6 +884,8 @@ export interface ApiShape {
       list(query: PayrollItemsQuery): Promise<PayrollItemsMatrix>
       /** الشهور المتاحة للمرتب/الحافز مع حالة استخراج مفرداتها. */
       periods(query?: { type?: string }): Promise<PayrollItemsPeriod[]>
+      /** تقرير الغيابات (بأذن/بدون إذن) عن شهر معيّن — يجمع من المرتب والحافز. */
+      absences(query: AbsencesQuery): Promise<AbsencesReport>
       /** يعيد استخراج المفردات من ملف الكشف المخزَّن ويحدّثها. */
       sync(query: { type: string; period: string }): Promise<{
         entries: number

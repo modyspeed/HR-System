@@ -1,8 +1,11 @@
 /**
  * تعبئة مفردات الأظرف الموجودة مسبقًا: يستخرج بنود كل ظرف من ملف الكشف
- * المخزَّن ويخزّنها في جدول PayrollItem.
+ * المخزَّن ويخزّنها في جدول PayrollItem، ويقرأ معه أيام الغياب من رأس
+ * ظرف الحافز («غياب بدون اذن:- ٨» / «غياب باذن:- ٠٫٥») ويخزّنها على الظرف.
  *
- * التشغيل:  npx tsx scripts/backfill-payroll-items.mts [--dry]
+ * التشغيل:  node scripts/backfill-payroll-items.mts [--dry]
+ * (Node 22+ يشغّل TypeScript مباشرةً بلا حاجة إلى tsx — وتُطبَّق التغييرات فعليًا
+ *  ما لم يُمرَّر ‎--dry‎ الذي يكتفي بالقراءة دون الكتابة في القاعدة.)
  */
 import fs from 'fs'
 import path from 'path'
@@ -32,7 +35,7 @@ async function main() {
     }
 
     const t = Date.now()
-    const { byPage } = await extractPayrollItems(fs.readFileSync(filePath))
+    const { byPage, absencesByPage } = await extractPayrollItems(fs.readFileSync(filePath))
     const byPageNumber = new Map(batch.entries.map((entry) => [entry.page, entry.id]))
 
     const rows: {
@@ -46,6 +49,7 @@ async function main() {
     }[] = []
     let items = 0
     let linked = 0
+    let absences = 0
     for (const [page, pageItems] of byPage) {
       const entryId = byPageNumber.get(page)
       if (!entryId) continue
@@ -64,16 +68,39 @@ async function main() {
       }
     }
 
+    const absenceUpdates = batch.entries
+      .map((entry) => ({ entry, absence: absencesByPage.get(entry.page) }))
+      .filter(({ absence }) => absence !== undefined)
+      .map(({ entry, absence }) => ({
+        id: entry.id,
+        absenceWithPermissionDays: absence?.withPermission ?? null,
+        absenceWithoutPermissionDays: absence?.withoutPermission ?? null
+      }))
+
+    absences = absenceUpdates.filter(
+      (update) =>
+        update.absenceWithPermissionDays !== null ||
+        update.absenceWithoutPermissionDays !== null
+    ).length
+
     if (!dry) {
       const entryIds = batch.entries.map((entry) => entry.id)
       await prisma.$transaction(async (tx) => {
         await tx.payrollItem.deleteMany({ where: { entryId: { in: entryIds } } })
         if (rows.length > 0) await tx.payrollItem.createMany({ data: rows })
       })
+
+      if (absenceUpdates.length > 0) {
+        await prisma.$transaction(
+          absenceUpdates.map((update) =>
+            prisma.payrollEntry.update({ where: { id: update.id }, data: update })
+          )
+        )
+      }
     }
 
     console.log(
-      `  ${batch.type}/${batch.period}: ${batch.entries.length} entries, ${linked} slips parsed, ${items} items (${Date.now() - t}ms)`
+      `  ${batch.type}/${batch.period}: ${batch.entries.length} entries, ${linked} slips parsed, ${items} items, ${absences} absences (${Date.now() - t}ms)`
     )
   }
 

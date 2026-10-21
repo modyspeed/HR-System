@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS "PayrollEntry" (
     "totalEarned" REAL,
     "totalDeductions" REAL,
     "netSalary" REAL,
+    "absenceWithPermissionDays" REAL,
+    "absenceWithoutPermissionDays" REAL,
     "sourceText" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PayrollEntry_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "PayrollBatch" ("id") ON DELETE CASCADE ON UPDATE CASCADE,

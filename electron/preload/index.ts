@@ -93,6 +93,7 @@ const api: ApiShape = {
     items: {
       list: (query) => ipcRenderer.invoke('payrolls:items.list', query),
       periods: (query) => ipcRenderer.invoke('payrolls:items.periods', query),
+      absences: (query) => ipcRenderer.invoke('payrolls:items.absences', query),
       sync: (query) => ipcRenderer.invoke('payrolls:items.sync', query)
     },
     salaryGrades: {
