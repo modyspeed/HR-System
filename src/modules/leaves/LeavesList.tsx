@@ -18,9 +18,16 @@ import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePermission } from '@/hooks/usePermission'
-import { staggerContainer, staggerItem, spring } from '@/lib/motion'
+import { staggerItem, spring } from '@/lib/motion'
 import { Badge } from '@/components/ui/Badge'
 import { GlassCard } from '@/components/ui/GlassCard'
+import {
+  DataTable,
+  DataTableBody,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
@@ -254,26 +261,20 @@ export function LeavesList() {
             />
           )
         ) : (
-          <div className="scroll-area overflow-x-auto">
-            <table className="w-full min-w-[880px]">
-              <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wider text-ink-low">
-                  <th className="px-5 py-3.5 text-start font-medium">{t('leaves.employee')}</th>
-                  <th className="px-5 py-3.5 text-start font-medium">{t('leaves.type')}</th>
-                  <th className="px-5 py-3.5 text-start font-medium">{t('leaves.period')}</th>
-                  <th className="px-5 py-3.5 text-center font-medium">{t('leaves.daysCount')}</th>
-                  <th className="px-5 py-3.5 text-center font-medium">{t('leaves.year')}</th>
-                  <th className="px-5 py-3.5 text-start font-medium">{t('leaves.status')}</th>
-                  <th className="px-5 py-3.5 text-center font-medium">{t('leaves.document')}</th>
-                  <th className="px-5 py-3.5 text-end font-medium">{t('leaves.actions')}</th>
-                </tr>
-              </thead>
-              <motion.tbody
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                className="divide-y divide-surface-base"
-              >
+          <DataTable minWidth="min-w-[880px]">
+            <DataTableHead>
+              <DataTableHeadRow>
+                <DataTableHeadCell>{t('leaves.employee')}</DataTableHeadCell>
+                <DataTableHeadCell>{t('leaves.type')}</DataTableHeadCell>
+                <DataTableHeadCell>{t('leaves.period')}</DataTableHeadCell>
+                <DataTableHeadCell align="center">{t('leaves.daysCount')}</DataTableHeadCell>
+                <DataTableHeadCell align="center">{t('leaves.year')}</DataTableHeadCell>
+                <DataTableHeadCell>{t('leaves.status')}</DataTableHeadCell>
+                <DataTableHeadCell align="center">{t('leaves.document')}</DataTableHeadCell>
+                <DataTableHeadCell align="end">{t('leaves.actions')}</DataTableHeadCell>
+              </DataTableHeadRow>
+            </DataTableHead>
+            <DataTableBody>
                 {leaves.map((leave) => (
                   <motion.tr
                     key={leave.id}
@@ -363,9 +364,8 @@ export function LeavesList() {
                     </td>
                   </motion.tr>
                 ))}
-              </motion.tbody>
-            </table>
-          </div>
+            </DataTableBody>
+          </DataTable>
         )}
       </GlassCard>
 

@@ -26,9 +26,16 @@ import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePermission } from '@/hooks/usePermission'
 import { formatDateOnly } from '@/lib/utils'
-import { staggerContainer, staggerItem, spring } from '@/lib/motion'
+import { staggerItem, spring } from '@/lib/motion'
 import { Badge } from '@/components/ui/Badge'
 import { GlassCard } from '@/components/ui/GlassCard'
+import {
+  DataTable,
+  DataTableBody,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
@@ -331,56 +338,50 @@ export function EmployeesList() {
             />
           )
         ) : (
-          <div className="scroll-area overflow-x-auto">
-            <table className="w-full min-w-[760px]">
-              <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wider text-ink-low">
-                  <th className="px-5 py-3.5 text-start font-medium">
+          <DataTable minWidth="min-w-[760px]">
+            <DataTableHead>
+              <DataTableHeadRow>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'code'}
                       order={order}
                       onClick={() => toggleSort('code')}
                       label={t('employees.code')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'name'}
                       order={order}
                       onClick={() => toggleSort('name')}
                       label={t('employees.name')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'grade'}
                       order={order}
                       onClick={() => toggleSort('grade')}
                       label={t('employees.grade')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'hireDate'}
                       order={order}
                       onClick={() => toggleSort('hireDate')}
                       label={t('employees.hireDate')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     {t('employees.status')}
-                  </th>
-                  <th className="px-5 py-3.5 text-end font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell align="end">
                     {t('employees.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <motion.tbody
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                className="divide-y divide-surface-base"
-              >
+                </DataTableHeadCell>
+              </DataTableHeadRow>
+            </DataTableHead>
+            <DataTableBody>
                 {employees.map((employee) => (
                   <motion.tr
                     key={employee.id}
@@ -501,9 +502,8 @@ export function EmployeesList() {
                     </td>
                   </motion.tr>
                 ))}
-              </motion.tbody>
-            </table>
-          </div>
+            </DataTableBody>
+          </DataTable>
         )}
       </GlassCard>
 

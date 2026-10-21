@@ -10,6 +10,12 @@ import { cn, formatMoney } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
 import { SoftButton } from '@/components/ui/SoftButton'
 import { Badge } from '@/components/ui/Badge'
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { MatchBadge } from './PayrollPreviewModal'
 import { periodLabel, payrollTypeTone } from './payrollMeta'
 
@@ -165,18 +171,24 @@ export function PayrollImportModal({ open, onClose, onImported }: PayrollImportM
               </p>
             )}
 
-            <div className="scroll-area max-h-[46vh] overflow-auto rounded-2xl border border-line">
-              <table className="w-full min-w-[760px] border-collapse">
-                <thead className="sticky top-0 z-10 bg-surface-strong">
-                  <tr className="text-[11px] uppercase tracking-wider text-ink-low">
-                    <th className="px-4 py-2.5 text-start font-medium">{t('payrolls.page')}</th>
-                    <th className="px-4 py-2.5 text-start font-medium">{t('payrolls.code')}</th>
-                    <th className="px-4 py-2.5 text-start font-medium">{t('payrolls.name')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('payrolls.matchTitle')}</th>
-                    <th className="px-4 py-2.5 text-end font-medium">{t('payrolls.basic')}</th>
-                    <th className="px-4 py-2.5 text-end font-medium">{t('payrolls.net')}</th>
-                  </tr>
-                </thead>
+            <div className="rounded-2xl border border-line">
+              <DataTable size="sm" minWidth="min-w-[760px]">
+                <DataTableHead>
+                  <DataTableHeadRow dense>
+                    <DataTableHeadCell dense>{t('payrolls.page')}</DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('payrolls.code')}</DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('payrolls.name')}</DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('payrolls.matchTitle')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="end">
+                      {t('payrolls.basic')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="end">
+                      {t('payrolls.net')}
+                    </DataTableHeadCell>
+                  </DataTableHeadRow>
+                </DataTableHead>
                 <tbody className="divide-y divide-surface-base">
                   {result.rows.slice(0, 600).map((row) => (
                     <tr key={row.page} className={cn('text-xs', row.match === 'none' && 'bg-rose-500/5')}>
@@ -197,7 +209,7 @@ export function PayrollImportModal({ open, onClose, onImported }: PayrollImportM
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </>
         )}

@@ -14,6 +14,12 @@ import { resolveApiError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
 import { SoftButton } from '@/components/ui/SoftButton'
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 
 interface ImportDepartmentsModalProps {
   open: boolean
@@ -225,23 +231,25 @@ export function ImportDepartmentsModal({ open, onClose, onImported }: ImportDepa
             <p className="mb-2.5 text-xs font-medium text-ink-med">
               {t('departments.previewHint')}
             </p>
-            <div className="scroll-area max-h-[42vh] overflow-y-auto rounded-2xl border border-line">
-              <table className="w-full min-w-[560px]">
-                <thead>
-                  <tr className="border-b border-line bg-surface-soft text-[10px] uppercase tracking-wider text-ink-low">
-                    <th className="px-3 py-2.5 text-start font-medium">#</th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+            <div className="rounded-2xl border border-line">
+              <DataTable maxHeight="max-h-[42vh]" minWidth="min-w-[560px]">
+                <DataTableHead>
+                  <DataTableHeadRow dense>
+                    <DataTableHeadCell dense>#</DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('departments.code')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('departments.name')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('departments.allowance')}
-                    </th>
-                    <th className="px-3 py-2.5 text-end font-medium">{t('common.remove')}</th>
-                  </tr>
-                </thead>
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="end">
+                      {t('common.remove')}
+                    </DataTableHeadCell>
+                  </DataTableHeadRow>
+                </DataTableHead>
                 <tbody className="divide-y divide-surface-base">
                   {rows.map((row, index) => {
                     const invalid = !row.code.trim() || !row.name.trim()
@@ -299,7 +307,7 @@ export function ImportDepartmentsModal({ open, onClose, onImported }: ImportDepa
                     )
                   })}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
         )}

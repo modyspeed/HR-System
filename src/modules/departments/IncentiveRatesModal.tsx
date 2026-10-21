@@ -15,6 +15,12 @@ import { SoftButton } from '@/components/ui/SoftButton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { Badge } from '@/components/ui/Badge'
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 
 interface IncentiveRatesModalProps {
   open: boolean
@@ -257,16 +263,20 @@ export function IncentiveRatesModal({ open, departmentId, onClose }: IncentiveRa
                   {t('departments.incentiveConfirmImport', { count: parseMutation.data.matched })}
                 </SoftButton>
               </div>
-              <div className="mt-3 scroll-area max-h-40 overflow-auto rounded-xl border border-line">
-                <table className="w-full min-w-[520px]">
-                  <thead className="bg-surface-strong text-[11px] text-ink-low">
-                    <tr>
-                      <th className="px-3 py-2 text-start font-medium">{t('departments.code')}</th>
-                      <th className="px-3 py-2 text-start font-medium">{t('departments.name')}</th>
-                      <th className="px-3 py-2 text-center font-medium">{t('departments.incentiveRate')}</th>
-                      <th className="px-3 py-2 text-center font-medium">{t('departments.incentiveMatch')}</th>
-                    </tr>
-                  </thead>
+              <div className="mt-3 rounded-xl border border-line">
+                <DataTable maxHeight="max-h-40" minWidth="min-w-[520px]">
+                  <DataTableHead>
+                    <DataTableHeadRow dense>
+                      <DataTableHeadCell dense>{t('departments.code')}</DataTableHeadCell>
+                      <DataTableHeadCell dense>{t('departments.name')}</DataTableHeadCell>
+                      <DataTableHeadCell dense align="center">
+                        {t('departments.incentiveRate')}
+                      </DataTableHeadCell>
+                      <DataTableHeadCell dense align="center">
+                        {t('departments.incentiveMatch')}
+                      </DataTableHeadCell>
+                    </DataTableHeadRow>
+                  </DataTableHead>
                   <tbody className="divide-y divide-surface-base text-xs">
                     {parseMutation.data.rows.slice(0, 200).map((row, index) => (
                       <tr key={index} className={cn(row.match === 'none' && 'bg-rose-500/5')}>
@@ -285,7 +295,7 @@ export function IncentiveRatesModal({ open, departmentId, onClose }: IncentiveRa
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </DataTable>
               </div>
             </div>
           )}
@@ -300,18 +310,26 @@ export function IncentiveRatesModal({ open, departmentId, onClose }: IncentiveRa
               body={t('departments.incentiveEmptyBody')}
             />
           ) : (
-            <div className="scroll-area max-h-[46vh] overflow-auto rounded-2xl border border-line">
-              <table className="w-full min-w-[680px]">
-                <thead className="bg-surface-strong text-[11px] uppercase tracking-wider text-ink-low">
-                  <tr>
-                    <th className="px-4 py-2.5 text-start font-medium">{t('departments.name')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('departments.incentiveRate')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('payrolls.period')}</th>
-                    <th className="px-4 py-2.5 text-start font-medium">{t('departments.incentiveNote')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('departments.incentiveDocument')}</th>
-                    <th className="px-4 py-2.5 text-end font-medium">{t('departments.actions')}</th>
-                  </tr>
-                </thead>
+            <div className="rounded-2xl border border-line">
+              <DataTable maxHeight="max-h-[46vh]" minWidth="min-w-[680px]">
+                <DataTableHead>
+                  <DataTableHeadRow dense>
+                    <DataTableHeadCell dense>{t('departments.name')}</DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('departments.incentiveRate')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('payrolls.period')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('departments.incentiveNote')}</DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('departments.incentiveDocument')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="end">
+                      {t('departments.actions')}
+                    </DataTableHeadCell>
+                  </DataTableHeadRow>
+                </DataTableHead>
                 <tbody className="divide-y divide-surface-base">
                   {visible.map((rate) => (
                     <tr key={rate.id} className="text-xs transition-colors hover:bg-surface-soft">
@@ -367,7 +385,7 @@ export function IncentiveRatesModal({ open, departmentId, onClose }: IncentiveRa
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           )}
 

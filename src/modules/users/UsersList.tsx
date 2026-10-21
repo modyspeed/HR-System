@@ -19,11 +19,18 @@ import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatDateTime } from '@/lib/utils'
-import { staggerContainer, staggerItem, spring } from '@/lib/motion'
+import { staggerItem, spring } from '@/lib/motion'
 import { useAuthStore } from '@/store/authStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { GlassCard } from '@/components/ui/GlassCard'
+import {
+  DataTable,
+  DataTableBody,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
@@ -227,43 +234,37 @@ export function UsersList() {
             />
           )
         ) : (
-          <div className="scroll-area overflow-x-auto">
-            <table className="w-full min-w-[760px]">
-              <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wider text-ink-low">
-                  <th className="px-5 py-3.5 text-start font-medium">
+          <DataTable minWidth="min-w-[760px]">
+            <DataTableHead>
+              <DataTableHeadRow>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'fullName'}
                       order={order}
                       onClick={() => toggleSort('fullName')}
                       label={t('users.fullName')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'username'}
                       order={order}
                       onClick={() => toggleSort('username')}
                       label={t('users.username')}
                     />
-                  </th>
-                  <th className="hidden px-5 py-3.5 text-start font-medium md:table-cell">
+                </DataTableHeadCell>
+                <DataTableHeadCell className="hidden md:table-cell">
                     {t('users.email')}
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">{t('users.role')}</th>
-                  <th className="px-5 py-3.5 text-start font-medium">{t('users.status')}</th>
-                  <th className="hidden px-5 py-3.5 text-start font-medium lg:table-cell">
+                </DataTableHeadCell>
+                <DataTableHeadCell>{t('users.role')}</DataTableHeadCell>
+                <DataTableHeadCell>{t('users.status')}</DataTableHeadCell>
+                <DataTableHeadCell className="hidden lg:table-cell">
                     {t('users.lastLogin')}
-                  </th>
-                  <th className="px-5 py-3.5 text-end font-medium">{t('users.actions')}</th>
-                </tr>
-              </thead>
-              <motion.tbody
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                className="divide-y divide-surface-base"
-              >
+                </DataTableHeadCell>
+                <DataTableHeadCell align="end">{t('users.actions')}</DataTableHeadCell>
+              </DataTableHeadRow>
+            </DataTableHead>
+            <DataTableBody>
                 {users.map((user) => {
                   const isSelf = currentUser?.id === user.id
                   return (
@@ -348,9 +349,8 @@ export function UsersList() {
                     </motion.tr>
                   )
                 })}
-              </motion.tbody>
-            </table>
-          </div>
+            </DataTableBody>
+          </DataTable>
         )}
       </GlassCard>
 

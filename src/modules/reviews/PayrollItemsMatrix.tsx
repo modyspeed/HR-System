@@ -21,9 +21,19 @@ import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePermission } from '@/hooks/usePermission'
-import { staggerContainer, staggerItem, spring } from '@/lib/motion'
+import { staggerItem, spring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/GlassCard'
+import {
+  DataTable,
+  DataTableBody,
+  DataTableFoot,
+  DataTableFootCell,
+  DataTableFootRow,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
@@ -364,43 +374,37 @@ export function PayrollItemsMatrix() {
             body={hasFilters ? t('reviews.items.noResultsBody') : t('reviews.items.emptyBody')}
           />
         ) : (
-          <div className="scroll-area max-h-[68vh] overflow-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead className="sticky top-0 z-30 shadow-key">
-                <tr className="border-b border-line-strong bg-bg-700 text-[11px] uppercase tracking-wider text-ink-low">
-                  <th className="w-[104px] border-b border-line-strong bg-bg-700 px-5 py-3.5 text-center font-semibold">
+          <DataTable>
+            <DataTableHead>
+              <DataTableHeadRow>
+                <DataTableHeadCell className="w-[104px]" align="center">
                     {t('reviews.items.employeeCode')}
-                  </th>
-                  <th className="border-b border-line-strong bg-bg-700 px-5 py-3.5 text-start font-semibold">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     {t('reviews.items.employeeName')}
-                  </th>
-                  <th className="w-[190px] border-b border-line-strong bg-bg-700 px-5 py-3.5 text-start font-semibold">
+                </DataTableHeadCell>
+                <DataTableHeadCell className="w-[190px]">
                     {t('reviews.items.departmentName')}
-                  </th>
-                  <th className="w-[190px] border-b border-line-strong bg-bg-700 px-5 py-3.5 text-end font-semibold text-teal-300">
+                </DataTableHeadCell>
+                <DataTableHeadCell className="w-[190px] text-teal-300" align="end">
                     <span className="inline-flex items-center gap-1.5">
                       <ListTree className="size-3.5 opacity-70" />
                       {t('reviews.items.earningsTotal')}
                     </span>
-                  </th>
-                  <th className="w-[190px] border-b border-line-strong bg-bg-700 px-5 py-3.5 text-end font-semibold text-rose-300">
+                </DataTableHeadCell>
+                <DataTableHeadCell className="w-[190px] text-rose-300" align="end">
                     <span className="inline-flex items-center gap-1.5">
                       <ListTree className="size-3.5 opacity-70" />
                       {t('reviews.items.deductionsTotal')}
                     </span>
-                  </th>
-                  <th className="w-[170px] border-b border-line-strong bg-bg-700 px-5 py-3.5 text-end font-semibold">
+                </DataTableHeadCell>
+                <DataTableHeadCell className="w-[170px]" align="end">
                     {t('reviews.items.net')}
-                  </th>
-                </tr>
-              </thead>
+                </DataTableHeadCell>
+              </DataTableHeadRow>
+            </DataTableHead>
 
-              <motion.tbody
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                className="divide-y divide-surface-base"
-              >
+            <DataTableBody>
                 {matrix.rows.map((row) => (
                   <motion.tr
                     key={row.entryId}
@@ -448,34 +452,33 @@ export function PayrollItemsMatrix() {
                     </td>
                   </motion.tr>
                 ))}
-              </motion.tbody>
+            </DataTableBody>
 
-              <tfoot className="sticky bottom-0 z-20 shadow-[0_-14px_24px_-16px_rgba(0,0,0,0.6)]">
-                <tr className="border-t border-line-strong bg-bg-700 text-sm font-bold text-ink-high">
-                  <td className="bg-bg-700 px-5 py-3.5 text-center text-ink-low">
+            <DataTableFoot>
+              <DataTableFootRow>
+                <DataTableFootCell className="text-ink-low">
                     {matrix.rows.length}
-                  </td>
-                  <td className="bg-bg-700 px-5 py-3.5 text-start">{t('reviews.items.total')}</td>
-                  <td className="bg-bg-700 px-5 py-3.5" />
-                  <td dir="ltr" className="bg-bg-700 px-5 py-3.5 text-end tabular-nums text-teal-300">
+                </DataTableFootCell>
+                <DataTableFootCell align="start">{t('reviews.items.total')}</DataTableFootCell>
+                <DataTableFootCell />
+                <DataTableFootCell className="tabular-nums text-teal-300" align="end" dir="ltr">
                     {formatNumber(
                       matrix.rows.reduce((sum, row) => sum + row.earningsTotal, 0)
                     )}
-                  </td>
-                  <td dir="ltr" className="bg-bg-700 px-5 py-3.5 text-end tabular-nums text-rose-300">
+                </DataTableFootCell>
+                <DataTableFootCell className="tabular-nums text-rose-300" align="end" dir="ltr">
                     {formatNumber(
                       matrix.rows.reduce((sum, row) => sum + row.deductionsTotal, 0)
                     )}
-                  </td>
-                  <td dir="ltr" className="bg-bg-700 px-5 py-3.5 text-end tabular-nums">
+                </DataTableFootCell>
+                <DataTableFootCell className="tabular-nums" align="end" dir="ltr">
                     {formatNumber(
                       matrix.rows.reduce((sum, row) => sum + (row.netSalary ?? 0), 0)
                     )}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                </DataTableFootCell>
+              </DataTableFootRow>
+            </DataTableFoot>
+          </DataTable>
         )}
       </GlassCard>
 

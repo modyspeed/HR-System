@@ -36,6 +36,12 @@ import { SoftButton } from '@/components/ui/SoftButton'
 import { SkeletonRows } from '@/components/ui/Skeleton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/feedback/EmptyState'
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { leaveStatusTone, leaveTypeTone } from '@/modules/leaves/leaveMeta'
 import { LeaveDetailsModal } from '@/modules/leaves/LeaveDetailsModal'
 import { LeaveFormModal } from '@/modules/leaves/LeaveFormModal'
@@ -552,19 +558,24 @@ export function EmployeeProfile() {
                 }
               />
             ) : (
-              <div className="scroll-area overflow-x-auto">
-                <table className="w-full min-w-[720px]">
-                  <thead>
-                    <tr className="border-b border-line text-[11px] uppercase tracking-wider text-ink-low">
-                      <th className="px-4 py-3 text-start font-medium">{t('leaves.type')}</th>
-                      <th className="px-4 py-3 text-start font-medium">{t('leaves.period')}</th>
-                      <th className="px-4 py-3 text-center font-medium">{t('leaves.daysCount')}</th>
-                      <th className="px-4 py-3 text-center font-medium">{t('leaves.year')}</th>
-                      <th className="px-4 py-3 text-start font-medium">{t('leaves.status')}</th>
-                      <th className="px-4 py-3 text-end font-medium">{t('leaves.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-surface-base">
+              <DataTable size="md" minWidth="min-w-[720px]">
+                <DataTableHead>
+                  <DataTableHeadRow dense>
+                    <DataTableHeadCell dense>{t('leaves.type')}</DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('leaves.period')}</DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('leaves.daysCount')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('leaves.year')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('leaves.status')}</DataTableHeadCell>
+                    <DataTableHeadCell dense align="end">
+                      {t('leaves.actions')}
+                    </DataTableHeadCell>
+                  </DataTableHeadRow>
+                </DataTableHead>
+                <tbody className="divide-y divide-surface-base">
                     {leaves.map((leave) => (
                       <tr key={leave.id} className="transition-colors hover:bg-surface-soft">
                         <td className="px-4 py-3">
@@ -617,10 +628,9 @@ export function EmployeeProfile() {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </DataTable>
             )}
           </div>
         )}

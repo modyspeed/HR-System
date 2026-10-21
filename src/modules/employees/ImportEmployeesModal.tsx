@@ -14,6 +14,12 @@ import { resolveApiError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
 import { SoftButton } from '@/components/ui/SoftButton'
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 
 interface ImportEmployeesModalProps {
   open: boolean
@@ -234,50 +240,52 @@ export function ImportEmployeesModal({ open, onClose, onImported }: ImportEmploy
             <p className="mb-2.5 text-xs font-medium text-ink-med">
               {t('employees.previewHint')}
             </p>
-            <div className="scroll-area max-h-[42vh] overflow-auto rounded-2xl border border-line">
-              <table className="w-full min-w-[2100px]">
-                <thead>
-                  <tr className="border-b border-line bg-surface-soft text-[10px] uppercase tracking-wider text-ink-low">
-                    <th className="px-3 py-2.5 text-start font-medium">#</th>
-                    <th className="px-3 py-2.5 text-start font-medium">{t('employees.code')}</th>
-                    <th className="px-3 py-2.5 text-start font-medium">{t('employees.name')}</th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+            <div className="rounded-2xl border border-line">
+              <DataTable size="sm" minWidth="min-w-[2100px]">
+                <DataTableHead>
+                  <DataTableHeadRow dense>
+                    <DataTableHeadCell dense>#</DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('employees.code')}</DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('employees.name')}</DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.insuranceNo')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.nationalId')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">{t('employees.grade')}</th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>{t('employees.grade')}</DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.qualification')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.qualificationYear')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.gradeDate')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.birthDate')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.permanentDate')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.hireDate')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.departmentCode')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.department')}
-                    </th>
-                    <th className="px-3 py-2.5 text-start font-medium">
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense>
                       {t('employees.contractType')}
-                    </th>
-                    <th className="px-3 py-2.5 text-end font-medium">{t('common.remove')}</th>
-                  </tr>
-                </thead>
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="end">
+                      {t('common.remove')}
+                    </DataTableHeadCell>
+                  </DataTableHeadRow>
+                </DataTableHead>
                 <tbody className="divide-y divide-surface-base">
                   {rows.map((row, index) => {
                     const invalid = !row.code.trim() || !row.name.trim()
@@ -407,7 +415,7 @@ export function ImportEmployeesModal({ open, onClose, onImported }: ImportEmploy
                     )
                   })}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
         )}

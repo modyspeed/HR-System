@@ -18,9 +18,16 @@ import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePermission } from '@/hooks/usePermission'
-import { staggerContainer, staggerItem, spring } from '@/lib/motion'
+import { staggerItem, spring } from '@/lib/motion'
 import { Badge } from '@/components/ui/Badge'
 import { GlassCard } from '@/components/ui/GlassCard'
+import {
+  DataTable,
+  DataTableBody,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
@@ -271,48 +278,42 @@ export function DepartmentsList() {
             />
           )
         ) : (
-          <div className="scroll-area overflow-x-auto">
-            <table className="w-full min-w-[640px]">
-              <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wider text-ink-low">
-                  <th className="px-5 py-3.5 text-start font-medium">
+          <DataTable minWidth="min-w-[640px]">
+            <DataTableHead>
+              <DataTableHeadRow>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'code'}
                       order={order}
                       onClick={() => toggleSort('code')}
                       label={t('departments.code')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'name'}
                       order={order}
                       onClick={() => toggleSort('name')}
                       label={t('departments.name')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     <SortButton
                       active={sort === 'natureAllowancePct'}
                       order={order}
                       onClick={() => toggleSort('natureAllowancePct')}
                       label={t('departments.allowance')}
                     />
-                  </th>
-                  <th className="px-5 py-3.5 text-start font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell>
                     {t('departments.status')}
-                  </th>
-                  <th className="px-5 py-3.5 text-end font-medium">
+                </DataTableHeadCell>
+                <DataTableHeadCell align="end">
                     {t('departments.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <motion.tbody
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                className="divide-y divide-surface-base"
-              >
+                </DataTableHeadCell>
+              </DataTableHeadRow>
+            </DataTableHead>
+            <DataTableBody>
                 {departments.map((department) => (
                   <motion.tr
                     key={department.id}
@@ -398,9 +399,8 @@ export function DepartmentsList() {
                     </td>
                   </motion.tr>
                 ))}
-              </motion.tbody>
-            </table>
-          </div>
+            </DataTableBody>
+          </DataTable>
         )}
       </GlassCard>
 

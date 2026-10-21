@@ -3,6 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import type { PayrollItemColumn, PayrollItemMatrixRow } from '@shared/types'
 import { Modal } from '@/components/ui/Modal'
+import {
+  DataTable,
+  DataTableFoot,
+  DataTableFootCell,
+  DataTableFootRow,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 
 export type ItemBreakdownKind = 'earning' | 'deduction'
 
@@ -88,17 +97,17 @@ export function ItemBreakdownModal({
           </p>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-line">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-surface-strong text-[11px] uppercase tracking-wider text-ink-low">
-                  <th className="px-4 py-2.5 text-start font-medium">
+            <DataTable size="sm">
+              <DataTableHead>
+                <DataTableHeadRow dense>
+                  <DataTableHeadCell dense>
                     {t('reviews.items.itemName')}
-                  </th>
-                  <th className="px-4 py-2.5 text-end font-medium">
+                  </DataTableHeadCell>
+                  <DataTableHeadCell dense align="end">
                     {t('reviews.items.value')}
-                  </th>
-                </tr>
-              </thead>
+                  </DataTableHeadCell>
+                </DataTableHeadRow>
+              </DataTableHead>
               <tbody className="divide-y divide-surface-base">
                 {items.map((item) => (
                   <tr key={item.label} className="transition-colors hover:bg-surface-soft">
@@ -114,15 +123,15 @@ export function ItemBreakdownModal({
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="bg-surface-strong text-xs font-bold text-ink-high">
-                  <td className="px-4 py-3 text-start">{t('reviews.items.total')}</td>
-                  <td dir="ltr" className="px-4 py-3 text-end tabular-nums">
+              <DataTableFoot>
+                <DataTableFootRow className="text-xs">
+                  <DataTableFootCell align="start">{t('reviews.items.total')}</DataTableFootCell>
+                  <DataTableFootCell className="tabular-nums" align="end" dir="ltr">
                     {formatNumber(total)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                  </DataTableFootCell>
+                </DataTableFootRow>
+              </DataTableFoot>
+            </DataTable>
           </div>
         )}
 

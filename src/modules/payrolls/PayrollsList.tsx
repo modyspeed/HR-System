@@ -7,8 +7,15 @@ import type { ExportPayload, ListPayrollsQuery, PayrollRecord } from '@shared/ty
 import { api } from '@/lib/ipc'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePermission } from '@/hooks/usePermission'
-import { staggerContainer, staggerItem, spring } from '@/lib/motion'
+import { staggerItem, spring } from '@/lib/motion'
 import { GlassCard } from '@/components/ui/GlassCard'
+import {
+  DataTable,
+  DataTableBody,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SoftButton } from '@/components/ui/SoftButton'
@@ -218,23 +225,17 @@ export function PayrollsList() {
             }
           />
         ) : (
-          <div className="scroll-area overflow-x-auto">
-            <table className="w-full min-w-[860px]">
-              <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wider text-ink-low">
-                  <th className="px-5 py-3.5 text-start font-medium">{t('payrolls.employeeCode')}</th>
-                  <th className="px-5 py-3.5 text-start font-medium">{t('payrolls.employeeName')}</th>
-                  <th className="px-5 py-3.5 text-start font-medium">{t('payrolls.department')}</th>
-                  <th className="px-5 py-3.5 text-center font-medium">{t('payrolls.entriesCountTitle')}</th>
-                  <th className="px-5 py-3.5 text-end font-medium">{t('payrolls.actions')}</th>
-                </tr>
-              </thead>
-              <motion.tbody
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                className="divide-y divide-surface-base"
-              >
+          <DataTable minWidth="min-w-[860px]">
+            <DataTableHead>
+              <DataTableHeadRow>
+                <DataTableHeadCell>{t('payrolls.employeeCode')}</DataTableHeadCell>
+                <DataTableHeadCell>{t('payrolls.employeeName')}</DataTableHeadCell>
+                <DataTableHeadCell>{t('payrolls.department')}</DataTableHeadCell>
+                <DataTableHeadCell align="center">{t('payrolls.entriesCountTitle')}</DataTableHeadCell>
+                <DataTableHeadCell align="end">{t('payrolls.actions')}</DataTableHeadCell>
+              </DataTableHeadRow>
+            </DataTableHead>
+            <DataTableBody>
                 {grouped.map((group) => (
                   <motion.tr
                     key={group.code}
@@ -269,9 +270,8 @@ export function PayrollsList() {
                     </td>
                   </motion.tr>
                 ))}
-              </motion.tbody>
-            </table>
-          </div>
+            </DataTableBody>
+          </DataTable>
         )}
       </GlassCard>
 

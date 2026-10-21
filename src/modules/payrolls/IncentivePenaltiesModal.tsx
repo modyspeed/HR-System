@@ -16,6 +16,12 @@ import { SoftButton } from '@/components/ui/SoftButton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { Badge } from '@/components/ui/Badge'
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableHeadRow
+} from '@/components/ui/DataTable'
 
 /** نموذج إضافة/تعديل حرمان من الحافز (النسبة والقيمة). */
 export function InvoicePenaltyFormDialog({
@@ -458,17 +464,23 @@ export function IncentivePenaltiesModal({ open, onClose }: { open: boolean; onCl
                   {t('payrolls.penaltyConfirmImport', { count: parseResult.matched })}
                 </SoftButton>
               </div>
-              <div className="mt-3 scroll-area max-h-40 overflow-auto rounded-xl border border-line">
-                <table className="w-full min-w-[560px]">
-                  <thead className="bg-surface-strong text-[11px] text-ink-low">
-                    <tr>
-                      <th className="px-3 py-2 text-start font-medium">{t('payrolls.code')}</th>
-                      <th className="px-3 py-2 text-start font-medium">{t('payrolls.name')}</th>
-                      <th className="px-3 py-2 text-center font-medium">{t('payrolls.penaltyRate')}</th>
-                      <th className="px-3 py-2 text-center font-medium">{t('payrolls.penaltyAmount')}</th>
-                      <th className="px-3 py-2 text-center font-medium">{t('payrolls.penaltyMatch')}</th>
-                    </tr>
-                  </thead>
+              <div className="mt-3 rounded-xl border border-line">
+                <DataTable maxHeight="max-h-40" minWidth="min-w-[560px]">
+                  <DataTableHead>
+                    <DataTableHeadRow dense>
+                      <DataTableHeadCell dense>{t('payrolls.code')}</DataTableHeadCell>
+                      <DataTableHeadCell dense>{t('payrolls.name')}</DataTableHeadCell>
+                      <DataTableHeadCell dense align="center">
+                        {t('payrolls.penaltyRate')}
+                      </DataTableHeadCell>
+                      <DataTableHeadCell dense align="center">
+                        {t('payrolls.penaltyAmount')}
+                      </DataTableHeadCell>
+                      <DataTableHeadCell dense align="center">
+                        {t('payrolls.penaltyMatch')}
+                      </DataTableHeadCell>
+                    </DataTableHeadRow>
+                  </DataTableHead>
                   <tbody className="divide-y divide-surface-base text-xs">
                     {parseResult.rows.slice(0, 200).map((row, index) => (
                       <tr key={index} className={cn(row.match === 'none' && 'bg-rose-500/5')}>
@@ -484,7 +496,7 @@ export function IncentivePenaltiesModal({ open, onClose }: { open: boolean; onCl
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </DataTable>
               </div>
             </div>
           )}
@@ -498,18 +510,28 @@ export function IncentivePenaltiesModal({ open, onClose }: { open: boolean; onCl
               body={t('payrolls.penaltyEmptyBody')}
             />
           ) : (
-            <div className="scroll-area max-h-[46vh] overflow-auto rounded-2xl border border-line">
-              <table className="w-full min-w-[760px]">
-                <thead className="bg-surface-strong text-[11px] uppercase tracking-wider text-ink-low">
-                  <tr>
-                    <th className="px-4 py-2.5 text-start font-medium">{t('payrolls.employee')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('payrolls.penaltyRate')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('payrolls.penaltyAmount')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('payrolls.period')}</th>
-                    <th className="px-4 py-2.5 text-center font-medium">{t('payrolls.penaltyDocument')}</th>
-                    <th className="px-4 py-2.5 text-end font-medium">{t('payrolls.actions')}</th>
-                  </tr>
-                </thead>
+            <div className="rounded-2xl border border-line">
+              <DataTable maxHeight="max-h-[46vh]" minWidth="min-w-[760px]">
+                <DataTableHead>
+                  <DataTableHeadRow dense>
+                    <DataTableHeadCell dense>{t('payrolls.employee')}</DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('payrolls.penaltyRate')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('payrolls.penaltyAmount')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('payrolls.period')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="center">
+                      {t('payrolls.penaltyDocument')}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell dense align="end">
+                      {t('payrolls.actions')}
+                    </DataTableHeadCell>
+                  </DataTableHeadRow>
+                </DataTableHead>
                 <tbody className="divide-y divide-surface-base">
                   {visible.map((penalty) => (
                     <tr key={penalty.id} className="text-xs transition-colors hover:bg-surface-soft">
@@ -571,7 +593,7 @@ export function IncentivePenaltiesModal({ open, onClose }: { open: boolean; onCl
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           )}
 
