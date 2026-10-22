@@ -665,6 +665,12 @@ export function buildAbsencesReport(params: {
   fileNames: string[]
   /** أنواع الأظرف الموجودة في الشهر. */
   slipTypes: string[]
+  /** عدد كشوف الشهر التي فُحصت لأيام الغياب. */
+  scannedBatches: number
+  /** إجمالي كشوف الشهر. */
+  totalBatches: number
+  /** كشوف ملفها غير موجود في الأرشيف. */
+  missingFiles: string[]
   entries: AbsenceEntry[]
 }): AbsencesReport {
   // يُجمَّع للموظف الواحد كله: لو وردت أيامه في أكثر من ظرف (مرتب وحافز)
@@ -731,6 +737,10 @@ export function buildAbsencesReport(params: {
     year: params.year,
     fileNames: params.fileNames,
     slipTypes: params.slipTypes,
+    scanned: params.totalBatches > 0 && params.scannedBatches === params.totalBatches,
+    scannedBatches: params.scannedBatches,
+    totalBatches: params.totalBatches,
+    missingFiles: params.missingFiles,
     rows,
     totals: {
       withPermission: Math.round(totals.withPermission * 100) / 100,

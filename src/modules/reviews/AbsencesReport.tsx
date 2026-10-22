@@ -2,10 +2,13 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { CalendarCheck, CalendarX, Search, UserX } from 'lucide-react'
-import type { ExportPayload, PayrollItemsPeriod } from '@shared/types'
+import { AlertTriangle, CalendarCheck, CalendarX, RefreshCw, Search, UserX } from 'lucide-react'
+import { toast } from 'sonner'
+import type { AbsencesReport, ExportPayload, PayrollItemsPeriod } from '@shared/types'
 import { api } from '@/lib/ipc'
+import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
+import { usePermission } from '@/hooks/usePermission'
 import { staggerItem, spring } from '@/lib/motion'
 import { GlassCard } from '@/components/ui/GlassCard'
 import {
@@ -45,11 +48,13 @@ function formatDays(value: number | null | undefined): string {
  */
 export function AbsencesReport() {
   const { t, i18n } = useTranslation()
+  const canExtract = usePermission('payrolls.create')
 
   const [period, setPeriod] = useState('')
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 260)
   const [departmentId, setDepartmentId] = useState('')
+  const [extracting, setExtracting] = useState(false)
 
   const periodsQuery = useQuery({
     queryKey: ['payrolls', 'items', 'periods'],
@@ -87,13 +92,34 @@ export function AbsencesReport() {
         search: debouncedSearch || undefined,
         departmentId: departmentId || undefined
       }),
-    enabled: Boolean(activePeriod)
+    enabled: Boolean(activePeriod),
+    // أثناء الفحص (فحصُ الإقلاع أو استخراجٌ يدوي) نحدّث التقرير دوريًا حتى
+    // ينعكس الفحص فور انتهائه بدل بقاء الشاشة على حالة قديمة.
+    refetchInterval: (query) => {
+      const data = query.state.data as AbsencesReport | undefined
+      return data && !data.scanned ? 3000 : false
+    }
   })
 
   const report = reportQuery.data ?? null
   const isLoading = reportQuery.isLoading || reportQuery.isFetching
   const hasFilters = Boolean(debouncedSearch || departmentId)
   const hasIncentiveSlip = report?.slipTypes.includes('incentive') ?? false
+  const isScanned = report?.scanned ?? false
+
+  const runExtraction = async () => {
+    if (!activePeriod) return
+    setExtracting(true)
+    try {
+      const result = await api.payrolls.items.syncAbsences({ period: activePeriod })
+      toast.success(t('reviews.absences.extractDone', { count: result.absences }))
+      void reportQuery.refetch()
+    } catch (error) {
+      toast.error(t('toasts.error'), { description: resolveApiError(error) })
+    } finally {
+      setExtracting(false)
+    }
+  }
 
   const exportPayload = useMemo<ExportPayload | null>(() => {
     if (!report || report.rows.length === 0) return null
@@ -217,6 +243,42 @@ export function AbsencesReport() {
         </div>
       </GlassCard>
 
+      {/* تنبيه: لم تُستخرج أيام الغياب بعد — مع زر للاستخراج الفوري */}
+      {report && !isScanned && (
+        <GlassCard withLightBar={false} className="border-amber-400/25 p-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-amber-400/30 bg-amber-500/10 text-amber-300">
+              <AlertTriangle className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink-high">
+                {t('reviews.absences.notScannedTitle')}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-low">
+                {t('reviews.absences.scanProgress', {
+                  scanned: report.scannedBatches,
+                  total: report.totalBatches
+                })}
+              </p>
+              {report.missingFiles.length > 0 && (
+                <p className="mt-1 text-xs leading-relaxed text-rose-300">
+                  {t('reviews.absences.missingFiles', { files: report.missingFiles.join(' · ') })}
+                </p>
+              )}
+            </div>
+            <SoftButton
+              variant="ghost"
+              loading={extracting}
+              icon={extracting ? undefined : <RefreshCw className="size-4" />}
+              disabled={!canExtract || !activePeriod}
+              onClick={() => void runExtraction()}
+            >
+              {t('reviews.absences.extract')}
+            </SoftButton>
+          </div>
+        </GlassCard>
+      )}
+
       {/* شريط الملخص */}
       {report && report.rows.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -261,20 +323,24 @@ export function AbsencesReport() {
           </div>
         ) : !report || report.rows.length === 0 ? (
           <EmptyState
-            icon={<UserX className="size-7" />}
+            icon={isScanned ? <UserX className="size-7" /> : <AlertTriangle className="size-7" />}
             title={
-              hasFilters
-                ? t('reviews.absences.noResults')
-                : hasIncentiveSlip
-                  ? t('reviews.absences.emptyTitle')
-                  : t('reviews.absences.noIncentiveTitle')
+              !isScanned
+                ? t('reviews.absences.notScannedTitle')
+                : hasFilters
+                  ? t('reviews.absences.noResults')
+                  : hasIncentiveSlip
+                    ? t('reviews.absences.emptyTitle')
+                    : t('reviews.absences.noIncentiveTitle')
             }
             body={
-              hasFilters
-                ? t('reviews.absences.noResultsBody')
-                : hasIncentiveSlip
-                  ? t('reviews.absences.emptyBody')
-                  : t('reviews.absences.noIncentiveBody')
+              !isScanned
+                ? t('reviews.absences.notScannedBody')
+                : hasFilters
+                  ? t('reviews.absences.noResultsBody')
+                  : hasIncentiveSlip
+                    ? t('reviews.absences.emptyBody')
+                    : t('reviews.absences.noIncentiveBody')
             }
           />
         ) : (

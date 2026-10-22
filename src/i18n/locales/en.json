@@ -940,8 +940,14 @@
       "emptyBody": "No absence was recorded in this month's incentive slips",
       "noIncentiveTitle": "No incentive file for this month",
       "noIncentiveBody": "Absence days are read from the incentive slip header — import the incentive file for this month",
-      "noResults": "No results",
-      "noResultsBody": "Try adjusting the search or filters"
+        "noResults": "No results",
+        "noResultsBody": "Try adjusting the search or filters",
+        "notScannedTitle": "Absence days have not been extracted yet",
+        "notScannedBody": "Absence days are read from the incentive slip header. This month's files have not been scanned yet, so the report is incomplete — extract them to see the real figures.",
+        "scanProgress": "Scanned {{scanned}} of {{total}} files for this month.",
+        "missingFiles": "Files missing from the archive (could not be scanned): {{files}}",
+        "extract": "Extract absence days",
+        "extractDone": "Absence days extracted — {{count}} slips"
     }
   }
 }

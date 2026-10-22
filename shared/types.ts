@@ -471,6 +471,14 @@ export interface AbsencesReport {
   }
   /** عدد الموظفين الذين لديهم أيام غياب. */
   employees: number
+  /** هل فُحصت كشوف الشهر كلها لأيام الغياب؟ false = بقي كشف لم يُفحص. */
+  scanned: boolean
+  /** عدد كشوف الشهر التي فُحصت. */
+  scannedBatches: number
+  /** إجمالي كشوف الشهر. */
+  totalBatches: number
+  /** كشوف ملفها غير موجود في الأرشيف — تعذّر استخراج أيام غيابها. */
+  missingFiles: string[]
 }
 
 export interface AbsencesQuery {
@@ -886,6 +894,11 @@ export interface ApiShape {
       periods(query?: { type?: string }): Promise<PayrollItemsPeriod[]>
       /** تقرير الغيابات (بأذن/بدون إذن) عن شهر معيّن — يجمع من المرتب والحافز. */
       absences(query: AbsencesQuery): Promise<AbsencesReport>
+      syncAbsences(query: { period: string }): Promise<{
+        batches: number
+        absences: number
+        missing: number
+      }>
       /** يعيد استخراج المفردات من ملف الكشف المخزَّن ويحدّثها. */
       sync(query: { type: string; period: string }): Promise<{
         entries: number

@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS "PayrollBatch" (
     "size" INTEGER NOT NULL,
     "pageCount" INTEGER NOT NULL,
     "departmentsScanned" BOOLEAN NOT NULL DEFAULT false,
+    "absencesScanned" BOOLEAN NOT NULL DEFAULT false,
     "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

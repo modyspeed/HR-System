@@ -178,6 +178,7 @@ model PayrollBatch {
   size         Int
   pageCount    Int
   departmentsScanned Boolean @default(false) // تم ردّ فحص الأقسام (مطابقة القسم وسجل التنقلات)
+  absencesScanned Boolean @default(false) // فُحص رأس الظرف لأيام الغياب — يمنع بقاء التقرير فارغًا دون سبب معروف
   uploadedAt   DateTime       @default(now())
   entries      PayrollEntry[]
 

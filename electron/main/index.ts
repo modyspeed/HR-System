@@ -4,6 +4,7 @@ import { registerAllIpc } from './ipc'
 import { applySnapshot, getPrisma } from './prisma'
 import { seedIfNeeded } from './seed'
 import { backfillPayrollDepartments } from './payroll-transfers'
+import { backfillPayrollAbsences } from './payroll-absences'
 import { applyNativeTheme, readSettings } from './ipc/settings.ipc'
 
 const isDev = !app.isPackaged
@@ -71,6 +72,13 @@ void app.whenReady().then(async () => {
   }
 
   createWindow()
+
+  // ردّ فحص أيام الغياب: يفحص ما لم يُفحص من كشوف الغياب — كشف قديم أُضيف
+  // قبل الميزة، أو كشف استُعيد من نسخة احتياطية. يعمل بعد فتح النافذة (لا
+  // يعطّل الإقلاع) والإ报告显示 حالة الفحص حتى تنتهي المهمة.
+  void backfillPayrollAbsences(getPrisma(), (message) => console.log(`[startup] ${message}`)).catch(
+    (error) => console.error('[startup] Absence backfill failed:', error)
+  )
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

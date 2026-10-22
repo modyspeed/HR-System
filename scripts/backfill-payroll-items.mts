@@ -31,6 +31,13 @@ async function main() {
     const filePath = path.join(FILES_DIR, batch.storedName)
     if (!fs.existsSync(filePath)) {
       console.log(`  ! missing file: ${batch.originalName}`)
+      // الملف مفقود — نحتفل حتى لا نعيد المحاولة كل إقلاع.
+      if (!dry) {
+        await prisma.payrollBatch.update({
+          where: { id: batch.id },
+          data: { absencesScanned: true }
+        })
+      }
       continue
     }
 
@@ -97,6 +104,14 @@ async function main() {
           )
         )
       }
+    }
+
+    // الكشف فُحص أيام غيابه — فلا يُعاد فحصه عند الإقلاع.
+    if (!dry) {
+      await prisma.payrollBatch.update({
+        where: { id: batch.id },
+        data: { absencesScanned: true }
+      })
     }
 
     console.log(
