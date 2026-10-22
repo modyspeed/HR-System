@@ -881,7 +881,7 @@
   },
   "reviews": {
     "title": "Reviews",
-    "subtitle": "Payroll and incentive items matrix — one row per employee, one column per item",
+    "subtitle": "Monthly review: payroll and incentive items, absence days, and retirements",
     "items": {
       "tab": "Payroll & incentive items",
       "title": "Payroll & incentive items",
@@ -947,7 +947,34 @@
         "scanProgress": "Scanned {{scanned}} of {{total}} files for this month.",
         "missingFiles": "Files missing from the archive (could not be scanned): {{files}}",
         "extract": "Extract absence days",
-        "extractDone": "Absence days extracted — {{count}} slips"
+      "extractDone": "Absence days extracted — {{count}} slips"
+    },
+    "retirements": {
+      "tab": "Retirements",
+      "title": "Retirements report",
+      "employeeCode": "Code",
+      "employeeName": "Name",
+      "departmentName": "Department",
+      "birthDate": "Birth date",
+      "retirementDate": "Retirement date",
+      "source": "Source",
+      "sourceAuto": "Automatic",
+      "sourceManual": "Manual",
+      "allYears": "All years",
+      "allMonths": "All months",
+      "allDepartments": "All departments",
+      "searchPlaceholder": "Search by name or code...",
+      "retirees": "Retirees",
+      "retireesCount": "{{count}} retirees",
+      "yearsCount": "Years",
+      "yearsHint": "Years with retirements",
+      "latest": "Latest retirement",
+      "latestHint": "Most recent retirement date",
+      "showing": "Showing {{filtered}} of {{total}}",
+      "emptyTitle": "No retired employees",
+      "emptyBody": "An employee is retired automatically at the legal age (60) from their birth date, or manually from their file.",
+      "noResults": "No results",
+      "noResultsBody": "Try adjusting the year, month or search"
     }
   }
 }

@@ -13,6 +13,7 @@ import {
   ACTIVE_EMPLOYEE_STATUS,
   EMPLOYEE_STATUS_KEYS,
   RETIREMENT_AGE_YEARS,
+  SYSTEM_ACTOR,
   isActiveStatus
 } from '../../shared/employeeStatuses'
 
@@ -122,7 +123,7 @@ export async function applyAutomaticRetirement(prisma: PrismaClient): Promise<nu
       prisma,
       candidate.id,
       { status: 'retired', reason: 'بلوغ سن المعاش القانوني — تحويل تلقائي' },
-      'النظام'
+      SYSTEM_ACTOR
     )
     converted += 1
   }

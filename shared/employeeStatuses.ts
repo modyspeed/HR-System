@@ -20,6 +20,12 @@ export type EmployeeStatusKey = (typeof EMPLOYEE_STATUS_KEYS)[number]
 
 export const ACTIVE_EMPLOYEE_STATUS = 'active'
 
+/** مفتاح حالة «محال للمعاش» — أساس تقرير المعاشات. */
+export const RETIRED_EMPLOYEE_STATUS = 'retired'
+
+/** اسم المنفّذ المسجَّل في السجل عند التحويل التلقائي (لا مستخدم بشري). */
+export const SYSTEM_ACTOR = 'النظام'
+
 /**
  * سن المعاش القانوني (بالسنوات) وفق قانون التأمينات الاجتماعية الموحد
  * 148/2019 — مرجعية التطبيق الافتراضية 60 عامًا؛ تُستخدم تلقائيًا في تحويل

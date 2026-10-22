@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { ClipboardCheck, LayoutGrid, UserX } from 'lucide-react'
+import { ClipboardCheck, LayoutGrid, UserMinus, UserX } from 'lucide-react'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { AbsencesReport } from './AbsencesReport'
 import { PayrollItemsMatrix } from './PayrollItemsMatrix'
+import { RetirementsReport } from './RetirementsReport'
 
-type ReviewSection = 'items' | 'absences'
+type ReviewSection = 'items' | 'absences' | 'retirements'
 
 const SECTIONS: { key: ReviewSection; labelKey: string; icon: typeof ClipboardCheck }[] = [
   { key: 'items', labelKey: 'reviews.items.tab', icon: LayoutGrid },
-  { key: 'absences', labelKey: 'reviews.absences.tab', icon: UserX }
+  { key: 'absences', labelKey: 'reviews.absences.tab', icon: UserX },
+  { key: 'retirements', labelKey: 'reviews.retirements.tab', icon: UserMinus }
 ]
 
 /**
@@ -68,6 +70,7 @@ export function ReviewsList() {
 
         {section === 'items' && <PayrollItemsMatrix />}
         {section === 'absences' && <AbsencesReport />}
+        {section === 'retirements' && <RetirementsReport />}
       </motion.div>
     </div>
   )

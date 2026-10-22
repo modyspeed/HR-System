@@ -2,6 +2,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { ApiShape, AppSettings } from '../../shared/types'
 
 const api: ApiShape = {
+  retirements: {
+    list: (query) => ipcRenderer.invoke('retirements:list', query)
+  },
   auth: {
     login: (payload) => ipcRenderer.invoke('auth:login', payload),
     logout: () => ipcRenderer.invoke('auth:logout'),

@@ -488,6 +488,63 @@ export interface AbsencesQuery {
   departmentId?: string
 }
 
+/* -------------------------------- retirements ------------------------------ */
+
+/** صف في تقرير المعاشات — موظف أُحيل للمعاش وتاريخ إحالته. */
+export interface RetirementRow {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentId: string | null
+  departmentName: string | null
+  /** تاريخ الميلاد (yyyy-mm-dd) — أساس حساب سن المعاش. */
+  birthDate: string | null
+  /** تاريخ المعاش (yyyy-mm-dd) — بلوغ السن القانونية أو تاريخ الإحالة اليدوية. */
+  retirementDate: string | null
+  /** auto = بلوغ السن القانونية تلقائيًا، manual = إحالة يدوية. */
+  source: 'auto' | 'manual'
+  /** من سجّل الإحالة (اسم المستخدم أو النظام). */
+  changedBy: string | null
+  /** سبب الإحالة كما سُجِّل في السجل. */
+  reason: string | null
+}
+
+/** سنة أو شهر فيه إحالات معاش — لبناء قوائم الفلترة وأعدادها. */
+export interface RetirementPeriodCount {
+  /** yyyy-mm */
+  period: string
+  year: number
+  month: number
+  count: number
+}
+
+export interface RetirementsReport {
+  rows: RetirementRow[]
+  /** السنوات التي فيها إحالات، الأحدث أولًا، مع عدد المحالين في كل سنة. */
+  years: { year: number; count: number }[]
+  /** الشهور التي فيها إحالات (كل السنوات) — تُشتق منها قائمة الشهور للسنة المختارة. */
+  periods: RetirementPeriodCount[]
+  totals: {
+    /** إجمالي المحالين للمعاش في القاعدة. */
+    total: number
+    /** العدد بعد تطبيق الفلتر الحالي. */
+    filtered: number
+    /** عدد السنوات التي فيها إحالات (بعد الفلتر). */
+    years: number
+    /** أحدث تاريخ معاش بعد الفلتر (yyyy-mm-dd)، أو null. */
+    latest: string | null
+  }
+}
+
+export interface RetirementsQuery {
+  /** سنة الإحالة — غيابها يعني كل السنوات. */
+  year?: number
+  /** شهر الإحالة (1-12) — تُطبَّق مع السنة. */
+  month?: number
+  search?: string
+  departmentId?: string
+}
+
 export interface SalaryGradeRecord {
   id: string
   employeeId: string
@@ -772,6 +829,10 @@ export interface ApiShape {
     logout(): Promise<void>
     me(): Promise<SessionUser | null>
     bootstrap(): Promise<AppSettings>
+  }
+  retirements: {
+    /** تقرير المعاشات: المحالون للمعاش مع تاريخ إحالتهم، بفلتر سنة/شهر. */
+    list(query?: RetirementsQuery): Promise<RetirementsReport>
   }
   users: {
     list(query: ListUsersQuery): Promise<UserRecord[]>
