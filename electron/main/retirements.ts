@@ -1,5 +1,5 @@
 /**
- * تقرير المعاشات: من أُحيل للمعاش، وتاريخ إحالته.
+ * تقرير المعاشات: من أُحيل للمعاش، ومن سيُحال (المؤهلون)، وتاريخ كل منهما.
  *
  * **تاريخ المعاش** يُحسب من تاريخ الميلاد (بلوغ السن القانونية) لأنه التاريخ
  * الحقيقي للإحالة، ويصلح للتجميع بالشهر والسنة. أما تاريخ تسجيل الحالة في
@@ -8,8 +8,11 @@
  *   1) تاريخ الميلاد + السن القانونية (`retirementDateOf`)،
  *   2) وإذا غاب تاريخ الميلاد (إحالة يدوية بلا ميلاد): تاريخ تسجيل الحالة.
  *
- * المصدر (`auto` / `manual`) يُستنتج من منفّذ التغيير: التحويل التلقائي يسجّله
- * النظام (`SYSTEM_ACTOR`)، وأي منفّذ آخر يعني إحالة يدوية.
+ * **عرضان:**
+ *   - `retired`: من أُحيل بالفعل (حالته `retired`) — المصدر auto أو manual.
+ *   - `eligible`: من ما زال على قوة العمل وسيبلغ السن (متوقع) — يوم إحالته
+ *     المتوقع، وحالته الحالية تُعرض بدل نوع الإحالة. هذا هو ما يجيب سؤال
+ *     «من سيخرج في سنة كذا؟» قبل حدوثه.
  */
 import type { RetirementPeriodCount, RetirementRow, RetirementsQuery, RetirementsReport } from '../../shared/types'
 import { SYSTEM_ACTOR, retirementDateOf } from '../../shared/employeeStatuses'
@@ -23,6 +26,8 @@ export interface RetirementSourceRow {
   birthDate: string | null
   departmentId: string | null
   departmentName: string | null
+  /** الحالة الوظيفية الحالية. */
+  status: string
   /** إحالات المعاش المسجَّلة في السجل، الأقدم أولًا. */
   retiredHistory: {
     changedAt: string
@@ -38,7 +43,7 @@ function monthOf(isoDate: string): { year: number; month: number; period: string
 }
 
 /** يحوّل صف الموظف إلى صف تقرير بتاريخ معاش محدَّد. */
-function toRetirementRow(source: RetirementSourceRow): RetirementRow {
+function toRetirementRow(source: RetirementSourceRow, view: 'retired' | 'eligible'): RetirementRow {
   const history = source.retiredHistory[0] ?? null
   // التاريخ القانوني أدق وأصلح للتجميع؛ تاريخ السجل بديل عند غياب الميلاد.
   const legalDate = retirementDateOf(source.birthDate)
@@ -54,26 +59,37 @@ function toRetirementRow(source: RetirementSourceRow): RetirementRow {
     departmentName: source.departmentName,
     birthDate: source.birthDate,
     retirementDate,
-    source: isAutomatic ? 'auto' : 'manual',
+    // المؤهل لم يُحل بعد، فلا مصدر إحالة له.
+    source: view === 'eligible' ? 'expected' : isAutomatic ? 'auto' : 'manual',
+    employeeStatus: source.status,
     changedBy: history?.changedBy ?? null,
     reason: history?.reason ?? null
   }
 }
 
 /**
- * يبني تقرير المعاشات من صفوف الموظفين.
+ * يبني تقرير المعاشات من صفوف الموظفين، للعرض المطلوب فقط.
  *
- * الأعداد المرجعية (السنوات/الشهور) تُحسب من **كل** المحالين قبل الفلتر حتى
+ * الأعداد المرجعية (السنوات/الشهور) تُحسب من **كل** صفوف العرض قبل الفلتر حتى
  * تظل قوائم الاختيار ثابتة، ثم يُطبَّق فلتر السنة/الشهر والبحث والقسم.
  */
 export function buildRetirementsReport(params: {
+  /** المحالون للمعاش بالفعل. */
   employees: RetirementSourceRow[]
+  /** المؤهلون للمعاش (ما زالوا على قوة العمل). */
+  eligible: RetirementSourceRow[]
   query?: RetirementsQuery
 }): RetirementsReport {
   const query = params.query ?? {}
-  const allRows = params.employees.map(toRetirementRow)
+  const view = query.view === 'eligible' ? 'eligible' : 'retired'
+  const sources = view === 'eligible' ? params.eligible : params.employees
 
-  // السنوات والشهور من كل الإحالات التي لها تاريخ (بلا فلتر).
+  const allRows = sources
+    .map((source) => toRetirementRow(source, view))
+    // من لا تاريخ ميلاد له ولا سجل لا يمكن تحديد سنة إحالته — لا يدخل العرضين.
+    .filter((row) => row.retirementDate !== null)
+
+  // السنوات والشهور من كل صفوف العرض (بلا فلتر).
   const periodCounts = new Map<string, RetirementPeriodCount>()
   for (const row of allRows) {
     if (!row.retirementDate) continue
@@ -88,18 +104,18 @@ export function buildRetirementsReport(params: {
   for (const entry of periods) {
     yearCounts.set(entry.year, (yearCounts.get(entry.year) ?? 0) + entry.count)
   }
+  // المحالون: الأحدث أولًا. المؤهلون: الأقرب أولًا (الأهم للتخطيط).
   const years = [...yearCounts.entries()]
     .map(([year, count]) => ({ year, count }))
-    .sort((a, b) => b.year - a.year)
+    .sort((a, b) => (view === 'eligible' ? a.year - b.year : b.year - a.year))
 
   const search = query.search?.trim().toLowerCase()
   const rows = allRows
     .filter((row) => {
-      // فلتر السنة: من ليس له تاريخ معاش لا يظهر داخل سنة محددة.
+      // فلتر السنة/الشهر: لا صف بلا تاريخ داخل سنة محددة.
       if (query.year !== undefined) {
         if (!row.retirementDate) return false
-        const { year } = monthOf(row.retirementDate)
-        if (year !== query.year) return false
+        if (monthOf(row.retirementDate).year !== query.year) return false
       }
       if (query.month !== undefined) {
         if (!row.retirementDate) return false
@@ -113,24 +129,27 @@ export function buildRetirementsReport(params: {
       return true
     })
     .sort((a, b) => {
-      // الأحدث إحالة أولًا، ثم بالكود — ومن لا تاريخ له في الآخر.
+      // المؤهلون: الأقرب أولًا. المحالون: الأحدث أولًا.
       if (a.retirementDate && b.retirementDate && a.retirementDate !== b.retirementDate) {
-        return b.retirementDate.localeCompare(a.retirementDate)
+        return view === 'eligible'
+          ? a.retirementDate.localeCompare(b.retirementDate)
+          : b.retirementDate.localeCompare(a.retirementDate)
       }
-      if (a.retirementDate && !b.retirementDate) return -1
-      if (!a.retirementDate && b.retirementDate) return 1
       return a.employeeCode.localeCompare(b.employeeCode)
     })
 
   const filteredYears = new Set<number>()
   let latest: string | null = null
+  let earliest: string | null = null
   for (const row of rows) {
     if (!row.retirementDate) continue
     filteredYears.add(monthOf(row.retirementDate).year)
     if (!latest || row.retirementDate > latest) latest = row.retirementDate
+    if (!earliest || row.retirementDate < earliest) earliest = row.retirementDate
   }
 
   return {
+    view,
     rows,
     years,
     periods,
@@ -138,7 +157,8 @@ export function buildRetirementsReport(params: {
       total: allRows.length,
       filtered: rows.length,
       years: filteredYears.size,
-      latest
+      latest,
+      earliest
     }
   }
 }

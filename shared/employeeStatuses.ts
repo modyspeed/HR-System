@@ -23,6 +23,12 @@ export const ACTIVE_EMPLOYEE_STATUS = 'active'
 /** مفتاح حالة «محال للمعاش» — أساس تقرير المعاشات. */
 export const RETIRED_EMPLOYEE_STATUS = 'retired'
 
+/**
+ * الحالات التي ما زالت على قوة العمل، فيُتوقَّع إحالتها للمعاش عند بلوغ السن.
+ * تُستثنى الحالات المنتهية (استقالة/إنهاء خدمة/وفاة) لأنها لن تُحال.
+ */
+export const RETIREABLE_EMPLOYEE_STATUSES = ['active', 'unpaid_leave', 'suspended'] as const
+
 /** اسم المنفّذ المسجَّل في السجل عند التحويل التلقائي (لا مستخدم بشري). */
 export const SYSTEM_ACTOR = 'النظام'
 

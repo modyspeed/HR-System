@@ -501,8 +501,10 @@ export interface RetirementRow {
   birthDate: string | null
   /** تاريخ المعاش (yyyy-mm-dd) — بلوغ السن القانونية أو تاريخ الإحالة اليدوية. */
   retirementDate: string | null
-  /** auto = بلوغ السن القانونية تلقائيًا، manual = إحالة يدوية. */
-  source: 'auto' | 'manual'
+  /** auto = بلوغ السن القانونية تلقائيًا، manual = إحالة يدوية، expected = لم يُحل بعد. */
+  source: 'auto' | 'manual' | 'expected'
+  /** الحالة الوظيفية الحالية (نشط/إجازة بدون مرتب/موقوف/محال للمعاش…). */
+  employeeStatus: string
   /** من سجّل الإحالة (اسم المستخدم أو النظام). */
   changedBy: string | null
   /** سبب الإحالة كما سُجِّل في السجل. */
@@ -519,6 +521,8 @@ export interface RetirementPeriodCount {
 }
 
 export interface RetirementsReport {
+  /** العرض الحالي: المحالون بالفعل أم المؤهلون للمعاش. */
+  view: RetirementView
   rows: RetirementRow[]
   /** السنوات التي فيها إحالات، الأحدث أولًا، مع عدد المحالين في كل سنة. */
   years: { year: number; count: number }[]
@@ -533,10 +537,17 @@ export interface RetirementsReport {
     years: number
     /** أحدث تاريخ معاش بعد الفلتر (yyyy-mm-dd)، أو null. */
     latest: string | null
+    /** أقرب تاريخ معاش بعد الفلتر (yyyy-mm-dd)، أو null. */
+    earliest: string | null
   }
 }
 
+/** retired = محالون بالفعل، eligible = مؤهلون (سيبلغون السن). */
+export type RetirementView = 'retired' | 'eligible'
+
 export interface RetirementsQuery {
+  /** العرض المطلوب — افتراضيًا المحالون بالفعل. */
+  view?: RetirementView
   /** سنة الإحالة — غيابها يعني كل السنوات. */
   year?: number
   /** شهر الإحالة (1-12) — تُطبَّق مع السنة. */
