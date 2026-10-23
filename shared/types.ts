@@ -619,6 +619,8 @@ export interface RetirementRow {
   source: 'auto' | 'manual' | 'expected'
   /** الحالة الوظيفية الحالية (نشط/إجازة بدون مرتب/موقوف/محال للمعاش…). */
   employeeStatus: string
+  /** الدرجة الوظيفية (للتمييز بين المناصب القيادية مثل مدير عام، درجة عالية، إلخ). */
+  grade: string | null
   /** من سجّل الإحالة (اسم المستخدم أو النظام). */
   changedBy: string | null
   /** سبب الإحالة كما سُجِّل في السجل. */

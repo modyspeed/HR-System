@@ -28,6 +28,8 @@ export interface RetirementSourceRow {
   departmentName: string | null
   /** الحالة الوظيفية الحالية. */
   status: string
+  /** الدرجة الوظيفية (للتمييز بين المناصب القيادية). */
+  grade: string | null
   /** إحالات المعاش المسجَّلة في السجل، الأقدم أولًا. */
   retiredHistory: {
     changedAt: string
@@ -58,6 +60,7 @@ function toRetirementRow(source: RetirementSourceRow, view: 'retired' | 'eligibl
     departmentId: source.departmentId,
     departmentName: source.departmentName,
     birthDate: source.birthDate,
+    grade: source.grade ?? null,
     retirementDate,
     // المؤهل لم يُحل بعد، فلا مصدر إحالة له.
     source: view === 'eligible' ? 'expected' : isAutomatic ? 'auto' : 'manual',

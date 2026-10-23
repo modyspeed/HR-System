@@ -45,6 +45,7 @@ type EmployeeRow = {
   birthDate: Date | null
   departmentId: string | null
   status: string
+  grade: string | null
   department: { name: string } | null
   statusHistory: { changedAt: Date; changedBy: string | null; reason: string | null }[]
 }
@@ -56,6 +57,7 @@ const EMPLOYEE_SELECT = {
   birthDate: true,
   departmentId: true,
   status: true,
+  grade: true,
   department: { select: { name: true } },
   statusHistory: {
     where: { toStatus: RETIRED_EMPLOYEE_STATUS },
@@ -100,6 +102,7 @@ function toSourceRow(employee: EmployeeRow) {
     departmentId: employee.departmentId,
     departmentName: employee.department?.name ?? null,
     status: employee.status,
+    grade: employee.grade ?? null,
     retiredHistory: employee.statusHistory.map((row) => ({
       changedAt: row.changedAt.toISOString(),
       changedBy: row.changedBy,
@@ -110,6 +113,20 @@ function toSourceRow(employee: EmployeeRow) {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100
+}
+
+/** المناصب القيادية التي يُحسب بدل-nature لها من القسم قبل الترقية. */
+const EXECUTIVE_GRADES = new Set(['مدير عام', 'درجة عالية', 'درجة فوق الممتازة'])
+const EXECUTIVE_DEPARTMENT_NAMES = new Set([
+  'المدير التنفيذي',
+  'رؤساء قطاع',
+  'رؤساء قطاعات',
+  'مديرين عموم'
+])
+
+function isExecutiveGrade(grade: string | null): boolean {
+  if (!grade) return false
+  return EXECUTIVE_GRADES.has(grade) || EXECUTIVE_DEPARTMENT_NAMES.has(grade)
 }
 
 export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): void {
@@ -148,7 +165,7 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
         ...new Set(datedRows.map((row) => row.departmentId).filter((id): id is string => Boolean(id)))
       ]
 
-      const [entries, grades, departments, notes] = await Promise.all([
+      const [entries, grades, departments, transfers, notes] = await Promise.all([
         prisma.payrollEntry.findMany({
           where: {
             employeeId: { in: employeeIds },
@@ -171,6 +188,11 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
               where: { id: { in: departmentIds } },
               select: { id: true, natureAllowancePct: true }
             }),
+        prisma.departmentTransfer.findMany({
+          where: { employeeId: { in: employeeIds }, fromDepartmentId: { not: null } },
+          orderBy: [{ employeeId: 'asc' }, { fromDate: 'desc' }],
+          select: { employeeId: true, fromDepartmentId: true, toDepartmentId: true, fromDate: true }
+        }),
         prisma.$queryRawUnsafe<
           { employeeId: string; period: string; itemKey: string; note: string }[]
         >(
@@ -190,6 +212,23 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
       const departmentPct = new Map(
         departments.map((department) => [department.id, department.natureAllowancePct])
       )
+
+      // للمدراء العموم ورؤساء القطاعات والمدير التنفيذي: بدل الطبيعة يكون
+      // لقسمهم قبل الترقية (من DepartmentTransfer.fromDepartmentId)
+      const transferByEmployee = new Map<string, string | null>()
+      for (const t of transfers) {
+        if (!transferByEmployee.has(t.employeeId)) {
+          transferByEmployee.set(t.employeeId, t.fromDepartmentId ?? null)
+        }
+      }
+      const fromDepartmentPct = new Map<string | null, number | null>()
+      for (const [, fromDeptId] of transferByEmployee) {
+        if (fromDeptId === null) continue
+        if (!fromDepartmentPct.has(fromDeptId)) {
+          const dept = departments.find((d) => d.id === fromDeptId)
+          fromDepartmentPct.set(fromDeptId, dept?.natureAllowancePct ?? null)
+        }
+      }
 
       const entryByKey = new Map<string, RetirementReviewEntry>()
       for (const entry of entries) {
@@ -237,7 +276,11 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
           grade?.amount ??
           previousEntry?.basicSalary ??
           (derivedBasic === null ? null : round2(derivedBasic))
-        const natureAllowancePct = departmentPct.get(row.departmentId ?? '') ?? null
+        const natureAllowancePct =
+          transferByEmployee.has(row.employeeId) && isExecutiveGrade(row.grade)
+            ? fromDepartmentPct.get(transferByEmployee.get(row.employeeId) ?? null) ??
+              departmentPct.get(row.departmentId ?? '') ?? null
+            : departmentPct.get(row.departmentId ?? '') ?? null
         const salary = reviewRetirementSalary({
           period: retirementPeriod,
           retirementDate: row.retirementDate,
