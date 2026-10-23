@@ -463,7 +463,7 @@ export function RetirementsReport() {
         onClose={() => setReviewOpen(false)}
         view={view}
         year={year}
-        month={month}
+        month=""
         search={debouncedSearch}
         departmentId={departmentId}
       />
