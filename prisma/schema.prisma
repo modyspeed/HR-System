@@ -99,6 +99,7 @@ model Employee {
   departmentTransfers DepartmentTransfer[]
   employeeIncentiveRates EmployeeIncentiveRate[]
   incentivePenalties EmployeeIncentivePenalty[]
+  absenceReviewNotes AbsenceReviewNote[]
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -349,4 +350,23 @@ model EmployeeIncentivePenalty {
 
   @@unique([employeeId, period])
   @@index([period])
+}
+
+/// ملاحظة مراجعة على بند واحد في بوب اب المراجعة (مرتب أو حافز).
+/// تُحفظ لكل موظف/شهر/نوع ظرف/بند، وتُحذف تلقائيًا مع الموظف.
+model AbsenceReviewNote {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  period     String // شهر الحافز الذي تجري مراجعته
+  slipType   String // salary | incentive
+  itemKey    String // مفتاح البند الثابت داخل المراجعة
+  label      String? // اسم البند وقت الحفظ (مرجعي)
+  note       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, period, slipType, itemKey])
+  @@index([period])
+  @@index([employeeId])
 }

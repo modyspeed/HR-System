@@ -2,7 +2,15 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { AlertTriangle, CalendarCheck, CalendarX, RefreshCw, Search, UserX } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarCheck,
+  CalendarX,
+  ClipboardCheck,
+  RefreshCw,
+  Search,
+  UserX
+} from 'lucide-react'
 import { toast } from 'sonner'
 import type { AbsencesReport, ExportPayload, PayrollItemsPeriod } from '@shared/types'
 import { api } from '@/lib/ipc'
@@ -27,6 +35,7 @@ import { SoftButton } from '@/components/ui/SoftButton'
 import { ExportMenu } from '@/components/ui/ExportMenu'
 import { SkeletonRows } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/feedback/EmptyState'
+import { AbsenceReviewModal } from './AbsenceReviewModal'
 
 /** «2026-09» → «09 / 2026». */
 function monthLabel(period: string): string {
@@ -55,6 +64,7 @@ export function AbsencesReport() {
   const debouncedSearch = useDebounce(search, 260)
   const [departmentId, setDepartmentId] = useState('')
   const [extracting, setExtracting] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const periodsQuery = useQuery({
     queryKey: ['payrolls', 'items', 'periods'],
@@ -237,6 +247,14 @@ export function AbsencesReport() {
               </SoftButton>
             )}
             <div className="flex items-center gap-2">
+              <SoftButton
+                variant="ghost"
+                icon={<ClipboardCheck className="size-4" />}
+                disabled={!report || report.rows.length === 0}
+                onClick={() => setReviewOpen(true)}
+              >
+                {t('reviews.absenceReview.open')}
+              </SoftButton>
               <ExportMenu payload={exportPayload} />
             </div>
           </div>
@@ -437,6 +455,14 @@ export function AbsencesReport() {
           </DataTable>
         )}
       </GlassCard>
+
+      <AbsenceReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        period={activePeriod}
+        search={debouncedSearch}
+        departmentId={departmentId}
+      />
     </div>
   )
 }

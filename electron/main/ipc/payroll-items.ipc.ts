@@ -8,10 +8,16 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { ApiError } from '../../../shared/types'
 import type {
+  AbsenceReviewNoteInput,
+  AbsenceReviewNoteRecord,
+  AbsenceReviewQuery,
+  AbsenceReviewReport,
+  AbsenceReviewRow,
   AbsencesQuery,
   PayrollItemsPeriod,
   PayrollItemsQuery
 } from '../../../shared/types'
+import { nextPeriod, periodEndDate } from '../../../shared/absenceRules'
 import { requirePermission } from '../auth'
 import {
   buildAbsencesReport,
@@ -19,7 +25,13 @@ import {
   extractPayrollItems
 } from '../payroll-items'
 import { applyAbsenceDays, scanBatchAbsences } from '../payroll-absences'
+import {
+  reviewIncentive,
+  reviewSalary,
+  type ReviewEntry
+} from '../payroll-review'
 import { resolvePayrollStoredPath } from '../payroll-files'
+import { randomUUID } from 'crypto'
 import fs from 'fs'
 import type { IpcRegistry } from './registry'
 
@@ -277,6 +289,359 @@ export function registerPayrollItemsIpc(prisma: PrismaClient, ipc: IpcRegistry):
       }))
     })
   })
+
+  /**
+   * مراجعة أثر الغياب: لكل موظف غائب في شهر الحافز، تُعاد مراجعة:
+   *   - حافز الشهر نفسه (الفعلي من ظرف الحافز).
+   *   - مرتب الشهر التالي (الفعلي من ظرف المرتب).
+   * مع حساب المتوقع من الأساسي/الحافز على أساس 30 يومًا وقواعد الغياب.
+   */
+  ipc.handle(
+    'payrolls:items.absenceReview',
+    async (_event, query: AbsenceReviewQuery): Promise<AbsenceReviewReport> => {
+      requirePermission('payrolls.view')
+      assertPeriod(query.period)
+
+      const period = query.period
+      const salaryPeriod = nextPeriod(period)
+      const [year, month] = period.split('-').map(Number)
+
+      const where: Prisma.PayrollEntryWhereInput = { period }
+      const search = query.search?.trim()
+      if (search) {
+        where.OR = [
+          { employee: { code: { contains: search } } },
+          { employee: { name: { contains: search } } }
+        ]
+      }
+      if (query.departmentId) where.departmentId = query.departmentId
+
+      const periodEntries = await prisma.payrollEntry.findMany({
+        where,
+        include: ABSENCE_INCLUDE,
+        orderBy: { employee: { code: 'asc' } }
+      })
+
+      const report = buildAbsencesReport({
+        period,
+        month,
+        year,
+        fileNames: [],
+        slipTypes: [],
+        scannedBatches: 0,
+        totalBatches: 0,
+        missingFiles: [],
+        entries: periodEntries.map((entry: AbsenceEntryRow) => ({
+          employeeId: entry.employeeId,
+          employeeCode: entry.employee.code,
+          employeeName: entry.employee.name,
+          departmentName: entry.department?.name ?? entry.employee.department?.name ?? null,
+          withPermissionDays: entry.absenceWithPermissionDays,
+          withoutPermissionDays: entry.absenceWithoutPermissionDays
+        }))
+      })
+
+      if (report.rows.length === 0) {
+        return {
+          period,
+          month,
+          year,
+          salaryPeriod,
+          rows: [],
+          totals: {
+            employees: 0,
+            salaryExpectedDeductions: 0,
+            incentiveExpectedDeductions: 0,
+            salaryVariance: 0,
+            incentiveVariance: 0
+          }
+        }
+      }
+
+      const employeeIds = report.rows.map((row) => row.employeeId)
+      const [entries, employees, grades, employeeRates, departmentRates] = await Promise.all([
+        prisma.payrollEntry.findMany({
+          where: {
+            employeeId: { in: employeeIds },
+            OR: [
+              { type: 'incentive', period },
+              { type: 'salary', period: salaryPeriod }
+            ]
+          },
+          include: {
+            items: true,
+            batch: { select: { originalName: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.employee.findMany({
+          where: { id: { in: employeeIds } },
+          select: { id: true, departmentId: true }
+        }),
+        prisma.basicSalaryGrade.findMany({
+          where: {
+            employeeId: { in: employeeIds },
+            date: { lt: periodEndDate(salaryPeriod) }
+          },
+          orderBy: { date: 'desc' }
+        }),
+        prisma.employeeIncentiveRate.findMany({
+          where: { employeeId: { in: employeeIds }, period: { lte: period } },
+          orderBy: { period: 'desc' }
+        }),
+        prisma.departmentIncentiveRate.findMany({
+          where: { period: { lte: period } },
+          orderBy: { period: 'desc' }
+        })
+      ])
+
+      const penalties = await prisma.employeeIncentivePenalty.findMany({
+        where: { employeeId: { in: employeeIds }, period }
+      })
+      const penaltyByEmployee = new Map<string, { rate: number | null; amount: number }>()
+      for (const penalty of penalties) {
+        const existing = penaltyByEmployee.get(penalty.employeeId)
+        const amount = penalty.amount ?? 0
+        if (!existing) {
+          penaltyByEmployee.set(penalty.employeeId, { rate: penalty.rate ?? null, amount })
+        } else {
+          existing.amount = Math.round((existing.amount + amount) * 100) / 100
+          if (existing.rate === null && penalty.rate !== null) existing.rate = penalty.rate
+        }
+      }
+
+      const employeeDepartment = new Map(
+        employees.map((employee) => [employee.id, employee.departmentId])
+      )
+      const latestGrade = new Map<string, number>()
+      for (const grade of grades) {
+        if (!latestGrade.has(grade.employeeId)) latestGrade.set(grade.employeeId, grade.amount)
+      }
+
+      const entryByKey = new Map<string, ReviewEntry>()
+      for (const entry of entries) {
+        const key = `${entry.employeeId}:${entry.type}`
+        if (entryByKey.has(key)) continue
+        entryByKey.set(key, {
+          period: entry.period,
+          type: entry.type,
+          departmentId: entry.departmentId,
+          basicSalary: entry.basicSalary,
+          totalEarned: entry.totalEarned,
+          totalDeductions: entry.totalDeductions,
+          netSalary: entry.netSalary,
+          fileName: entry.batch?.originalName ?? null,
+          items: entry.items.map((item) => ({
+            kind: item.kind,
+            label: item.label,
+            value: item.value,
+            sortOrder: item.sortOrder
+          }))
+        })
+      }
+
+      const resolveRate = (
+        employeeId: string,
+        departmentId: string | null
+      ): { rate: number | null; source: 'employee' | 'department' | null } => {
+        const employeeExact = employeeRates.find(
+          (rate) => rate.employeeId === employeeId && rate.period === period
+        )
+        if (employeeExact) return { rate: employeeExact.rate, source: 'employee' }
+
+        const departmentExact =
+          departmentId === null
+            ? undefined
+            : departmentRates.find(
+                (rate) => rate.departmentId === departmentId && rate.period === period
+              )
+        if (departmentExact) return { rate: departmentExact.rate, source: 'department' }
+
+        // الغياب لا يغيّر نسبة الحافز؛ عند غياب نسبة الشهر نستعمل آخر نسبة
+        // قسم معتمدة، ثم آخر نسبة فردية كحل أخير.
+        const departmentLatest =
+          departmentId === null
+            ? undefined
+            : departmentRates.find((rate) => rate.departmentId === departmentId)
+        if (departmentLatest) {
+          return { rate: departmentLatest.rate, source: 'department' }
+        }
+
+        const employeeLatest = employeeRates.find((rate) => rate.employeeId === employeeId)
+        if (employeeLatest) return { rate: employeeLatest.rate, source: 'employee' }
+
+        return { rate: null, source: null }
+      }
+
+      const rows: AbsenceReviewRow[] = report.rows.map((row) => {
+        const salaryEntry = entryByKey.get(`${row.employeeId}:salary`) ?? null
+        const incentiveEntry = entryByKey.get(`${row.employeeId}:incentive`) ?? null
+        const departmentId =
+          salaryEntry?.departmentId ??
+          incentiveEntry?.departmentId ??
+          employeeDepartment.get(row.employeeId) ??
+          null
+        const basicSalary =
+          salaryEntry?.basicSalary ??
+          incentiveEntry?.basicSalary ??
+          latestGrade.get(row.employeeId) ??
+          null
+        const { rate, source } = resolveRate(row.employeeId, departmentId)
+
+        return {
+          employeeId: row.employeeId,
+          employeeCode: row.employeeCode,
+          employeeName: row.employeeName,
+          departmentName: row.departmentName,
+          basicSalary,
+          withPermission: row.withPermission,
+          withoutPermission: row.withoutPermission,
+          total: row.total,
+          salary: reviewSalary({
+            period: salaryPeriod,
+            basicSalary,
+            withPermission: row.withPermission,
+            withoutPermission: row.withoutPermission,
+            entry: salaryEntry
+          }),
+          incentive: reviewIncentive({
+            period,
+            basicSalary,
+            rate,
+            rateSource: source,
+            withPermission: row.withPermission,
+            withoutPermission: row.withoutPermission,
+            entry: incentiveEntry,
+            penalty: penaltyByEmployee.get(row.employeeId) ?? null
+          })
+        }
+      })
+
+      const incentiveAbsenceExpected = rows.reduce((total, row) => {
+        return (
+          total +
+          row.incentive.items
+            .filter((item) => item.informational && item.kind === 'deduction')
+            .reduce((sum, item) => sum + (item.expected ?? 0), 0)
+        )
+      }, 0)
+
+      // ملاحظات المراجعة تُقرأ بـ SQL مباشر حتى تعمل حتى قبل إعادة توليد
+      // عميل Prisma على جهاز التشغيل (العميل القديم لا يعرف الجدول الجديد).
+      const employeeIdSet = new Set(employeeIds)
+      const reviewNotes = await prisma.$queryRawUnsafe<
+        { employeeId: string; slipType: string; itemKey: string; note: string }[]
+      >(
+        'SELECT "employeeId", "slipType", "itemKey", "note" FROM "AbsenceReviewNote" WHERE "period" = ?',
+        period
+      )
+      const noteByKey = new Map(
+        reviewNotes
+          .filter((note) => employeeIdSet.has(note.employeeId))
+          .map((note) => [
+            `${note.employeeId}:${note.slipType}:${note.itemKey}`,
+            note.note
+          ])
+      )
+      for (const row of rows) {
+        for (const item of row.salary.items) {
+          item.note = noteByKey.get(`${row.employeeId}:salary:${item.key}`) ?? null
+        }
+        for (const item of row.incentive.items) {
+          item.note = noteByKey.get(`${row.employeeId}:incentive:${item.key}`) ?? null
+        }
+      }
+
+      return {
+        period,
+        month,
+        year,
+        salaryPeriod,
+        rows,
+        totals: {
+          employees: rows.length,
+          salaryExpectedDeductions:
+            Math.round(
+              rows.reduce(
+                (total, row) => total + (row.salary.totals.expectedDeductions ?? 0),
+                0
+              ) * 100
+            ) / 100,
+          incentiveExpectedDeductions: Math.round(incentiveAbsenceExpected * 100) / 100,
+          salaryVariance:
+            Math.round(
+              rows.reduce((total, row) => total + (row.salary.totals.difference ?? 0), 0) * 100
+            ) / 100,
+          incentiveVariance:
+            Math.round(
+              rows.reduce((total, row) => total + (row.incentive.totals.difference ?? 0), 0) * 100
+            ) / 100
+        }
+      }
+    }
+  )
+
+  /** حفظ/حذف ملاحظة على بند واحد — نص فارغ يعني حذف الملاحظة. */
+  ipc.handle(
+    'payrolls:items.absenceReview.saveNote',
+    async (_event, input: AbsenceReviewNoteInput): Promise<AbsenceReviewNoteRecord | null> => {
+      requirePermission('reviews.edit')
+      assertPeriod(input.period)
+      if (input.slipType !== 'salary' && input.slipType !== 'incentive') {
+        throw new ApiError('VALIDATION', 'Invalid slip type')
+      }
+
+      const employeeId = input.employeeId?.trim()
+      const itemKey = input.itemKey?.trim()
+      if (!employeeId || !itemKey) {
+        throw new ApiError('VALIDATION', 'Missing note target')
+      }
+
+      const note = input.note.trim()
+      if (note.length > 2000) {
+        throw new ApiError('VALIDATION', 'Note is too long')
+      }
+
+      if (!note) {
+        await prisma.$executeRawUnsafe(
+          'DELETE FROM "AbsenceReviewNote" WHERE "employeeId" = ? AND "period" = ? AND "slipType" = ? AND "itemKey" = ?',
+          employeeId,
+          input.period,
+          input.slipType,
+          itemKey
+        )
+        return null
+      }
+
+      const label = input.label?.trim() || null
+      const rows = await prisma.$queryRawUnsafe<{ id: string }[]>(
+        `INSERT INTO "AbsenceReviewNote"
+           ("id", "employeeId", "period", "slipType", "itemKey", "label", "note", "createdAt", "updatedAt")
+         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         ON CONFLICT("employeeId", "period", "slipType", "itemKey")
+         DO UPDATE SET "label" = excluded."label", "note" = excluded."note", "updatedAt" = CURRENT_TIMESTAMP
+         RETURNING "id"`,
+        randomUUID(),
+        employeeId,
+        input.period,
+        input.slipType,
+        itemKey,
+        label,
+        note
+      )
+
+      return {
+        id: rows[0]?.id ?? randomUUID(),
+        employeeId,
+        period: input.period,
+        slipType: input.slipType,
+        itemKey,
+        label,
+        note,
+        updatedAt: new Date().toISOString()
+      }
+    }
+  )
 
   /**
    * استخراج أيام الغياب لكشوف شهر معيّن من ملفاتها المخزَّنة.

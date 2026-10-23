@@ -488,6 +488,120 @@ export interface AbsencesQuery {
   departmentId?: string
 }
 
+/* --------------------------- absence review --------------------------- */
+
+export interface AbsenceReviewQuery {
+  /** شهر الحافز الذي وقعت فيه الغيابات — yyyy-mm */
+  period: string
+  search?: string
+  departmentId?: string
+}
+
+/**
+ * ملاحظة تشغيلية على مراجعة ظرف واحد. المفتاح يُترجم في الواجهة،
+ * فلا ترسل الخلفية نصوصًا جاهزة تعتمد على اللغة.
+ */
+export type AbsenceReviewNote =
+  | 'salarySlipMissing'
+  | 'incentiveSlipMissing'
+  | 'rateMissing'
+  | 'basicMissing'
+
+/** صف واحد في جدول المراجعة (بند/فعلي/متوقع/فرق). */
+export interface AbsenceReviewItem {
+  key: string
+  label: string
+  kind: 'earning' | 'deduction'
+  actual: number | null
+  expected: number | null
+  difference: number | null
+  /** صف تفسيري لا يدخل في الإجماليات (مثل تفصيل خصم الغياب المتوقع). */
+  informational: boolean
+  /** ملاحظة المراجعة المحفوظة على هذا البند. */
+  note?: string | null
+}
+
+export interface AbsenceReviewTotals {
+  actualEarnings: number | null
+  expectedEarnings: number | null
+  actualDeductions: number | null
+  expectedDeductions: number | null
+  actualNet: number | null
+  expectedNet: number | null
+  difference: number | null
+}
+
+/** مراجعة ظرف واحد (مرتب أو حافز). */
+export interface AbsenceReviewSlip {
+  type: 'salary' | 'incentive'
+  /** شهر الظرف نفسه. */
+  period: string
+  available: boolean
+  fileName: string | null
+  basicSalary: number | null
+  /** نسبة الحافز المستعملة — للحافز فقط. */
+  rate: number | null
+  rateSource: 'employee' | 'department' | null
+  items: AbsenceReviewItem[]
+  totals: AbsenceReviewTotals
+  notes: AbsenceReviewNote[]
+}
+
+/** موظف لديه غياب في شهر الحافز، مع مراجعة مرتب الشهر التالي وحافز الشهر. */
+export interface AbsenceReviewRow {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentName: string | null
+  basicSalary: number | null
+  withPermission: number
+  withoutPermission: number
+  total: number
+  salary: AbsenceReviewSlip
+  incentive: AbsenceReviewSlip
+}
+
+export interface AbsenceReviewReport {
+  /** شهر الحافز الذي وقعت فيه الغيابات. */
+  period: string
+  month: number
+  year: number
+  /** شهر المرتب المتأثر — الشهر التالي. */
+  salaryPeriod: string
+  rows: AbsenceReviewRow[]
+  totals: {
+    employees: number
+    salaryExpectedDeductions: number
+    incentiveExpectedDeductions: number
+    salaryVariance: number
+    incentiveVariance: number
+  }
+}
+
+export type AbsenceReviewSlipType = 'salary' | 'incentive'
+
+/** ملاحظة محفوظة على بند واحد في مراجعة الغيابات. */
+export interface AbsenceReviewNoteRecord {
+  id: string
+  employeeId: string
+  period: string
+  slipType: AbsenceReviewSlipType
+  itemKey: string
+  label: string | null
+  note: string
+  updatedAt: string
+}
+
+export interface AbsenceReviewNoteInput {
+  employeeId: string
+  period: string
+  slipType: AbsenceReviewSlipType
+  itemKey: string
+  label?: string | null
+  /** نص فارغ = حذف الملاحظة. */
+  note: string
+}
+
 /* -------------------------------- retirements ------------------------------ */
 
 /** صف في تقرير المعاشات — موظف أُحيل للمعاش وتاريخ إحالته. */
@@ -966,6 +1080,12 @@ export interface ApiShape {
       periods(query?: { type?: string }): Promise<PayrollItemsPeriod[]>
       /** تقرير الغيابات (بأذن/بدون إذن) عن شهر معيّن — يجمع من المرتب والحافز. */
       absences(query: AbsencesQuery): Promise<AbsencesReport>
+      /** مراجعة أثر الغياب على حافز الشهر ومرتب الشهر التالي: فعلي/متوقع/فرق. */
+      absenceReview(query: AbsenceReviewQuery): Promise<AbsenceReviewReport>
+      /** حفظ/حذف ملاحظة على بند في مراجعة الغيابات. */
+      saveAbsenceReviewNote(
+        input: AbsenceReviewNoteInput
+      ): Promise<AbsenceReviewNoteRecord | null>
       syncAbsences(query: { period: string }): Promise<{
         batches: number
         absences: number
