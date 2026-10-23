@@ -310,6 +310,19 @@ CREATE TABLE IF NOT EXISTS "AbsenceReviewNote" (
     CONSTRAINT "AbsenceReviewNote_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "RetirementReviewNote" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "employeeId" TEXT NOT NULL,
+    "period" TEXT NOT NULL,
+    "itemKey" TEXT NOT NULL,
+    "label" TEXT,
+    "note" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "RetirementReviewNote_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
 
@@ -414,3 +427,12 @@ CREATE INDEX IF NOT EXISTS "AbsenceReviewNote_employeeId_idx" ON "AbsenceReviewN
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "AbsenceReviewNote_employeeId_period_slipType_itemKey_key" ON "AbsenceReviewNote"("employeeId", "period", "slipType", "itemKey");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RetirementReviewNote_period_idx" ON "RetirementReviewNote"("period");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RetirementReviewNote_employeeId_idx" ON "RetirementReviewNote"("employeeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "RetirementReviewNote_employeeId_period_itemKey_key" ON "RetirementReviewNote"("employeeId", "period", "itemKey");

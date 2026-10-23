@@ -100,6 +100,7 @@ model Employee {
   employeeIncentiveRates EmployeeIncentiveRate[]
   incentivePenalties EmployeeIncentivePenalty[]
   absenceReviewNotes AbsenceReviewNote[]
+  retirementReviewNotes RetirementReviewNote[]
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -367,6 +368,23 @@ model AbsenceReviewNote {
   updatedAt  DateTime @updatedAt
 
   @@unique([employeeId, period, slipType, itemKey])
+  @@index([period])
+  @@index([employeeId])
+}
+
+/// ملاحظة مراجعة على بند في ظرف مرتب شهر المعاش.
+model RetirementReviewNote {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  period     String // شهر المعاش yyyy-mm
+  itemKey    String // مفتاح البند الثابت داخل المراجعة
+  label      String? // اسم البند وقت الحفظ (مرجعي)
+  note       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, period, itemKey])
   @@index([period])
   @@index([employeeId])
 }

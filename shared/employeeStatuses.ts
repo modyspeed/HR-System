@@ -43,7 +43,8 @@ export const RETIREMENT_AGE_YEARS = 60
 export function retirementDateOf(birthDate: string | null): string | null {
   if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null
   const [year, month, day] = birthDate.split('-').map(Number)
-  const date = new Date(Date.UTC(year + RETIREMENT_AGE_YEARS, month - 1, day))
+  // تاريخ المعاش = الميلاد + 60 سنة − يوم واحد.
+  const date = new Date(Date.UTC(year + RETIREMENT_AGE_YEARS, month - 1, day - 1))
   return date.toISOString().slice(0, 10)
 }
 

@@ -670,6 +670,105 @@ export interface RetirementsQuery {
   departmentId?: string
 }
 
+/* --------------------------- retirement review ------------------------- */
+
+export type RetirementReviewQuery = RetirementsQuery
+
+export type RetirementReviewNoteKey =
+  | 'salarySlipMissing'
+  | 'basicMissing'
+  | 'birthDateMissing'
+  | 'natureAllowanceMissing'
+
+/** صف في جدول مراجعة مستحقات شهر المعاش. */
+export interface RetirementReviewItem {
+  key: string
+  label: string
+  kind: 'earning' | 'deduction'
+  actual: number | null
+  expected: number | null
+  difference: number | null
+  informational: boolean
+  /** ملاحظة المراجعة المحفوظة على هذا البند. */
+  note?: string | null
+}
+
+export interface RetirementReviewTotals {
+  actualEarnings: number | null
+  expectedEarnings: number | null
+  actualDeductions: number | null
+  expectedDeductions: number | null
+  actualNet: number | null
+  expectedNet: number | null
+  difference: number | null
+}
+
+/** مراجعة ظرف مرتب شهر المعاش. */
+export interface RetirementReviewSlip {
+  type: 'salary'
+  /** شهر المعاش (yyyy-mm). */
+  period: string
+  available: boolean
+  fileName: string | null
+  items: RetirementReviewItem[]
+  totals: RetirementReviewTotals
+  notes: RetirementReviewNoteKey[]
+}
+
+/** موظف داخل مراجعة المعاشات مع حسابات الموزَّع وبدل الطبيعة. */
+export interface RetirementReviewRow {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentId: string | null
+  departmentName: string | null
+  birthDate: string | null
+  retirementDate: string
+  retirementPeriod: string
+  actualDays: number
+  monthDays: number
+  ratio: number
+  natureAllowancePct: number | null
+  /** الأساسي الشهري الكامل قبل التوزيع. */
+  basicSalary: number | null
+  /** الأساسي × نسبة الأيام. */
+  distributedBasic: number | null
+  /** الموزَّع × نسبة بدل الطبيعة. */
+  expectedNatureAllowance: number | null
+  salary: RetirementReviewSlip
+}
+
+export interface RetirementReviewReport {
+  view: RetirementView
+  rows: RetirementReviewRow[]
+  totals: {
+    employees: number
+    distributedBasic: number
+    natureAllowance: number
+    variance: number
+  }
+}
+
+/** ملاحظة محفوظة على بند في مراجعة المعاشات. */
+export interface RetirementReviewNoteRecord {
+  id: string
+  employeeId: string
+  period: string
+  itemKey: string
+  label: string | null
+  note: string
+  updatedAt: string
+}
+
+export interface RetirementReviewNoteInput {
+  employeeId: string
+  period: string
+  itemKey: string
+  label?: string | null
+  /** نص فارغ = حذف الملاحظة. */
+  note: string
+}
+
 export interface SalaryGradeRecord {
   id: string
   employeeId: string
@@ -958,6 +1057,12 @@ export interface ApiShape {
   retirements: {
     /** تقرير المعاشات: المحالون للمعاش مع تاريخ إحالتهم، بفلتر سنة/شهر. */
     list(query?: RetirementsQuery): Promise<RetirementsReport>
+    /** مراجعة مستحقات شهر المعاش: فعلي/متوقع/فرق + ملاحظات. */
+    review(query?: RetirementReviewQuery): Promise<RetirementReviewReport>
+    /** حفظ/حذف ملاحظة على بند في مراجعة المعاشات. */
+    saveReviewNote(
+      input: RetirementReviewNoteInput
+    ): Promise<RetirementReviewNoteRecord | null>
   }
   users: {
     list(query: ListUsersQuery): Promise<UserRecord[]>

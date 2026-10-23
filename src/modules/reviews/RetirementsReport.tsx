@@ -2,7 +2,14 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Award, CalendarClock, Search, UserMinus, Users } from 'lucide-react'
+import {
+  Award,
+  CalendarClock,
+  ClipboardCheck,
+  Search,
+  UserMinus,
+  Users
+} from 'lucide-react'
 import type { ExportPayload, RetirementView } from '@shared/types'
 import { api } from '@/lib/ipc'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -25,6 +32,7 @@ import { SoftButton } from '@/components/ui/SoftButton'
 import { ExportMenu } from '@/components/ui/ExportMenu'
 import { SkeletonRows } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/feedback/EmptyState'
+import { RetirementReviewModal } from './RetirementReviewModal'
 
 /**
  * تقرير المعاشات — عرضان:
@@ -51,6 +59,7 @@ export function RetirementsReport() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 260)
   const [departmentId, setDepartmentId] = useState('')
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const isEligible = view === 'eligible'
 
@@ -264,6 +273,14 @@ export function RetirementsReport() {
               </SoftButton>
             )}
             <div className="flex items-center gap-2">
+              <SoftButton
+                variant="ghost"
+                icon={<ClipboardCheck className="size-4" />}
+                disabled={!report || report.rows.length === 0}
+                onClick={() => setReviewOpen(true)}
+              >
+                {t('reviews.retirements.review.open')}
+              </SoftButton>
               <ExportMenu payload={exportPayload} />
             </div>
           </div>
@@ -440,6 +457,16 @@ export function RetirementsReport() {
           </DataTable>
         )}
       </GlassCard>
+
+      <RetirementReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        view={view}
+        year={year}
+        month={month}
+        search={debouncedSearch}
+        departmentId={departmentId}
+      />
     </div>
   )
 }
