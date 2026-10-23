@@ -3,7 +3,9 @@ import type { ApiShape, AppSettings } from '../../shared/types'
 
 const api: ApiShape = {
   retirements: {
-    list: (query) => ipcRenderer.invoke('retirements:list', query)
+    list: (query) => ipcRenderer.invoke('retirements:list', query),
+    review: (query) => ipcRenderer.invoke('retirements:review', query),
+    saveReviewNote: (input) => ipcRenderer.invoke('retirements:review.saveNote', input)
   },
   auth: {
     login: (payload) => ipcRenderer.invoke('auth:login', payload),
