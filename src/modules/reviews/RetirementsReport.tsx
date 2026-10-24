@@ -59,7 +59,7 @@ export function RetirementsReport() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 260)
   const [departmentId, setDepartmentId] = useState('')
-  const [reviewOpen, setReviewOpen] = useState(false)
+  const [mode, setMode] = useState<'report' | 'review'>('report')
 
   const isEligible = view === 'eligible'
 
@@ -195,6 +195,19 @@ export function RetirementsReport() {
             </button>
           )
         })}
+        <button
+          type="button"
+          onClick={() => setMode('review')}
+          className={cn(
+            'inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors',
+            mode === 'review'
+              ? 'border-line-strong bg-surface-strong text-ink-high shadow-[var(--shadow-raised),var(--shadow-rim)]'
+              : 'border-line bg-surface-soft text-muted hover:text-ink-high'
+          )}
+        >
+          <ClipboardCheck className="size-4" />
+          {t('reviews.retirements.review.title')}
+        </button>
       </motion.div>
 
       {/* شريط الاختيار */}
@@ -273,15 +286,7 @@ export function RetirementsReport() {
               </SoftButton>
             )}
             <div className="flex items-center gap-2">
-              <SoftButton
-                variant="ghost"
-                icon={<ClipboardCheck className="size-4" />}
-                disabled={!report || report.rows.length === 0}
-                onClick={() => setReviewOpen(true)}
-              >
-                {t('reviews.retirements.review.open')}
-              </SoftButton>
-              <ExportMenu payload={exportPayload} />
+              {mode === 'report' && <ExportMenu payload={exportPayload} />}
             </div>
           </div>
         </div>
@@ -322,6 +327,14 @@ export function RetirementsReport() {
         </div>
       )}
 
+      {/* مراجعة المعاشات (داخل الشاشة) */}
+      {mode === 'review' && (
+        <GlassCard withLightBar={false} className="p-5">
+          <RetirementReviewModal inline view={view} year={year} month={month} search={debouncedSearch} departmentId={departmentId} />
+        </GlassCard>
+      )}
+      {mode === 'report' && (
+      <>
       {/* الجدول */}
       <GlassCard withLightBar={false} className="overflow-hidden">
         {isLoading && !report ? (
@@ -458,15 +471,8 @@ export function RetirementsReport() {
         )}
       </GlassCard>
 
-      <RetirementReviewModal
-        open={reviewOpen}
-        onClose={() => setReviewOpen(false)}
-        view={view}
-        year={year}
-        month=""
-        search={debouncedSearch}
-        departmentId={departmentId}
-      />
+      </>
+      )}
     </div>
   )
 }

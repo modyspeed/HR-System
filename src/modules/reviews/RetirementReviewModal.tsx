@@ -42,8 +42,9 @@ import { SkeletonRows } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/feedback/EmptyState'
 
 interface RetirementReviewModalProps {
-  open: boolean
-  onClose: () => void
+  open?: boolean
+  onClose?: () => void
+  inline?: boolean
   view: RetirementView
   year: string
   month: string
@@ -98,8 +99,9 @@ function withItemNote(
 }
 
 export function RetirementReviewModal({
-  open,
+  open = false,
   onClose,
+  inline = false,
   view,
   year,
   month,
@@ -113,8 +115,8 @@ export function RetirementReviewModal({
   const [savingNoteKey, setSavingNoteKey] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!open) setDetailId(null)
-  }, [open])
+    if (!open && !inline) setDetailId(null)
+  }, [open, inline])
 
   const reviewQueryKey = useMemo(
     () => ['retirements', 'review', view, year, month, search, departmentId] as const,
@@ -131,7 +133,7 @@ export function RetirementReviewModal({
         search: search || undefined,
         departmentId: departmentId || undefined
       }),
-    enabled: open
+    enabled: inline || open
   })
 
   const saveNoteMutation = useMutation({
@@ -213,22 +215,15 @@ export function RetirementReviewModal({
             ? t('reviews.retirements.review.showing', { count: report.rows.length })
             : ''}
         </span>
-        <SoftButton variant="ghost" size="sm" onClick={onClose}>
+        <SoftButton variant="ghost" size="sm" onClick={() => onClose?.()}>
           {t('reviews.retirements.review.close')}
         </SoftButton>
       </div>
     </div>
   )
 
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      size="xl"
-      title={title}
-      description={description}
-      footer={footer}
-    >
+  const content = (
+    <div>
       {detailRow ? (
         <RetirementSlipDetail
           row={detailRow}
@@ -365,6 +360,34 @@ export function RetirementReviewModal({
           </p>
         </div>
       )}
+    </div>
+  )
+
+  if (inline) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-ink-high">{title}</h2>
+            <p className="mt-1 text-xs text-ink-low">{description}</p>
+          </div>
+        </div>
+        {content}
+        <div className="flex w-full items-center justify-between gap-3">{footer}</div>
+      </div>
+    )
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => onClose?.()}
+      size="xl"
+      title={title}
+      description={description}
+      footer={footer}
+    >
+      {content}
     </Modal>
   )
 }

@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   CalendarCheck,
   CalendarX,
-  ClipboardCheck,
   RefreshCw,
   Search,
   UserX
@@ -16,6 +15,7 @@ import type { AbsencesReport, ExportPayload, PayrollItemsPeriod } from '@shared/
 import { api } from '@/lib/ipc'
 import { resolveApiError } from '@/lib/errors'
 import { useDebounce } from '@/hooks/useDebounce'
+import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import { staggerItem, spring } from '@/lib/motion'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -64,7 +64,7 @@ export function AbsencesReport() {
   const debouncedSearch = useDebounce(search, 260)
   const [departmentId, setDepartmentId] = useState('')
   const [extracting, setExtracting] = useState(false)
-  const [reviewOpen, setReviewOpen] = useState(false)
+  const [mode, setMode] = useState<'report' | 'review'>('report')
 
   const periodsQuery = useQuery({
     queryKey: ['payrolls', 'items', 'periods'],
@@ -185,6 +185,10 @@ export function AbsencesReport() {
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => setMode('report')} className={cn('inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors', mode === 'report' ? 'border-line-strong bg-surface-strong text-ink-high shadow-[var(--shadow-raised),var(--shadow-rim)]' : 'border-line bg-surface-soft text-muted hover:text-ink-high')}>{t('reviews.absences.title')}</button>
+        <button type="button" onClick={() => setMode('review')} className={cn('inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors', mode === 'review' ? 'border-line-strong bg-surface-strong text-ink-high shadow-[var(--shadow-raised),var(--shadow-rim)]' : 'border-line bg-surface-soft text-muted hover:text-ink-high')}>{t('reviews.absenceReview.title')}</button>
+      </div>
       {/* شريط الاختيار */}
       <GlassCard withLightBar={false} className="p-5">
         <div className="flex flex-col gap-4">
@@ -247,15 +251,7 @@ export function AbsencesReport() {
               </SoftButton>
             )}
             <div className="flex items-center gap-2">
-              <SoftButton
-                variant="ghost"
-                icon={<ClipboardCheck className="size-4" />}
-                disabled={!report || report.rows.length === 0}
-                onClick={() => setReviewOpen(true)}
-              >
-                {t('reviews.absenceReview.open')}
-              </SoftButton>
-              <ExportMenu payload={exportPayload} />
+              {mode === 'report' && <ExportMenu payload={exportPayload} />}
             </div>
           </div>
         </div>
@@ -327,6 +323,14 @@ export function AbsencesReport() {
         </div>
       )}
 
+      {/* مراجعة الغيابات (داخل الشاشة) */}
+      {mode === 'review' && (
+        <GlassCard withLightBar={false} className="p-5">
+          <AbsenceReviewModal inline period={activePeriod} search={debouncedSearch} departmentId={departmentId} />
+        </GlassCard>
+      )}
+      {mode === 'report' && (
+      <>
       {/* جدول الغيابات */}
       <GlassCard withLightBar={false} className="overflow-hidden">
         {!activePeriod ? (
@@ -456,13 +460,8 @@ export function AbsencesReport() {
         )}
       </GlassCard>
 
-      <AbsenceReviewModal
-        open={reviewOpen}
-        onClose={() => setReviewOpen(false)}
-        period={activePeriod}
-        search={debouncedSearch}
-        departmentId={departmentId}
-      />
+      </>
+      )}
     </div>
   )
 }

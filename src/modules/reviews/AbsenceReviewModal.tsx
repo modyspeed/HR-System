@@ -44,8 +44,9 @@ import { EmptyState } from '@/components/feedback/EmptyState'
 type DetailKind = 'salary' | 'incentive'
 
 interface AbsenceReviewModalProps {
-  open: boolean
-  onClose: () => void
+  open?: boolean
+  onClose?: () => void
+  inline?: boolean
   period: string
   search: string
   departmentId: string
@@ -98,8 +99,9 @@ function withItemNote(
  * الغياب ومرتب الشهر التالي — الفعلي من الظرف، والمتوقع من قواعد الغياب.
  */
 export function AbsenceReviewModal({
-  open,
+  open = false,
   onClose,
+  inline = false,
   period,
   search,
   departmentId
@@ -111,8 +113,8 @@ export function AbsenceReviewModal({
   const [savingNoteKey, setSavingNoteKey] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!open) setDetail(null)
-  }, [open])
+    if (!open && !inline) setDetail(null)
+  }, [open, inline])
 
   const reviewQueryKey = useMemo(
     () => ['payrolls', 'items', 'absenceReview', period, search, departmentId] as const,
@@ -127,7 +129,7 @@ export function AbsenceReviewModal({
         search: search || undefined,
         departmentId: departmentId || undefined
       }),
-    enabled: open && Boolean(period)
+    enabled: (inline || open) && Boolean(period)
   })
 
   const saveNoteMutation = useMutation({
@@ -232,7 +234,7 @@ export function AbsenceReviewModal({
       >
         {t('reviews.absenceReview.back')}
       </SoftButton>
-      <SoftButton variant="ghost" size="sm" onClick={onClose}>
+      <SoftButton variant="ghost" size="sm" onClick={() => onClose?.()}>
         {t('reviews.absenceReview.close')}
       </SoftButton>
     </div>
@@ -241,21 +243,14 @@ export function AbsenceReviewModal({
       <span className="text-xs text-ink-low">
         {report ? t('reviews.absenceReview.showing', { count: report.rows.length }) : ''}
       </span>
-      <SoftButton variant="ghost" size="sm" onClick={onClose}>
+      <SoftButton variant="ghost" size="sm" onClick={() => onClose?.()}>
         {t('reviews.absenceReview.close')}
       </SoftButton>
     </div>
   )
 
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      size="xl"
-      title={title}
-      description={description}
-      footer={footer}
-    >
+  const content = (
+    <div>
       {detail && detailRow && detailSlip ? (
         <SlipDetail
           row={detailRow}
@@ -401,6 +396,34 @@ export function AbsenceReviewModal({
           </p>
         </div>
       )}
+    </div>
+  )
+
+  if (inline) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-ink-high">{title}</h2>
+            <p className="mt-1 text-xs text-ink-low">{description}</p>
+          </div>
+        </div>
+        {content}
+        <div className="flex w-full items-center justify-between gap-3">{footer}</div>
+      </div>
+    )
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => onClose?.()}
+      size="xl"
+      title={title}
+      description={description}
+      footer={footer}
+    >
+      {content}
     </Modal>
   )
 }
