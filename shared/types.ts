@@ -547,7 +547,7 @@ export interface AbsenceReviewSlip {
   notes: AbsenceReviewNote[]
 }
 
-/** موظف لديه غياب في شهر الحافز، مع مراجعة مرتب الشهر التالي وحافز الشهر. */
+/** موظف لديه غياب في شهر الحافز، ��ع مراجعة مرتب الشهر التالي وحافز الشهر. */
 export interface AbsenceReviewRow {
   employeeId: string
   employeeCode: string
@@ -670,6 +670,81 @@ export interface RetirementsQuery {
   month?: number
   search?: string
   departmentId?: string
+}
+
+/* ---------------------------- nature allowance ---------------------------- */
+
+/**
+ * match = النسبة المصروفة تطابق نسبة القسم، mismatch = نسبة مختلفة،
+ * noAllowance = القسم له نسبة ولم يُصرف بدل، unexpected = صُرف بدل لقسم بلا نسبة،
+ * departmentPctMissing = نسبة القسم غير مسجلة، basicMissing = الأساسي غير متاح.
+ */
+export type NatureAllowanceStatus =
+  | 'match'
+  | 'mismatch'
+  | 'noAllowance'
+  | 'unexpected'
+  | 'departmentPctMissing'
+  | 'basicMissing'
+
+/** flagged = من يحتاج مراجعة فقط، all = كل الموظفين. */
+export type NatureAllowanceView = 'flagged' | 'all'
+
+export interface NatureAllowanceQuery {
+  /** شهر ظرف المرتب (yyyy-mm) — غيابه يعني أحدث شهر. */
+  period?: string
+  view?: NatureAllowanceView
+  search?: string
+  departmentId?: string
+}
+
+export interface NatureAllowanceRow {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  departmentId: string | null
+  departmentName: string | null
+  /** منصب قيادي — النسبة تؤخذ من القسم السابق للترقية. */
+  executive: boolean
+  /** القسم الذي أُخذت منه النسبة للمناصب القيادية. */
+  pctSourceDepartmentName: string | null
+  basicSalary: number | null
+  /** بدل الطبيعة المصروف في الظرف. */
+  allowance: number | null
+  /** النسبة المصروفة فعلًا = البدل ÷ الأساسي × 100. */
+  actualPct: number | null
+  /** نسبة القسم المعتمدة. */
+  departmentPct: number | null
+  /** البدل المستحق بنسبة القسم. */
+  expectedAllowance: number | null
+  /** المصروف − المستحق (موجب = صُرف أكثر). */
+  difference: number | null
+  /** النسبة المصروفة − نسبة القسم (نقاط مئوية). */
+  pctDifference: number | null
+  status: NatureAllowanceStatus
+  /** أقسام تطابق نسبتها النسبة المصروفة — تلميح لمصدر البدل. */
+  matchedDepartments: string[]
+}
+
+export interface NatureAllowanceReport {
+  period: string | null
+  /** شهور كشوف المرتب المتاحة، الأحدث أولًا. */
+  periods: string[]
+  rows: NatureAllowanceRow[]
+  totals: {
+    /** كل أظرف الشهر. */
+    total: number
+    /** بعد فلتر البحث والقسم. */
+    scoped: number
+    /** من يحتاج مراجعة بعد الفلتر. */
+    flagged: number
+    /** إجمالي ما صُرف زيادة عن نسبة القسم. */
+    overpaid: number
+    /** إجمالي ما صُرف أقل من نسبة القسم (سالب). */
+    underpaid: number
+    /** موظفون أقسامهم بلا نسبة مسجلة. */
+    pctMissing: number
+  }
 }
 
 /* --------------------------- retirement review ------------------------- */
@@ -1067,6 +1142,10 @@ export interface ApiShape {
     saveReviewNote(
       input: RetirementReviewNoteInput
     ): Promise<RetirementReviewNoteRecord | null>
+  }
+  natureAllowance: {
+    /** مراجعة بدل الطبيعة: النسبة المصروفة مقابل نسبة القسم لشهر مرتب. */
+    list(query?: NatureAllowanceQuery): Promise<NatureAllowanceReport>
   }
   users: {
     list(query: ListUsersQuery): Promise<UserRecord[]>

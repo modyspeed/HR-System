@@ -1,26 +1,29 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { ClipboardCheck, LayoutGrid, UserMinus, UserX } from 'lucide-react'
+import { ClipboardCheck, LayoutGrid, Percent, UserMinus, UserX } from 'lucide-react'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { AbsencesReport } from './AbsencesReport'
 import { PayrollItemsMatrix } from './PayrollItemsMatrix'
 import { RetirementsReport } from './RetirementsReport'
+import { NatureAllowanceReport } from './NatureAllowanceReport'
 
-type ReviewSection = 'items' | 'absences' | 'retirements'
+type ReviewSection = 'items' | 'absences' | 'retirements' | 'nature'
 
 const SECTIONS: { key: ReviewSection; labelKey: string; icon: typeof ClipboardCheck }[] = [
   { key: 'items', labelKey: 'reviews.items.tab', icon: LayoutGrid },
   { key: 'absences', labelKey: 'reviews.absences.tab', icon: UserX },
-  { key: 'retirements', labelKey: 'reviews.retirements.tab', icon: UserMinus }
+  { key: 'retirements', labelKey: 'reviews.retirements.tab', icon: UserMinus },
+  { key: 'nature', labelKey: 'reviews.nature.tab', icon: Percent }
 ]
 
 /**
  * المراجعة: شاشة تفتيش ومتابعة — تبدأ بمصفوفة مفردات المرتب والحافز
  * (صف لكل موظف وعمود لكل بند)، ويضمّها قسم الغيابات الذي يعرض من غاب
- * عن الشهر المختار وكم خُصم منه بإذن أو بدون إذن.
+ * عن الشهر المختار وكم خُصم منه بإذن أو بدون إذن، والمعاشات، وبدل الطبيعة
+ * الذي يكشف من يُصرف له بدل بنسبة مختلفة عن نسبة قسمه.
  *
  * شريط الأقسام لا يظهر إلا عند وجود أكثر من قسم؛ فقسم واحد لا يحتاج اختيارًا.
  */
@@ -71,6 +74,7 @@ export function ReviewsList() {
         {section === 'items' && <PayrollItemsMatrix />}
         {section === 'absences' && <AbsencesReport />}
         {section === 'retirements' && <RetirementsReport />}
+        {section === 'nature' && <NatureAllowanceReport />}
       </motion.div>
     </div>
   )

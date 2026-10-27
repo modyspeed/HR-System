@@ -7,6 +7,9 @@ const api: ApiShape = {
     review: (query) => ipcRenderer.invoke('retirements:review', query),
     saveReviewNote: (input) => ipcRenderer.invoke('retirements:review.saveNote', input)
   },
+  natureAllowance: {
+    list: (query) => ipcRenderer.invoke('natureAllowance:list', query)
+  },
   auth: {
     login: (payload) => ipcRenderer.invoke('auth:login', payload),
     logout: () => ipcRenderer.invoke('auth:logout'),

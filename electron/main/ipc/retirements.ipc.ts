@@ -31,6 +31,7 @@ import { addMonths, periodEndDate } from '../../../shared/absenceRules'
 import { requirePermission } from '../auth'
 import { applyAutomaticRetirement } from '../employee-status'
 import { buildRetirementsReport } from '../retirements'
+import { isExecutiveGrade } from '../nature-allowance'
 import {
   retirementReviewMeta,
   reviewRetirementSalary,
@@ -113,24 +114,6 @@ function toSourceRow(employee: EmployeeRow) {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100
-}
-
-/** المناصب القيادية التي يُحسب بدل-nature لها من القسم قبل الترقية. */
-const EXECUTIVE_GRADES = new Set(['مدير عام', 'درجة عالية', 'درجة فوق الممتازة'])
-const EXECUTIVE_DEPARTMENT_NAMES = new Set([
-  'المدير التنفيذي',
-  'الرئيس التنفيذي',
-  'رئيس قطاع',
-  'رؤساء قطاع',
-  'رؤساء قطاعات',
-  'مديرين عموم'
-])
-
-function isExecutiveGrade(grade: string | null, departmentName: string | null): boolean {
-  return (
-    (grade !== null && EXECUTIVE_GRADES.has(grade.trim())) ||
-    (departmentName !== null && EXECUTIVE_DEPARTMENT_NAMES.has(departmentName.trim()))
-  )
 }
 
 export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): void {

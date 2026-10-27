@@ -10,6 +10,7 @@ import { registerBackupIpc } from './backup.ipc'
 import { registerDashboardIpc } from './dashboard.ipc'
 import { registerRolesIpc } from './roles.ipc'
 import { registerRetirementsIpc } from './retirements.ipc'
+import { registerNatureAllowanceIpc } from './nature-allowance.ipc'
 import { registerSettingsIpc } from './settings.ipc'
 import { createIpcRegistry } from './registry'
 import { registerUsersIpc } from './users.ipc'
@@ -27,6 +28,7 @@ export function registerAllIpc(prisma: PrismaClient): void {
   registerPayrollsIpc(prisma, ipc)
   registerPayrollItemsIpc(prisma, ipc)
   registerRetirementsIpc(prisma, ipc)
+  registerNatureAllowanceIpc(prisma, ipc)
   registerBackupIpc(prisma, ipc)
   registerDashboardIpc(prisma, ipc)
   registerSettingsIpc(prisma, ipc)
