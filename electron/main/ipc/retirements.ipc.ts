@@ -144,7 +144,8 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
     'retirements:review',
     async (_event, query: RetirementReviewQuery = {}): Promise<RetirementReviewReport> => {
       requirePermission('reviews.view')
-      const report = await loadRetirementsReport(prisma, query)
+      // المراجعة للمحالين فعلاً فقط — المؤهلون لم يصدر لهم ظرف شهر المعاش بعد.
+      const report = await loadRetirementsReport(prisma, { ...query, view: 'retired' })
       const datedRows = report.rows.filter(
         (row): row is RetirementRow & { retirementDate: string } => Boolean(row.retirementDate)
       )

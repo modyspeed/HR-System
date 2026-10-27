@@ -111,11 +111,22 @@ export function RetirementsReport() {
   }, [report, year])
 
   const switchView = (next: RetirementView) => {
+    setMode('report')
     if (next === view) return
     setView(next)
     setMonth('')
     // المؤهلون: ابدأ بالسنة الحالية (من سيخرج هذا العام) — والمحالون: كل السنوات.
     setYear(next === 'eligible' ? String(new Date().getFullYear()) : '')
+  }
+
+  // المراجعة تخص المحالين فعلاً فقط؛ المؤهلون لم يُصرف لهم ظرف شهر معاش بعد.
+  const openReview = () => {
+    if (view !== 'retired') {
+      setView('retired')
+      setYear('')
+      setMonth('')
+    }
+    setMode('review')
   }
 
   const exportPayload = useMemo<ExportPayload | null>(() => {
@@ -177,7 +188,7 @@ export function RetirementsReport() {
       <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-2">
         {VIEWS.map((item) => {
           const Icon = item.icon
-          const active = item.key === view
+          const active = mode === 'report' && item.key === view
           return (
             <button
               key={item.key}
@@ -197,7 +208,7 @@ export function RetirementsReport() {
         })}
         <button
           type="button"
-          onClick={() => setMode('review')}
+          onClick={openReview}
           className={cn(
             'inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors',
             mode === 'review'
@@ -330,12 +341,20 @@ export function RetirementsReport() {
       {/* مراجعة المعاشات (داخل الشاشة) */}
       {mode === 'review' && (
         <GlassCard withLightBar={false} className="p-5">
-          <RetirementReviewModal inline view={view} year={year} month={month} search={debouncedSearch} departmentId={departmentId} />
+          <RetirementReviewModal
+            inline
+            onClose={() => setMode('report')}
+            view="retired"
+            year={year}
+            month={month}
+            search={debouncedSearch}
+            departmentId={departmentId}
+          />
         </GlassCard>
       )}
       {mode === 'report' && (
       <>
-      {/* الجدول */}
+      {/* الجدو�� */}
       <GlassCard withLightBar={false} className="overflow-hidden">
         {isLoading && !report ? (
           <div className="p-5">
