@@ -141,9 +141,9 @@ function expectedSalaryAbsence(
       : null
   return {
     withPermission: basicDaily === null ? null : round2(basicDaily * withPermission),
-    // بند الغياب نفسه يُخصم من الأساسي عن كل أيام الغياب بدون إذن.
+    // بند الغياب نفسه يُخصم من إجمالي الاستحقاق عن كل أيام الغياب بدون إذن.
     withoutPermission:
-      basicDaily === null ? null : round2(basicDaily * withoutPermission),
+      earningsDaily === null ? null : round2(earningsDaily * withoutPermission),
     // الجزاء الإضافي يُحسب على إجمالي استحقاق ظرف المرتب، وبأيام الجزاء.
     penalty:
       earningsDaily === null

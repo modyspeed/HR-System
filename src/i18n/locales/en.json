@@ -1002,7 +1002,7 @@
       "incentiveSlipMissing": "The {{period}} incentive slip is missing, so actual values are unavailable.",
       "rateMissing": "No incentive rate is recorded for this employee or department — expected incentive cannot be computed.",
       "basicMissing": "No basic salary is recorded for this employee — expected cannot be computed.",
-      "expectedFormula": "Expected uses a 30-day month: (basic ÷ 30) × deduction days.",
+      "expectedFormula": "Expected uses a 30-day month. With permission: (basic ÷ 30) × days. Without permission, the salary slip has two items: \"Absence without permission\" = (total earnings ÷ 30) × full absence days, and \"Absence penalties\" = (total earnings ÷ 30) × penalty days (0.25 / 0.5 / 1 / 2 / 4).",
       "salaryPenaltyFormula": "Unauthorized absence in salary applies two items: full absence days (unauthorized absence) + penalty days 0.25 / 0.5 / 1 / 2 / 4 (unauthorized absence penalties).",
       "incentiveFormula": "Incentive deduction: authorized = incentive × (days ÷ 30); unauthorized = incentive × penalty rate.",
       "unrelatedNote": "Items unrelated to absence are matched to actual because they have no independent expected source.",
