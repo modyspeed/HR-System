@@ -305,7 +305,7 @@ export interface PayrollRecord {
   year: number
   period: string
   page: number
-  /** القسم المستدل عليه من نص الظرف (تبويب الأقسام). */
+  /** القسم المستدل ��ليه من نص الظرف (تبويب الأقسام). */
   departmentId: string | null
   departmentName: string | null
   /** جهة العمل الخام في الظرف (مثل «البلوف»). */
@@ -547,7 +547,7 @@ export interface AbsenceReviewSlip {
   notes: AbsenceReviewNote[]
 }
 
-/** موظف لديه غياب في شهر الحافز، ��ع مراجعة مرتب الشهر التالي وحافز الشهر. */
+/** موظف لديه غياب في شهر الحافز، ����ع مراجعة مرتب الشهر التالي وحافز الشهر. */
 export interface AbsenceReviewRow {
   employeeId: string
   employeeCode: string
@@ -686,9 +686,14 @@ export type NatureAllowanceStatus =
   | 'unexpected'
   | 'departmentPctMissing'
   | 'basicMissing'
+  | 'lumpSumExempt'
 
-/** flagged = من يحتاج مراجعة فقط، all = كل الموظفين. */
-export type NatureAllowanceView = 'flagged' | 'all'
+/**
+ * flagged = من يحتاج مراجعة، overpaid = مصروف زيادة عن نسبة القسم،
+ * underpaid = مصروف أقل من نسبة القسم، all = كل الموظفين.
+ * (lumpSumExempt = مكافأة شاملة بلا بدل طبيعة — سليم.)
+ */
+export type NatureAllowanceView = 'flagged' | 'overpaid' | 'underpaid' | 'all'
 
 export interface NatureAllowanceQuery {
   /** شهر ظرف المرتب (yyyy-mm) — غيابه يعني أحدث شهر. */
@@ -708,6 +713,8 @@ export interface NatureAllowanceRow {
   executive: boolean
   /** القسم الذي أُخذت منه النسبة للمناصب القيادية. */
   pctSourceDepartmentName: string | null
+  /** تعاقد بمكافأة شاملة (م شاملة) — لا يستحق بدل طبيعة. */
+  lumpSum: boolean
   basicSalary: number | null
   /** بدل الطبيعة المصروف في الظرف. */
   allowance: number | null
@@ -744,6 +751,11 @@ export interface NatureAllowanceReport {
     underpaid: number
     /** موظفون أقسامهم بلا نسبة مسجلة. */
     pctMissing: number
+    /** عدد من صُرف لهم زيادة / أقل. */
+    overpaidCount: number
+    underpaidCount: number
+    /** موظفو المكافأة الشاملة المستبعدون من الاستحقاق. */
+    lumpSum: number
   }
 }
 
@@ -1144,7 +1156,7 @@ export interface ApiShape {
     ): Promise<RetirementReviewNoteRecord | null>
   }
   natureAllowance: {
-    /** مراجعة بدل الطبيعة: النسبة المصروفة مقابل نسبة القسم لشهر مرتب. */
+    /** مراجعة بدل الطبيعة: النسبة المصروفة مقابل نسبة القسم لشهر ��رتب. */
     list(query?: NatureAllowanceQuery): Promise<NatureAllowanceReport>
   }
   users: {

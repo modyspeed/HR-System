@@ -16,6 +16,7 @@ import { requirePermission } from '../auth'
 import {
   classifyNatureAllowance,
   isExecutiveGrade,
+  isLumpSumContract,
   matchingDepartments,
   readNatureSlip,
   round2
@@ -58,6 +59,8 @@ export function registerNatureAllowanceIpc(prisma: PrismaClient, ipc: IpcRegistr
                 code: true,
                 name: true,
                 grade: true,
+                contractType: true,
+                contractTypeRef: { select: { name: true } },
                 departmentId: true,
                 department: { select: { name: true } }
               }
@@ -108,14 +111,22 @@ export function registerNatureAllowanceIpc(prisma: PrismaClient, ipc: IpcRegistr
           pctSourceId = promotion?.fromDepartmentId ?? null
         }
         const pctSource = pctSourceId ? departmentById.get(pctSourceId) ?? null : null
-        const departmentPct = pctSource?.natureAllowancePct ?? null
+        const lumpSum = isLumpSumContract(
+          entry.employee.contractTypeRef?.name ?? entry.employee.contractType
+        )
+        // المكافأة الشاملة لا تستحق بدل طبيعة أيًّا كان القسم: النسبة المعتمدة صفر.
+        const departmentPct = lumpSum ? 0 : (pctSource?.natureAllowancePct ?? null)
 
         const slip = readNatureSlip(entry.items, entry.basicSalary)
-        const result = classifyNatureAllowance({
+        const classified = classifyNatureAllowance({
           basic: slip.basic,
           allowance: slip.allowance,
           departmentPct
         })
+        const result =
+          lumpSum && (classified.status === 'match' || classified.status === 'basicMissing')
+            ? { ...classified, status: 'lumpSumExempt' as const }
+            : classified
 
         return {
           employeeId: entry.employeeId,
@@ -125,12 +136,15 @@ export function registerNatureAllowanceIpc(prisma: PrismaClient, ipc: IpcRegistr
           departmentName: department?.name ?? entry.employee.department?.name ?? null,
           executive,
           pctSourceDepartmentName: executive ? (pctSource?.name ?? null) : null,
+          lumpSum,
           basicSalary: slip.basic === null ? null : round2(slip.basic),
           allowance: slip.allowance,
           departmentPct,
           ...result,
           matchedDepartments:
-            result.status === 'match' ? [] : matchingDepartments(result.actualPct, departments, pctSourceId)
+            result.status === 'match' || result.status === 'lumpSumExempt'
+              ? []
+              : matchingDepartments(result.actualPct, departments, pctSourceId)
         }
       })
 
@@ -146,13 +160,23 @@ export function registerNatureAllowanceIpc(prisma: PrismaClient, ipc: IpcRegistr
         )
       })
 
-      const flagged = filteredByScope.filter((row) => row.status !== 'match')
+      const flagged = filteredByScope.filter(
+        (row) => row.status !== 'match' && row.status !== 'lumpSumExempt'
+      )
+      // الزيادة/النقص بنفس تعريف بطاقات الإجمالي حتى يطابق عدد الصفوف المبلغ المعروض.
+      const overpaidRows = flagged.filter((row) => (row.difference ?? 0) > 0)
+      const underpaidRows = flagged.filter((row) => (row.difference ?? 0) < 0)
+
+      const byDifference = (a: NatureAllowanceRow, b: NatureAllowanceRow) =>
+        Math.abs(b.difference ?? 0) - Math.abs(a.difference ?? 0)
       const rows =
         query.view === 'all'
           ? filteredByScope
-          : [...flagged].sort(
-              (a, b) => Math.abs(b.difference ?? 0) - Math.abs(a.difference ?? 0)
-            )
+          : query.view === 'overpaid'
+            ? [...overpaidRows].sort(byDifference)
+            : query.view === 'underpaid'
+              ? [...underpaidRows].sort(byDifference)
+              : [...flagged].sort(byDifference)
 
       return {
         period,
@@ -162,13 +186,12 @@ export function registerNatureAllowanceIpc(prisma: PrismaClient, ipc: IpcRegistr
           total: allRows.length,
           scoped: filteredByScope.length,
           flagged: flagged.length,
-          overpaid: round2(
-            flagged.reduce((sum, row) => sum + Math.max(row.difference ?? 0, 0), 0)
-          ),
-          underpaid: round2(
-            flagged.reduce((sum, row) => sum + Math.min(row.difference ?? 0, 0), 0)
-          ),
-          pctMissing: filteredByScope.filter((row) => row.status === 'departmentPctMissing').length
+          overpaid: round2(overpaidRows.reduce((sum, row) => sum + (row.difference ?? 0), 0)),
+          underpaid: round2(underpaidRows.reduce((sum, row) => sum + (row.difference ?? 0), 0)),
+          pctMissing: filteredByScope.filter((row) => row.status === 'departmentPctMissing').length,
+          overpaidCount: overpaidRows.length,
+          underpaidCount: underpaidRows.length,
+          lumpSum: filteredByScope.filter((row) => row.lumpSum).length
         }
       }
     }
@@ -176,5 +199,15 @@ export function registerNatureAllowanceIpc(prisma: PrismaClient, ipc: IpcRegistr
 }
 
 function emptyTotals(): NatureAllowanceReport['totals'] {
-  return { total: 0, scoped: 0, flagged: 0, overpaid: 0, underpaid: 0, pctMissing: 0 }
+  return {
+    total: 0,
+    scoped: 0,
+    flagged: 0,
+    overpaid: 0,
+    underpaid: 0,
+    pctMissing: 0,
+    overpaidCount: 0,
+    underpaidCount: 0,
+    lumpSum: 0
+  }
 }

@@ -62,13 +62,23 @@ const STATUS_STYLES: Record<NatureAllowanceStatus, string> = {
   noAllowance: 'border-rose-400/30 bg-rose-500/10 text-rose-300',
   unexpected: 'border-amber-400/30 bg-amber-500/10 text-amber-300',
   departmentPctMissing: 'border-line bg-surface-soft text-ink-med',
-  basicMissing: 'border-line bg-surface-soft text-ink-med'
+  basicMissing: 'border-line bg-surface-soft text-ink-med',
+  lumpSumExempt: 'border-sky-400/30 bg-sky-500/10 text-sky-300'
 }
 
 const VIEWS: { key: NatureAllowanceView; labelKey: string; icon: typeof Users }[] = [
   { key: 'flagged', labelKey: 'reviews.nature.viewFlagged', icon: AlertTriangle },
+  { key: 'overpaid', labelKey: 'reviews.nature.viewOverpaid', icon: TrendingUp },
+  { key: 'underpaid', labelKey: 'reviews.nature.viewUnderpaid', icon: TrendingDown },
   { key: 'all', labelKey: 'reviews.nature.viewAll', icon: ListChecks }
 ]
+
+const VIEW_LABEL_KEYS: Record<NatureAllowanceView, string> = {
+  flagged: 'reviews.nature.viewFlagged',
+  overpaid: 'reviews.nature.viewOverpaid',
+  underpaid: 'reviews.nature.viewUnderpaid',
+  all: 'reviews.nature.viewAll'
+}
 
 /**
  * مراجعة بدل الطبيعة: من يأخذ بدل طبيعة بنسبة مختلفة عن نسبة قسمه في شهر
@@ -108,7 +118,9 @@ export function NatureAllowanceReport() {
   const isLoading = reportQuery.isLoading
   const activePeriod = report?.period ?? ''
   const hasFilters = Boolean(debouncedSearch || departmentId)
-  const isFlagged = view === 'flagged'
+  const isFlagged = view !== 'all'
+  const toggleView = (target: NatureAllowanceView) =>
+    setView((current) => (current === target ? 'flagged' : target))
 
   const statusLabel = (row: NatureAllowanceRow) => t(`reviews.nature.status.${row.status}`)
 
@@ -116,10 +128,10 @@ export function NatureAllowanceReport() {
     if (!report || !report.period || report.rows.length === 0) return null
     return {
       scope: 'payrolls',
-      fileName: `nature-allowance-${report.period}${isFlagged ? '-flagged' : ''}`,
+      fileName: `nature-allowance-${report.period}${view === 'all' ? '' : `-${view}`}`,
       title: `${t('reviews.nature.title')} — ${monthLabel(report.period)}`,
       subtitle: [
-        isFlagged ? t('reviews.nature.viewFlagged') : t('reviews.nature.viewAll'),
+        t(VIEW_LABEL_KEYS[view]),
         t('export.count', { count: report.rows.length })
       ].join(' — '),
       direction: i18n.dir() === 'rtl' ? 'rtl' : 'ltr',
@@ -152,7 +164,7 @@ export function NatureAllowanceReport() {
     }
     // statusLabel depends only on t
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [report, t, i18n, isFlagged])
+  }, [report, t, i18n, view])
 
   return (
     <div className="flex flex-col gap-5">
@@ -255,18 +267,26 @@ export function NatureAllowanceReport() {
             title={t('reviews.nature.flagged')}
             value={String(report.totals.flagged)}
             hint={t('reviews.nature.flaggedHint', { total: report.totals.scoped })}
+            active={view === 'flagged'}
+            onClick={() => setView('flagged')}
           />
           <SummaryCard
             icon={<TrendingUp className="size-4" />}
             title={t('reviews.nature.overpaid')}
             value={formatMoney(report.totals.overpaid)}
-            hint={t('reviews.nature.overpaidHint')}
+            hint={t('reviews.nature.overpaidCountHint', { count: report.totals.overpaidCount })}
+            active={view === 'overpaid'}
+            onClick={() => toggleView('overpaid')}
+            disabled={report.totals.overpaidCount === 0}
           />
           <SummaryCard
             icon={<TrendingDown className="size-4" />}
             title={t('reviews.nature.underpaid')}
             value={formatMoney(Math.abs(report.totals.underpaid))}
-            hint={t('reviews.nature.underpaidHint')}
+            hint={t('reviews.nature.underpaidCountHint', { count: report.totals.underpaidCount })}
+            active={view === 'underpaid'}
+            onClick={() => toggleView('underpaid')}
+            disabled={report.totals.underpaidCount === 0}
           />
           <SummaryCard
             icon={<Percent className="size-4" />}
@@ -356,6 +376,11 @@ export function NatureAllowanceReport() {
                     <span dir="auto" className="block truncate text-xs text-ink-low">
                       {row.departmentName ?? '—'}
                     </span>
+                    {row.lumpSum && (
+                      <span className="mt-0.5 inline-flex rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                        {t('reviews.nature.lumpSumBadge')}
+                      </span>
+                    )}
                     {row.executive && (
                       <span className="mt-0.5 block truncate text-[10px] text-ink-low">
                         {row.pctSourceDepartmentName
@@ -381,7 +406,9 @@ export function NatureAllowanceReport() {
                       <span
                         className={cn(
                           'font-semibold',
-                          row.status === 'match' ? 'text-ink-high' : 'text-amber-300'
+                          row.status === 'match' || row.status === 'lumpSumExempt'
+                            ? 'text-ink-high'
+                            : 'text-amber-300'
                         )}
                       >
                         {formatPct(row.actualPct)}
@@ -467,25 +494,66 @@ function SummaryCard({
   icon,
   title,
   value,
-  hint
+  hint,
+  active = false,
+  disabled = false,
+  onClick
 }: {
   icon: React.ReactNode
   title: string
   value: string
   hint?: string
+  active?: boolean
+  disabled?: boolean
+  onClick?: () => void
 }) {
-  return (
-    <GlassCard withLightBar={false} className="flex items-center gap-3 p-4">
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface-soft text-accent-300">
+  const body = (
+    <>
+      <span
+        className={cn(
+          'grid size-10 shrink-0 place-items-center rounded-xl border text-accent-300 transition-colors',
+          active ? 'border-accent-400/40 bg-accent-500/15' : 'border-line bg-surface-soft'
+        )}
+      >
         {icon}
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 text-start">
         <p className="truncate text-[11px] text-ink-low">{title}</p>
         <p dir="ltr" className="truncate text-base font-bold tabular-nums text-ink-high">
           {value}
         </p>
         {hint && <p className="truncate text-[10px] text-ink-low">{hint}</p>}
       </div>
-    </GlassCard>
+    </>
+  )
+
+  if (!onClick) {
+    return (
+      <GlassCard withLightBar={false} className="flex items-center gap-3 p-4">
+        {body}
+      </GlassCard>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className="rounded-2xl text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <GlassCard
+        withLightBar={false}
+        className={cn(
+          'flex h-full items-center gap-3 p-4 transition-colors',
+          active
+            ? 'border-accent-400/40 bg-surface-strong shadow-[var(--shadow-raised),var(--shadow-rim)]'
+            : !disabled && 'hover:bg-surface-soft'
+        )}
+      >
+        {body}
+      </GlassCard>
+    </button>
   )
 }

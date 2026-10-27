@@ -30,6 +30,15 @@ export function isExecutiveGrade(grade: string | null, departmentName: string | 
   )
 }
 
+/**
+ * تعاقد بمكافأة شاملة («مكافأة شاملة» / «م شاملة» / «م.شاملة»): المكافأة
+ * تشمل كل شيء فلا يستحق بدل طبيعة — النسبة المعتمدة له صفر.
+ */
+export function isLumpSumContract(contractType: string | null | undefined): boolean {
+  if (!contractType) return false
+  return itemLabelKey(contractType).includes('شامل')
+}
+
 export function round2(value: number): number {
   return Math.round(value * 100) / 100
 }
