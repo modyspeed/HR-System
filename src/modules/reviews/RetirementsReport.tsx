@@ -354,7 +354,7 @@ export function RetirementsReport() {
       )}
       {mode === 'report' && (
       <>
-      {/* الجدو�� */}
+      {/* الجدول */}
       <GlassCard withLightBar={false} className="overflow-hidden">
         {isLoading && !report ? (
           <div className="p-5">
