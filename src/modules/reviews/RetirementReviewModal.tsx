@@ -481,6 +481,10 @@ function RetirementSlipDetail({
         return t('reviews.retirements.review.birthDateMissing')
       case 'natureAllowanceMissing':
         return t('reviews.retirements.review.natureAllowanceMissing')
+      case 'previousSalarySlipMissing':
+        return t('reviews.retirements.review.previousSalarySlipMissing')
+      case 'earningBaselineMissing':
+        return t('reviews.retirements.review.earningBaselineMissing')
     }
   }
 

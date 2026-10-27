@@ -1,9 +1,7 @@
 /**
- * مراجعة مستحقات شهر المعاش: الفعلي من ظرف المرتب مقابل المتوقع من قواعد
- * المعاش (الأيام الفعلية ÷ 30، الأساسي الموزع، وبدل الطبيعة).
- *
- * البنود غير المرتبطة بالقواعد (بدلات/استقطاعات أخرى) تُطابَق بالفعلي لعدم
- * وجود مصدر متوقع مستقل لها — أسوةً بمراجعة الغيابات.
+ * مراجعة مستحقات شهر المعاش: كل الاستحقاقات تُوزع بنسبة الأيام الفعلية ÷ 30.
+ * البنود الأخرى تُقاس على قيمتها في آخر ظرف شهر كامل سابق؛ والاستقطاعات
+ * تبقى كما ظهرت في ظرف شهر المعاش.
  */
 import {
   RETIREMENT_MONTH_DAYS,
@@ -35,6 +33,26 @@ export interface RetirementReviewEntry {
   netSalary: number | null
   fileName: string | null
   items: RetirementReviewEntryItem[]
+}
+
+function earningBaseline(entry: RetirementReviewEntry | null): Map<
+  string,
+  { item: RetirementReviewEntryItem; amount: number }
+> {
+  const result = new Map<string, { item: RetirementReviewEntryItem; amount: number }>()
+  if (!entry) return result
+
+  for (const item of entry.items) {
+    if (item.kind !== 'earning') continue
+    const key = itemLabelKey(item.label)
+    if (!key) continue
+    const existing = result.get(key)
+    result.set(key, {
+      item: existing?.item ?? item,
+      amount: (existing?.amount ?? 0) + item.value
+    })
+  }
+  return result
 }
 
 type SalaryItemCategory = 'basic' | 'nature'
@@ -106,6 +124,7 @@ export function reviewRetirementSalary(params: {
   basicSalary: number | null
   natureAllowancePct: number | null
   entry: RetirementReviewEntry | null
+  previousEntry: RetirementReviewEntry | null
 }): RetirementReviewSlip {
   const notes: RetirementReviewNoteKey[] = []
   const actualDays = params.birthDateMissing
@@ -127,17 +146,38 @@ export function reviewRetirementSalary(params: {
     basic: distributedBasic,
     nature: expectedNature
   }
+  const baselineEarnings = earningBaseline(params.previousEntry)
   const items: RetirementReviewItem[] = []
   const found = new Set<SalaryItemCategory>()
+  const foundBaselineKeys = new Set<string>()
+  let hasUnresolvedEarningBaseline = false
   const entry = params.entry
 
   if (!entry) {
     notes.push('salarySlipMissing')
   } else {
     for (const item of sortedItems(entry)) {
-      const category = classifySalaryItem(item.label)
+      const category = item.kind === 'earning' ? classifySalaryItem(item.label) : null
       if (category) found.add(category)
-      const expectedValue = category ? expected[category] : round2(item.value)
+      let expectedValue: number | null
+      if (category) {
+        expectedValue = expected[category]
+      } else if (item.kind === 'earning') {
+        const key = itemLabelKey(item.label)
+        const baseline = baselineEarnings.get(key)
+        if (params.birthDateMissing) {
+          expectedValue = null
+        } else if (baseline) {
+          foundBaselineKeys.add(key)
+          expectedValue = round2(baseline.amount * ratio)
+        } else {
+          expectedValue = null
+          hasUnresolvedEarningBaseline = true
+        }
+      } else {
+        // الاستقطاعات تظل كما وردت في ظرف شهر المعاش؛ قاعدة التوزيع تخص الاستحقاقات.
+        expectedValue = round2(item.value)
+      }
       items.push({
         key: reviewItemKey(item),
         label: item.label,
@@ -148,6 +188,32 @@ export function reviewRetirementSalary(params: {
         informational: false
       })
     }
+  }
+
+  // استحقاق كان موجودًا في الشهر الكامل السابق واختفى من ظرف المعاش:
+  // أظهره بفعلي صفر ومتوقع موزع على أيام شهر المعاش.
+  for (const [key, baseline] of baselineEarnings) {
+    if (foundBaselineKeys.has(key)) continue
+    const category = classifySalaryItem(baseline.item.label)
+    if (category) continue // الأساسي وبدل الطبيعة لهما مصدر متوقع مستقل أعلاه.
+
+    const expectedValue = params.birthDateMissing
+      ? null
+      : round2(baseline.amount * ratio)
+    if (expectedValue === null) {
+      hasUnresolvedEarningBaseline = true
+      continue
+    }
+    if (expectedValue <= 0.005) continue
+    items.push({
+      key: `retirement-expected-earning-${key}`,
+      label: baseline.item.label,
+      kind: 'earning',
+      actual: entry ? 0 : null,
+      expected: expectedValue,
+      difference: entry ? round2(-expectedValue) : null,
+      informational: false
+    })
   }
 
   // بند متوقع غير موجود في الظرف: الفعلي صفر، والفرق سالب بمقدار المتوقع.
@@ -165,6 +231,39 @@ export function reviewRetirementSalary(params: {
     })
   }
 
+  const hasUnmodeledEarnings = Boolean(
+    entry?.items.some(
+      (item) =>
+        item.kind === 'earning' &&
+        classifySalaryItem(item.label) === null &&
+        !baselineEarnings.has(itemLabelKey(item.label))
+    )
+  )
+  if (!params.previousEntry) {
+    notes.push('previousSalarySlipMissing')
+    hasUnresolvedEarningBaseline = true
+  } else if (hasUnmodeledEarnings && !notes.includes('earningBaselineMissing')) {
+    notes.push('earningBaselineMissing')
+    hasUnresolvedEarningBaseline = true
+  } else if (hasUnresolvedEarningBaseline && !params.birthDateMissing) {
+    if (!notes.includes('earningBaselineMissing')) notes.push('earningBaselineMissing')
+  }
+
+  function expectedEarningsComplete(): boolean {
+    return (
+      !params.birthDateMissing &&
+      params.basicSalary !== null &&
+      params.natureAllowancePct !== null &&
+      !hasUnresolvedEarningBaseline &&
+      !(entry?.items.some(
+        (item) =>
+          item.kind === 'earning' &&
+          classifySalaryItem(item.label) === null &&
+          !baselineEarnings.has(itemLabelKey(item.label))
+      ) ?? false)
+    )
+  }
+
   if (!entry) {
     return {
       type: 'salary',
@@ -174,10 +273,9 @@ export function reviewRetirementSalary(params: {
       items,
       totals: {
         ...emptyTotals(),
-        expectedEarnings:
-          distributedBasic === null && expectedNature === null
-            ? null
-            : round2((distributedBasic ?? 0) + (expectedNature ?? 0))
+        expectedEarnings: expectedEarningsComplete()
+          ? sum(items, 'earning', 'expected')
+          : null
       },
       notes
     }
@@ -188,7 +286,9 @@ export function reviewRetirementSalary(params: {
   const actualDeductions = sum(items, 'deduction', 'actual')
   const expectedDeductions = sum(items, 'deduction', 'expected')
   const actualNet = entry.netSalary ?? round2(actualEarnings - actualDeductions)
-  const expectedNet = round2(expectedEarnings - expectedDeductions)
+  const expectedNet = expectedEarningsComplete()
+    ? round2(expectedEarnings - expectedDeductions)
+    : null
 
   return {
     type: 'salary',
@@ -198,12 +298,12 @@ export function reviewRetirementSalary(params: {
     items,
     totals: {
       actualEarnings,
-      expectedEarnings,
+      expectedEarnings: expectedEarningsComplete() ? expectedEarnings : null,
       actualDeductions,
       expectedDeductions,
       actualNet: round2(actualNet),
       expectedNet,
-      difference: round2(actualNet - expectedNet)
+      difference: expectedNet === null ? null : round2(actualNet - expectedNet)
     },
     notes
   }

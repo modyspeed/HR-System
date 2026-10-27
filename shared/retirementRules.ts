@@ -6,6 +6,7 @@
  * - نسبة الأساس = الأيام الفعلية ÷ 30.
  * - الراتب الموزع = الأساسي × نسبة الأساس.
  * - بدل الطبيعة = الراتب الموزع × (نسبة القسم ÷ 100).
+ * - في الأقسام القيادية، نسبة القسم هي نسبة القسم السابق للترقية.
  */
 export const RETIREMENT_MONTH_DAYS = 30
 
@@ -41,7 +42,14 @@ export function retirementNatureAllowance(
   distributed: number | null,
   natureAllowancePct: number | null
 ): number | null {
-  if (distributed === null || natureAllowancePct === null) return null
-  if (!Number.isFinite(natureAllowancePct)) return null
+  if (distributed === null || !Number.isFinite(distributed)) return null
+  if (
+    natureAllowancePct === null ||
+    !Number.isFinite(natureAllowancePct) ||
+    natureAllowancePct < 0 ||
+    natureAllowancePct > 100
+  ) {
+    return null
+  }
   return round2(distributed * (natureAllowancePct / 100))
 }

@@ -119,14 +119,18 @@ function round2(value: number): number {
 const EXECUTIVE_GRADES = new Set(['مدير عام', 'درجة عالية', 'درجة فوق الممتازة'])
 const EXECUTIVE_DEPARTMENT_NAMES = new Set([
   'المدير التنفيذي',
+  'الرئيس التنفيذي',
+  'رئيس قطاع',
   'رؤساء قطاع',
   'رؤساء قطاعات',
   'مديرين عموم'
 ])
 
-function isExecutiveGrade(grade: string | null): boolean {
-  if (!grade) return false
-  return EXECUTIVE_GRADES.has(grade) || EXECUTIVE_DEPARTMENT_NAMES.has(grade)
+function isExecutiveGrade(grade: string | null, departmentName: string | null): boolean {
+  return (
+    (grade !== null && EXECUTIVE_GRADES.has(grade.trim())) ||
+    (departmentName !== null && EXECUTIVE_DEPARTMENT_NAMES.has(departmentName.trim()))
+  )
 }
 
 export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): void {
@@ -191,7 +195,13 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
         prisma.departmentTransfer.findMany({
           where: { employeeId: { in: employeeIds }, fromDepartmentId: { not: null } },
           orderBy: [{ employeeId: 'asc' }, { fromDate: 'desc' }],
-          select: { employeeId: true, fromDepartmentId: true, toDepartmentId: true, fromDate: true }
+          select: {
+            employeeId: true,
+            fromDepartmentId: true,
+            toDepartmentId: true,
+            fromDate: true,
+            fromDepartment: { select: { natureAllowancePct: true } }
+          }
         }),
         prisma.$queryRawUnsafe<
           { employeeId: string; period: string; itemKey: string; note: string }[]
@@ -213,21 +223,13 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
         departments.map((department) => [department.id, department.natureAllowancePct])
       )
 
-      // للمدراء العموم ورؤساء القطاعات والمدير التنفيذي: بدل الطبيعة يكون
-      // لقسمهم قبل الترقية (من DepartmentTransfer.fromDepartmentId)
-      const transferByEmployee = new Map<string, string | null>()
+      // النسبة القيادية تؤخذ من القسم السابق في نقلة الموظف إلى قسمه القيادي،
+      // لا من نسبة ثابتة قديمة أو فارغة على القسم القيادي نفسه.
+      const transfersByEmployee = new Map<string, typeof transfers>()
       for (const t of transfers) {
-        if (!transferByEmployee.has(t.employeeId)) {
-          transferByEmployee.set(t.employeeId, t.fromDepartmentId ?? null)
-        }
-      }
-      const fromDepartmentPct = new Map<string | null, number | null>()
-      for (const [, fromDeptId] of transferByEmployee) {
-        if (fromDeptId === null) continue
-        if (!fromDepartmentPct.has(fromDeptId)) {
-          const dept = departments.find((d) => d.id === fromDeptId)
-          fromDepartmentPct.set(fromDeptId, dept?.natureAllowancePct ?? null)
-        }
+        const employeeTransfers = transfersByEmployee.get(t.employeeId) ?? []
+        employeeTransfers.push(t)
+        transfersByEmployee.set(t.employeeId, employeeTransfers)
       }
 
       const entryByKey = new Map<string, RetirementReviewEntry>()
@@ -276,18 +278,28 @@ export function registerRetirementsIpc(prisma: PrismaClient, ipc: IpcRegistry): 
           grade?.amount ??
           previousEntry?.basicSalary ??
           (derivedBasic === null ? null : round2(derivedBasic))
-        const natureAllowancePct =
-          transferByEmployee.has(row.employeeId) && isExecutiveGrade(row.grade)
-            ? fromDepartmentPct.get(transferByEmployee.get(row.employeeId) ?? null) ??
-              departmentPct.get(row.departmentId ?? '') ?? null
-            : departmentPct.get(row.departmentId ?? '') ?? null
+        const executive = isExecutiveGrade(row.grade, row.departmentName)
+        const previousDepartmentTransfer = executive
+          ? transfersByEmployee
+              .get(row.employeeId)
+              ?.find(
+                (transfer) =>
+                  transfer.toDepartmentId === row.departmentId &&
+                  transfer.fromDepartmentId !== null &&
+                  transfer.fromDate.toISOString().slice(0, 10) <= row.retirementDate
+              )
+          : undefined
+        const natureAllowancePct = executive
+          ? previousDepartmentTransfer?.fromDepartment?.natureAllowancePct ?? null
+          : departmentPct.get(row.departmentId ?? '') ?? null
         const salary = reviewRetirementSalary({
           period: retirementPeriod,
           retirementDate: row.retirementDate,
           birthDateMissing,
           basicSalary,
           natureAllowancePct,
-          entry: salaryEntry
+          entry: salaryEntry,
+          previousEntry
         })
 
         for (const item of salary.items) {

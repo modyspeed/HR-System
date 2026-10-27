@@ -681,6 +681,8 @@ export type RetirementReviewNoteKey =
   | 'basicMissing'
   | 'birthDateMissing'
   | 'natureAllowanceMissing'
+  | 'previousSalarySlipMissing'
+  | 'earningBaselineMissing'
 
 /** صف في جدول مراجعة مستحقات شهر المعاش. */
 export interface RetirementReviewItem {
