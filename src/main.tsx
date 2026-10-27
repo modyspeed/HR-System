@@ -16,6 +16,9 @@ import '@fontsource/playfair-display/700.css'
 
 import { App } from './App'
 import { Toaster } from '@/components/feedback/Toaster'
+import { applyPerformanceMode } from '@/lib/performance'
+
+applyPerformanceMode()
 
 const queryClient = new QueryClient({
   defaultOptions: {

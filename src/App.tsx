@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useUiStore } from '@/store/uiStore'
@@ -7,19 +7,53 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Aurora } from '@/components/layout/Aurora'
 import { BootScreen } from '@/components/feedback/BootScreen'
 import { NoAccess } from '@/components/feedback/NoAccess'
+import { preloadWhenIdle } from '@/lib/performance'
 import { Login } from '@/modules/auth/Login'
 import { Dashboard } from '@/modules/dashboard/Dashboard'
-import { UsersList } from '@/modules/users/UsersList'
-import { RolesList } from '@/modules/roles/RolesList'
-import { RoleEditor } from '@/modules/roles/RoleEditor'
-import { DepartmentsList } from '@/modules/departments/DepartmentsList'
-import { EmployeesList } from '@/modules/employees/EmployeesList'
-import { EmployeeProfile } from '@/modules/employees/EmployeeProfile'
-import { LeavesList } from '@/modules/leaves/LeavesList'
-import { PayrollsList } from '@/modules/payrolls/PayrollsList'
-import { ReviewsList } from '@/modules/reviews/ReviewsList'
-import { Profile } from '@/modules/profile/Profile'
-import { Settings } from '@/modules/settings/Settings'
+
+// Heavy screens are split into their own chunks so startup only parses the
+// login + dashboard code; the rest is warmed in the background once idle.
+const loadUsersList = () => import('@/modules/users/UsersList')
+const loadRolesList = () => import('@/modules/roles/RolesList')
+const loadRoleEditor = () => import('@/modules/roles/RoleEditor')
+const loadDepartmentsList = () => import('@/modules/departments/DepartmentsList')
+const loadEmployeesList = () => import('@/modules/employees/EmployeesList')
+const loadEmployeeProfile = () => import('@/modules/employees/EmployeeProfile')
+const loadLeavesList = () => import('@/modules/leaves/LeavesList')
+const loadPayrollsList = () => import('@/modules/payrolls/PayrollsList')
+const loadReviewsList = () => import('@/modules/reviews/ReviewsList')
+const loadProfile = () => import('@/modules/profile/Profile')
+const loadSettings = () => import('@/modules/settings/Settings')
+
+const UsersList = lazy(() => loadUsersList().then((m) => ({ default: m.UsersList })))
+const RolesList = lazy(() => loadRolesList().then((m) => ({ default: m.RolesList })))
+const RoleEditor = lazy(() => loadRoleEditor().then((m) => ({ default: m.RoleEditor })))
+const DepartmentsList = lazy(() =>
+  loadDepartmentsList().then((m) => ({ default: m.DepartmentsList }))
+)
+const EmployeesList = lazy(() => loadEmployeesList().then((m) => ({ default: m.EmployeesList })))
+const EmployeeProfile = lazy(() =>
+  loadEmployeeProfile().then((m) => ({ default: m.EmployeeProfile }))
+)
+const LeavesList = lazy(() => loadLeavesList().then((m) => ({ default: m.LeavesList })))
+const PayrollsList = lazy(() => loadPayrollsList().then((m) => ({ default: m.PayrollsList })))
+const ReviewsList = lazy(() => loadReviewsList().then((m) => ({ default: m.ReviewsList })))
+const Profile = lazy(() => loadProfile().then((m) => ({ default: m.Profile })))
+const Settings = lazy(() => loadSettings().then((m) => ({ default: m.Settings })))
+
+const ROUTE_LOADERS = [
+  loadEmployeesList,
+  loadEmployeeProfile,
+  loadDepartmentsList,
+  loadLeavesList,
+  loadPayrollsList,
+  loadReviewsList,
+  loadUsersList,
+  loadRolesList,
+  loadRoleEditor,
+  loadProfile,
+  loadSettings
+]
 
 function Protected({
   permission,
@@ -45,6 +79,11 @@ export function App() {
     void hydrateUi()
     void hydrate()
   }, [hydrate, hydrateUi])
+
+  const signedIn = status === 'authenticated'
+  useEffect(() => {
+    if (signedIn) preloadWhenIdle(ROUTE_LOADERS)
+  }, [signedIn])
 
   if (!uiInitialized || status === 'idle' || status === 'loading') {
     return (

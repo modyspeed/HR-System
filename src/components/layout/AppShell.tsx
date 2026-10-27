@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { pageTransition } from '@/lib/motion'
@@ -24,7 +25,9 @@ export function AppShell() {
                 exit="exit"
                 transition={{ duration: 0.26, ease: [0.22, 0.61, 0.36, 1] }}
               >
-                <Outlet />
+                <Suspense fallback={null}>
+                  <Outlet />
+                </Suspense>
               </motion.div>
             </AnimatePresence>
           </div>

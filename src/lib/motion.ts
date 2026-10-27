@@ -1,4 +1,5 @@
 import type { Transition, Variants } from 'framer-motion'
+import { isLiteMode } from './performance'
 
 export const durations = {
   fast: 0.18,
@@ -47,14 +48,29 @@ export const staggerContainer: Variants = {
   }
 }
 
-export const staggerItem: Variants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -6 }
-}
+// Lite mode: rows appear in place instead of each running its own spring.
+export const staggerItem: Variants = isLiteMode
+  ? {
+      initial: { opacity: 1, y: 0 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 1, y: 0 }
+    }
+  : {
+      initial: { opacity: 0, y: 12 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -6 }
+    }
 
-export const pageTransition: Variants = {
-  initial: { opacity: 0, y: 18, filter: 'blur(6px)' },
-  animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
-  exit: { opacity: 0, y: -10, filter: 'blur(4px)' }
-}
+// `transitionEnd` drops the leftover `filter: blur(0px)` (visually identical to
+// none) so the whole page is not kept in an expensive filtered layer forever.
+export const pageTransition: Variants = isLiteMode
+  ? {
+      initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -6 }
+    }
+  : {
+      initial: { opacity: 0, y: 18, filter: 'blur(6px)' },
+      animate: { opacity: 1, y: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } },
+      exit: { opacity: 0, y: -10, filter: 'blur(4px)' }
+    }

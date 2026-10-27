@@ -311,4 +311,29 @@
     --switch-knob: #ffffff;
     --switch-knob-on: #ffffff;
   }
+
+  /* ----------------------- Lite mode (weak devices) ------------------------ */
+  /* Same visuals, far less GPU work: the aurora is frozen on its first frame
+     (so glass surfaces stop re-blurring every frame), the backdrop blur radius
+     is lowered (the backdrop is already a smooth gradient, so it looks the
+     same), and permanent compositor layers are released to save memory. */
+  .perf-lite .aurora::before,
+  .perf-lite .aurora::after {
+    animation: none;
+    will-change: auto;
+  }
+  .perf-lite .glass {
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+  .perf-lite .glass-strong {
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+  }
+  .perf-lite .soft-3d {
+    will-change: auto;
+  }
+  .perf-lite .btn-sheen:hover:not(:disabled)::after {
+    animation: none;
+  }
 }
