@@ -6,7 +6,8 @@
  *   غيابات حافز شهر X  →  تؤثر على حافز X نفسه، وعلى مرتب X+1.
  *
  * والمتوقع محسوب على أساس شهر من 30 يومًا (انظر `shared/absenceRules.ts`):
- *   - مرتب: (الأساسي / 30) × أيام الخصم
+ *   - مرتب، «غياب بدون اذن»: (الأساسي / 30) × أيام الغياب.
+ *   - مرتب، «جزاءات غياب بدون اذن»: (إجمالي الاستحقاق / 30) × أيام الجزاء.
  *   - حافز بإذن: الحافز × (الأيام / 30)
  *   - حافز بدون إذن: الحافز × نسبة الجزاء
  *
@@ -128,19 +129,26 @@ function sum(
 
 function expectedSalaryAbsence(
   basicSalary: number | null,
+  totalEarnings: number | null,
   withPermission: number,
   withoutPermission: number
 ): Record<SalaryAbsenceCategory, number | null> {
-  if (basicSalary === null || basicSalary <= 0) {
-    return { withPermission: null, withoutPermission: null, penalty: null }
-  }
-  const daily = basicSalary / ABSENCE_MONTH_DAYS
+  const basicDaily =
+    basicSalary !== null && basicSalary > 0 ? basicSalary / ABSENCE_MONTH_DAYS : null
+  const earningsDaily =
+    totalEarnings !== null && totalEarnings > 0
+      ? totalEarnings / ABSENCE_MONTH_DAYS
+      : null
   return {
-    withPermission: round2(daily * withPermission),
-    // الغياب بدون إذن في المرتب يطبق بندين: خصم قيمة أيام الغياب كاملة
-    // («غياب بدون اذن»)، ثم جزاء بأيام الجدول («جزاءات غياب بدون اذن»).
-    withoutPermission: round2(daily * withoutPermission),
-    penalty: round2(daily * absencePenaltyDays(withoutPermission))
+    withPermission: basicDaily === null ? null : round2(basicDaily * withPermission),
+    // بند الغياب نفسه يُخصم من الأساسي عن كل أيام الغياب بدون إذن.
+    withoutPermission:
+      basicDaily === null ? null : round2(basicDaily * withoutPermission),
+    // الجزاء الإضافي يُحسب على إجمالي استحقاق ظرف المرتب، وبأيام الجزاء.
+    penalty:
+      earningsDaily === null
+        ? null
+        : round2(earningsDaily * absencePenaltyDays(withoutPermission))
   }
 }
 
@@ -155,9 +163,21 @@ export function reviewSalary(params: {
   const notes: AbsenceReviewNote[] = []
   const basicSalary = params.basicSalary ?? params.entry?.basicSalary ?? null
   if (basicSalary === null) notes.push('basicMissing')
+  // Prefer the printed total; if it is absent, reconstruct gross earnings from
+  // the slip's earning items so the penalty still uses the correct base.
+  const totalEarnings =
+    params.entry?.totalEarned ??
+    (params.entry
+      ? round2(
+          params.entry.items
+            .filter((item) => item.kind === 'earning')
+            .reduce((total, item) => total + item.value, 0)
+        )
+      : null)
 
   const expected = expectedSalaryAbsence(
     basicSalary,
+    totalEarnings,
     params.withPermission,
     params.withoutPermission
   )
