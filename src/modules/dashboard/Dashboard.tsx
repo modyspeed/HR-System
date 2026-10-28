@@ -20,7 +20,8 @@ import {
   UserPlus,
   Users as UsersIcon,
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  ClipboardCheck
 } from 'lucide-react'
 import { api } from '@/lib/ipc'
 import { formatDateTime } from '@/lib/utils'
@@ -78,6 +79,7 @@ export function Dashboard() {
   const canDepartments = usePermission('departments.view')
   const canLeaves = usePermission('leaves.view')
   const canPayrolls = usePermission('payrolls.view')
+  const canReviews = usePermission('reviews.view')
   const canSettings = usePermission('settings.view')
 
   const summary = useQuery({
@@ -134,6 +136,7 @@ export function Dashboard() {
     { key: 'departments', label: t('dashboard.tabDepartments'), to: '/departments', icon: Building2, visible: canDepartments },
     { key: 'leaves', label: t('dashboard.tabLeaves'), to: '/leaves', icon: CalendarDays, visible: canLeaves },
     { key: 'payrolls', label: t('dashboard.tabPayrolls'), to: '/payrolls', icon: Banknote, visible: canPayrolls },
+    { key: 'reviews', label: t('dashboard.tabReviews'), to: '/reviews', icon: ClipboardCheck, visible: canReviews },
     { key: 'backups', label: t('dashboard.tabBackups'), to: '/settings', icon: FolderOpen, visible: canSettings }
   ]
 
