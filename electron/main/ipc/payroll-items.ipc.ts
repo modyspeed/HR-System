@@ -494,6 +494,7 @@ export function registerPayrollItemsIpc(prisma: PrismaClient, ipc: IpcRegistry):
           employeeName: row.employeeName,
           departmentName: row.departmentName,
           basicSalary,
+          totalEarned: salaryEntry?.totalEarned ?? null,
           withPermission: row.withPermission,
           withoutPermission: row.withoutPermission,
           total: row.total,

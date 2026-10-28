@@ -554,6 +554,7 @@ export interface AbsenceReviewRow {
   employeeName: string
   departmentName: string | null
   basicSalary: number | null
+  totalEarned: number | null
   withPermission: number
   withoutPermission: number
   total: number

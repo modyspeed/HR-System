@@ -963,6 +963,7 @@
       "employeeName": "الاسم",
       "departmentName": "القسم",
       "basicSalary": "الأساسي",
+      "totalEarned": "إجمالي الاستحقاق",
       "absenceDays": "الغياب",
       "withPermission": "بإذن",
       "withoutPermission": "بدون إذن",

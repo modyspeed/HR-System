@@ -318,6 +318,9 @@ export function AbsenceReviewModal({
                   <DataTableHeadCell className="w-[130px]" align="end">
                     {t('reviews.absenceReview.basicSalary')}
                   </DataTableHeadCell>
+                  <DataTableHeadCell className="w-[150px]" align="end">
+                    {t('reviews.absenceReview.totalEarned')}
+                  </DataTableHeadCell>
                   <DataTableHeadCell className="w-[150px]" align="center">
                     {t('reviews.absenceReview.absenceDays')}
                   </DataTableHeadCell>
@@ -352,6 +355,11 @@ export function AbsenceReviewModal({
                     <td className="px-5 py-3 text-end">
                       <span dir="ltr" className="text-sm font-semibold tabular-nums text-ink-med">
                         {formatNumber(row.basicSalary)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-end">
+                      <span dir="ltr" className="text-sm font-semibold tabular-nums text-ink-med">
+                        {formatNumber(row.totalEarned)}
                       </span>
                     </td>
                     <td className="px-5 py-3">

@@ -963,6 +963,7 @@
       "employeeName": "Name",
       "departmentName": "Department",
       "basicSalary": "Basic salary",
+      "totalEarned": "Total earnings",
       "absenceDays": "Absence",
       "withPermission": "Authorized",
       "withoutPermission": "Unauthorized",
