@@ -134,7 +134,18 @@
     "lastLogin": "Last sign-in",
     "never": "Never signed in",
     "viewAll": "View all",
-    "noUsersYet": "No users yet"
+    "noUsersYet": "No users yet",
+    "overviewBody": "A comprehensive overview of your organization — employees, leaves, payroll, and transfers.",
+    "welcomeGreeting": "Good {{time}},",
+    "morning": "morning",
+    "afternoon": "afternoon",
+    "evening": "evening",
+    "transfersOverview": "Transfers overview",
+    "transfersTotal": "Total transfers",
+    "noPayrollData": "No payroll slips uploaded yet",
+    "uploadPayroll": "Upload payroll",
+    "uploadedAt": "Uploaded on {{date}}",
+    "quickActionsHint": "Jump directly to any core module"
   },
   "users": {
     "title": "Users",

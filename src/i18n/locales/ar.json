@@ -134,7 +134,18 @@
     "lastLogin": "آخر تسجيل دخول",
     "never": "لم يسجِّل بعد",
     "viewAll": "عرض الكل",
-    "noUsersYet": "لا يوجد مستخدمون بعد"
+    "noUsersYet": "لا يوجد مستخدمون بعد",
+    "overviewBody": "نظرة شاملة على حالة المؤسسة من موظفين وإجازات ومرتبات وتنقلات الأقسام.",
+    "welcomeGreeting": "أهلاً بك، {{time}}",
+    "morning": "صباح الخير",
+    "afternoon": "مساء الخير",
+    "evening": "مساء الخير",
+    "transfersOverview": "نظرة التنقلات",
+    "transfersTotal": "إجمالي التنقلات",
+    "noPayrollData": "لا توجد مرتبات مرفوعة بعد",
+    "uploadPayroll": "رفع كشف مرتب",
+    "uploadedAt": "رفعت في {{date}}",
+    "quickActionsHint": "انتقل مباشرة إلى أي وحدة من الوحدات الأساسية"
   },
   "users": {
     "title": "المستخدمون",

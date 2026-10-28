@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
@@ -8,17 +8,24 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  Clock,
   Contact,
+  CreditCard,
   FolderOpen,
   Landmark,
   ShieldCheck,
   Shuffle,
+  TrendingDown,
+  TrendingUp,
   UserPlus,
-  Users as UsersIcon
+  Users as UsersIcon,
+  AlertCircle,
+  HelpCircle
 } from 'lucide-react'
 import { api } from '@/lib/ipc'
 import { formatDateTime } from '@/lib/utils'
-import { staggerContainer, staggerItem } from '@/lib/motion'
+import { cn } from '@/lib/utils'
+import { staggerContainer, staggerItem, fadeUp } from '@/lib/motion'
 import { useAnyPermission, usePermission } from '@/hooks/usePermission'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { SoftButton } from '@/components/ui/SoftButton'
@@ -54,9 +61,17 @@ function cnTone(tone: Tone) {
   return `grid size-11 shrink-0 place-items-center rounded-full border ${TONES[tone]}`
 }
 
+function greetingByHour() {
+  const h = new Date().getHours()
+  if (h < 12) return 'morning'
+  if (h < 17) return 'afternoon'
+  return 'evening'
+}
+
 export function Dashboard() {
   const { t, i18n } = useTranslation()
   const language = i18n.language
+  const location = useLocation()
   const canSeeUsers = useAnyPermission(['users.view'])
   const canCreateUsers = useAnyPermission(['users.create', 'employees.create', 'leaves.create', 'payrolls.create'])
   const canEmployees = usePermission('employees.view')
@@ -72,10 +87,10 @@ export function Dashboard() {
   const s = summary.data
 
   const kpis = useMemo(() => {
-    const items: { label: string; value: number | null; icon: typeof Contact; tone: Tone; hint?: string }[] = []
+    const items: { label: string; value: number | null; icon: typeof Contact; tone: Tone; hint?: string; trend?: { label: string; up: boolean } }[] = []
     if (s?.employees) {
       items.push(
-        { label: t('dashboard.empTotal'), value: s.employees.total, icon: UsersIcon, tone: 'gold', hint: t('dashboard.empTotalHint') },
+        { label: t('dashboard.empTotal'), value: s.employees.total, icon: UsersIcon, tone: 'gold', hint: t('dashboard.empTotalHint'), trend: { label: t('dashboard.empActive'), up: true } },
         { label: t('dashboard.empActive'), value: s.employees.active, icon: CheckCircle2, tone: 'teal' },
         { label: t('dashboard.empInactive'), value: s.employees.inactive, icon: Contact, tone: 'rose' }
       )
@@ -122,33 +137,67 @@ export function Dashboard() {
     { key: 'backups', label: t('dashboard.tabBackups'), to: '/settings', icon: FolderOpen, visible: canSettings }
   ]
 
+  const activeTab = tabs.find((tab) => location.pathname.startsWith(tab.to))
+
   return (
-    <div>
-      <PageHeader title={t('dashboard.title')} accent="Dashboard" subtitle={t('dashboard.subtitle')} />
+    <div className="min-h-full">
+      {/* Hero / Welcome section */}
+      <motion.div variants={fadeUp} initial="initial" animate="animate" className="mb-8">
+        <PageHeader
+          title={t('dashboard.title')}
+          accent="Dashboard"
+          subtitle={t('dashboard.subtitle')}
+          actions={
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-line bg-surface-base">
+                <Clock className="size-4 text-ink-low" />
+                <span className="text-ink-med">
+                  {new Date().toLocaleDateString(language, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+            </div>
+          }
+        />
+        <p className="text-sm text-ink-med">
+          {t('dashboard.welcomeGreeting', { time: t(`dashboard.${greetingByHour()}`) })}{' '}
+          {t('dashboard.overviewBody')}
+        </p>
+      </motion.div>
 
       {/* KPIs */}
       <motion.div
         variants={staggerContainer}
         initial="initial"
         animate="animate"
-        className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 mb-8"
       >
         {kpis.map((stat, index) => {
           const Icon = stat.icon
           return (
             <motion.div key={stat.label} variants={staggerItem} transition={springSoft(index * 0.02)}>
-              <GlassCard tilt className="p-5">
+              <GlassCard tilt className="p-6 group relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Icon className="size-16" />
+                </div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-ink-low">{stat.label}</p>
+                    <p className="text-xs font-medium text-ink-low uppercase tracking-wider">{stat.label}</p>
                     {summary.isLoading ? (
-                      <Skeleton className="mt-2.5 h-8 w-14" />
+                      <Skeleton className="mt-2.5 h-10 w-20" />
                     ) : (
-                      <p className="mt-1 text-3xl font-bold tabular-nums text-ink-high">
-                        {stat.value ?? '—'}
-                      </p>
+                      <div className="mt-1 flex items-baseline gap-1">
+                        <p className="text-3xl font-bold tabular-nums text-ink-high">
+                          {stat.value ?? '—'}
+                        </p>
+                        {stat.trend && (
+                          <span className={stat.trend.up ? 'text-teal-400' : 'text-rose-400'}>
+                            <span className={stat.trend.up ? 'text-teal-400' : 'text-rose-400'}>{stat.trend.up ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}</span>{' '}
+                            {stat.trend.label}
+                          </span>
+                        )}
+                      </div>
                     )}
-                    {stat.hint && <p className="mt-1 truncate text-[11px] text-ink-low">{stat.hint}</p>}
+                    {stat.hint && <p className="mt-1.5 truncate text-[11px] text-ink-low">{stat.hint}</p>}
                   </div>
                   <div className={cnTone(stat.tone)}>
                     <Icon className="size-5" />
@@ -160,18 +209,27 @@ export function Dashboard() {
         })}
       </motion.div>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-5">
-        {/* donut: توزيع الحالات */}
-        <motion.div variants={staggerItem} transition={springSoft(0.04)} className="lg:col-span-2">
+      {/* Main overview grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 mb-8">
+        {/* Employee status donut (left) */}
+        <motion.div variants={staggerItem} transition={springSoft(0.04)} className="lg:col-span-5">
           <GlassCard className="p-6">
-            <h2 className="mb-5 text-sm font-semibold text-ink-high">{t('dashboard.statusDistribution')}</h2>
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink-high">{t('dashboard.statusDistribution')}</h2>
+              {canEmployees && (
+                <Link to="/employees" className="text-xs font-medium text-accent-300 transition-colors hover:text-accent-400">
+                  {t('dashboard.viewAll')}
+                </Link>
+              )}
+            </div>
             {donut ? (
               <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
-                <div
-                  className="relative grid size-36 shrink-0 place-items-center rounded-full"
-                  style={{ background: `conic-gradient(${donut.gradient})` }}
-                >
-                  <div className="grid size-24 place-items-center rounded-full bg-[var(--surface-card)]">
+                <div className="relative grid size-40 shrink-0 place-items-center rounded-full">
+                  <div
+                    className="absolute inset-0 grid size-40 place-items-center rounded-full"
+                    style={{ background: `conic-gradient(${donut.gradient})` }}
+                  />
+                  <div className="relative grid size-28 place-items-center rounded-full bg-[var(--surface-card)] z-10">
                     <div className="text-center">
                       <p className="text-2xl font-bold tabular-nums text-ink-high">{donut.total}</p>
                       <p className="text-[10px] text-ink-low">{t('dashboard.employees')}</p>
@@ -194,17 +252,20 @@ export function Dashboard() {
                 </ul>
               </div>
             ) : (
-              <p className="py-6 text-center text-sm text-ink-low">{t('noAccess.body')}</p>
+              <div className="py-10 text-center">
+                <AlertCircle className="size-12 mx-auto mb-3 text-ink-low/30" />
+                <p className="text-sm text-ink-low">{t('noAccess.body')}</p>
+              </div>
             )}
           </GlassCard>
         </motion.div>
 
-        {/* أعلى الأقسام */}
-        <motion.div variants={staggerItem} transition={springSoft(0.06)} className="lg:col-span-3">
+        {/* Top departments (right) */}
+        <motion.div variants={staggerItem} transition={springSoft(0.06)} className="lg:col-span-7">
           <GlassCard className="p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-ink-high">{t('dashboard.topDepartments')}</h2>
-              {s?.employees && canDepartments && (
+              {canDepartments && (
                 <Link to="/departments" className="text-xs font-medium text-accent-300 transition-colors hover:text-accent-400">
                   {t('dashboard.viewAll')}
                 </Link>
@@ -212,7 +273,10 @@ export function Dashboard() {
             </div>
             {s?.employees ? (
               s.employees.byDepartment.length === 0 ? (
-                <p className="py-6 text-center text-sm text-ink-low">{t('dashboard.noDepartmentData')}</p>
+                <div className="py-10 text-center">
+                  <HelpCircle className="size-12 mx-auto mb-3 text-ink-low/30" />
+                  <p className="text-sm text-ink-low">{t('dashboard.noDepartmentData')}</p>
+                </div>
               ) : (
                 <div className="space-y-3.5">
                   {s.employees.byDepartment.map((dept, index) => {
@@ -221,13 +285,13 @@ export function Dashboard() {
                     return (
                       <div key={dept.id}>
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="min-w-0 flex-1 truncate font-medium text-ink-med">
+                          <div className="min-w-0 flex-1 truncate">
                             <span className="ms-0.5 me-2 inline-block w-5 text-end tabular-nums text-ink-low">
                               {index + 1}
                             </span>
-                            <span dir="auto">{dept.name}</span>
-                          </span>
-                          <span className="tabular-nums text-ink-low">{dept.count}</span>
+                            <span dir="auto" className="font-medium text-ink-med">{dept.name}</span>
+                          </div>
+                          <span className="tabular-nums text-ink-low font-semibold">{dept.count}</span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-surface-strong">
                           <motion.div
@@ -243,17 +307,28 @@ export function Dashboard() {
                 </div>
               )
             ) : (
-              <p className="py-6 text-center text-sm text-ink-low">{t('noAccess.body')}</p>
+              <div className="py-10 text-center">
+                <AlertCircle className="size-12 mx-auto mb-3 text-ink-low/30" />
+                <p className="text-sm text-ink-low">{t('noAccess.body')}</p>
+              </div>
             )}
           </GlassCard>
         </motion.div>
       </div>
 
-      {/* الإجازات + المرتبات */}
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <motion.div variants={staggerItem} transition={springSoft(0.08)}>
+      {/* Secondary overview grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 mb-8">
+        {/* Leaves overview */}
+        <motion.div variants={staggerItem} transition={springSoft(0.08)} className="lg:col-span-4">
           <GlassCard className="h-full p-6">
-            <h2 className="mb-4 text-sm font-semibold text-ink-high">{t('dashboard.leavesOverview')}</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink-high">{t('dashboard.leavesOverview')}</h2>
+              {canLeaves && (
+                <Link to="/leaves" className="text-xs font-medium text-accent-300 transition-colors hover:text-accent-400">
+                  {t('dashboard.viewAll')}
+                </Link>
+              )}
+            </div>
             {s?.leaves ? (
               <div className="space-y-3">
                 {(['pending', 'approved', 'rejected'] as const).map((status) => (
@@ -269,14 +344,25 @@ export function Dashboard() {
                 <p className="pt-1 text-[11px] text-ink-low">{t('dashboard.leavesNote')}</p>
               </div>
             ) : (
-              <p className="py-6 text-center text-sm text-ink-low">{t('noAccess.body')}</p>
+              <div className="py-10 text-center">
+                <AlertCircle className="size-12 mx-auto mb-3 text-ink-low/30" />
+                <p className="text-sm text-ink-low">{t('noAccess.body')}</p>
+              </div>
             )}
           </GlassCard>
         </motion.div>
 
-        <motion.div variants={staggerItem} transition={springSoft(0.1)}>
+        {/* Payroll overview */}
+        <motion.div variants={staggerItem} transition={springSoft(0.1)} className="lg:col-span-4">
           <GlassCard className="h-full p-6">
-            <h2 className="mb-4 text-sm font-semibold text-ink-high">{t('dashboard.payrollOverview')}</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink-high">{t('dashboard.payrollOverview')}</h2>
+              {canPayrolls && (
+                <Link to="/payrolls" className="text-xs font-medium text-accent-300 transition-colors hover:text-accent-400">
+                  {t('dashboard.viewAll')}
+                </Link>
+              )}
+            </div>
             {s?.payrolls ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between rounded-2xl border border-line bg-surface-soft px-4 py-2.5">
@@ -288,7 +374,7 @@ export function Dashboard() {
                   <span className="text-lg font-bold tabular-nums text-ink-high">{s.payrolls.entries}</span>
                 </div>
                 {s.payrolls.latest && (
-                  <div className="rounded-2xl border border-accent-500/30 bg-accent-500/10 px-4 py-2.5">
+                  <div className="rounded-2xl border border-accent-500/30 bg-accent-500/10 px-4 py-3">
                     <p className="text-[11px] text-ink-low">{t('dashboard.latestPeriod')}</p>
                     <p className="mt-0.5 text-sm font-bold tabular-nums text-accent-300">
                       {s.payrolls.latest.period}
@@ -296,56 +382,106 @@ export function Dashboard() {
                     <p dir="auto" className="mt-0.5 truncate text-[11px] text-ink-low">
                       {s.payrolls.latest.originalName}
                     </p>
+                    <p className="mt-1 text-[10px] text-ink-low">
+                      {t('dashboard.uploadedAt', { date: formatDateTime(s.payrolls.latest.uploadedAt, language) })}
+                    </p>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="py-6 text-center text-sm text-ink-low">{t('noAccess.body')}</p>
+              <div className="py-10 text-center">
+                <CreditCard className="size-12 mx-auto mb-3 text-ink-low/30" />
+                <p className="text-sm text-ink-low">{t('dashboard.noPayrollData')}</p>
+                {canPayrolls && (
+                  <Link to="/payrolls" className="mt-3 inline-flex items-center gap-2 text-xs font-medium text-accent-300 transition-colors hover:text-accent-400">
+                    <Banknote className="size-4" /> {t('dashboard.uploadPayroll')}
+                  </Link>
+                )}
+              </div>
             )}
           </GlassCard>
         </motion.div>
 
-        {/* إجراءات سريعة */}
-        <motion.div variants={staggerItem} transition={springSoft(0.12)}>
+        {/* Transfers overview */}
+        <motion.div variants={staggerItem} transition={springSoft(0.12)} className="lg:col-span-4">
           <GlassCard className="h-full p-6">
-            <h2 className="mb-4 text-sm font-semibold text-ink-high">{t('dashboard.quickActions')}</h2>
-            <div className="grid grid-cols-1 gap-2.5">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                if (!tab.visible) return null
-                return (
-                  <Link
-                    key={tab.key}
-                    to={tab.to}
-                    className="focus-ring flex items-center gap-3 rounded-2xl border border-line bg-surface-soft px-4 py-3 transition-colors hover:border-accent-400/40 hover:bg-surface-strong"
-                  >
-                    <span className={cnTone('teal')}>
-                      <Icon className="size-4" />
-                    </span>
-                    <span className="flex-1 text-sm font-medium text-ink-high">{tab.label}</span>
-                    <ArrowLeft className="size-4 text-ink-low rtl:rotate-180" />
-                  </Link>
-                )
-              })}
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink-high">{t('dashboard.transfersOverview')}</h2>
+              {canEmployees && (
+                <Link to="/employees" className="text-xs font-medium text-accent-300 transition-colors hover:text-accent-400">
+                  {t('dashboard.viewAll')}
+                </Link>
+              )}
             </div>
+            {s?.transfers !== undefined && s.transfers !== null ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between rounded-2xl border border-line bg-surface-soft px-4 py-2.5">
+                  <span className="text-xs text-ink-med">{t('dashboard.transfersTotal')}</span>
+                  <span className="text-lg font-bold tabular-nums text-ink-high">{s.transfers.total}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-2xl border border-line bg-surface-soft px-4 py-2.5">
+                  <span className="text-xs text-ink-med">{t('dashboard.transfersOpen')}</span>
+                  <span className="text-lg font-bold tabular-nums text-gold-400">{s.transfers.open}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="py-10 text-center">
+                <AlertCircle className="size-12 mx-auto mb-3 text-ink-low/30" />
+                <p className="text-sm text-ink-low">{t('noAccess.body')}</p>
+              </div>
+            )}
           </GlassCard>
         </motion.div>
       </div>
 
-      {/* قسم النظام (المستخدمون/الأدوار) — يمكن للـ admins */}
+      {/* Quick actions */}
+      <motion.div variants={staggerItem} transition={springSoft(0.14)} className="mb-8">
+        <GlassCard className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-ink-high">{t('dashboard.quickActions')}</h2>
+            <span className="text-xs text-ink-low">{t('dashboard.quickActionsHint')}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              if (!tab.visible) return null
+              return (
+                <Link
+                  key={tab.key}
+                  to={tab.to}
+                  className={cn(
+                    'flex items-center gap-3 rounded-2xl border border-line bg-surface-soft px-4 py-3.5 transition-colors',
+                    activeTab?.key === tab.key
+                      ? 'border-accent-400 bg-accent-500/10'
+                      : 'hover:border-accent-400/40 hover:bg-surface-strong'
+                  )}
+                >
+                  <span className={cnTone('teal')}>
+                    <Icon className="size-4" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium text-ink-high">{tab.label}</span>
+                  <ArrowLeft className="size-4 text-ink-low rtl:rotate-180" />
+                </Link>
+              )
+            })}
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      {/* System section (admins) */}
       {canSeeUsers && (
-        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-5">
-          <motion.div variants={staggerItem} transition={springSoft(0.14)} className="lg:col-span-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 mb-8">
+          <motion.div variants={staggerItem} transition={springSoft(0.16)} className="lg:col-span-7">
             <RecentUsersCard language={language} />
           </motion.div>
-          <motion.div variants={staggerItem} transition={springSoft(0.16)} className="lg:col-span-2">
+          <motion.div variants={staggerItem} transition={springSoft(0.18)} className="lg:col-span-5">
             <SystemCard language={language} />
           </motion.div>
         </div>
       )}
 
       {canCreateUsers && (
-        <motion.div variants={staggerItem} transition={springSoft(0.18)} className="mt-5">
+        <motion.div variants={staggerItem} transition={springSoft(0.2)} className="mb-8">
           <GlassCard className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-semibold text-ink-high">{t('dashboard.systemActions')}</h2>
@@ -400,7 +536,10 @@ function RecentUsersCard({ language }: { language: string }) {
       <div className="divider" />
       {canSeeUsers ? (
         recent.length === 0 ? (
-          <p className="px-6 py-10 text-center text-sm text-ink-low">{t('dashboard.noUsersYet')}</p>
+          <div className="px-6 py-10 text-center">
+            <UsersIcon className="size-12 mx-auto mb-3 text-ink-low/30" />
+            <p className="text-sm text-ink-low">{t('dashboard.noUsersYet')}</p>
+          </div>
         ) : (
           <div className="divide-y divide-surface-base">
             {recent.map((user) => (
@@ -421,7 +560,10 @@ function RecentUsersCard({ language }: { language: string }) {
           </div>
         )
       ) : (
-        <p className="px-6 py-10 text-center text-sm text-ink-low">{t('noAccess.body')}</p>
+        <div className="px-6 py-10 text-center">
+          <AlertCircle className="size-12 mx-auto mb-3 text-ink-low/30" />
+          <p className="text-sm text-ink-low">{t('noAccess.body')}</p>
+        </div>
       )}
     </GlassCard>
   )
@@ -465,7 +607,10 @@ function SystemCard({ language }: { language: string }) {
           })}
         </div>
       ) : (
-        <p className="py-6 text-center text-sm text-ink-low">{t('roles.noRoles')}</p>
+        <div className="py-8 text-center">
+          <ShieldCheck className="size-12 mx-auto mb-3 text-ink-low/30" />
+          <p className="text-sm text-ink-low">{t('roles.noRoles')}</p>
+        </div>
       )}
     </GlassCard>
   )
