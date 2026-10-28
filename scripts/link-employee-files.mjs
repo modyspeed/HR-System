@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 /**
  * ربط ملفات العمل الخارجية بالموظفين: يقرأ مجلدًا خارجيًا فيه ملفات بأسماء
- * أرقام الموظفين (مثل `2689.pdf`) وينسخ كل ملف إلى مجلد ملفات التطبيق بنفس
- * قاعدة التسمية المستخدمة داخل الواجهة `<code>_<name>.<ext>`، ثم يحدّث سجل
- * الموظف — تمامًا كما لو رُفع الملف من نافذة «ملف العمل».
+ * الموظفين مع كودهم في النهاية (مثل `حمدى محمد اليمانى  2086.pdf`) ويستخرج
+ * الكود من نهاية الاسم للمطابقة مع الموظف في القاعدة، ثم ينسخ كل ملف إلى
+ * مجلد ملفات التطبيق محتفظًا باسم الملف الأصلي كما هو، ثم يحدّث سجل الموظف
+ * — تمامًا كما لو رُفع الملف من نافذة «ملف العمل».
  *
  *   node scripts/link-employee-files.mjs [sourceFolder]             # معاينة (لا يكتب)
  *   node scripts/link-employee-files.mjs --apply [sourceFolder]     # نسخ وربط فعلي
  *   node scripts/link-employee-files.mjs --apply --overwrite [dir]  # يستبدل الروابط القائمة
  *
- * التطابق: اسم الملف (بدون الامتداد) → كود الموظف، مع تحويل الأرقام العربية
- * إلى ASCII. تُفرض نفس قواعد التطبيق: الامتدادات المسموحة، الحد الأقصى للحجم، وفحص
- * التوقيع (Magic bytes). المعاينة افتراضية، ويُؤخذ نسخة `.bak` من القاعدة قبل
- * أول كتابة. الملفات المربوطة مسبقًا تُتخطّى إلا مع `--overwrite`.
+ * التطابق: يُستخرج الكود من آخر أرقام اسم الملف → كود الموظف، مع تحويل
+ * الأرقام العربية/الفارسية إلى ASCII. تُفرض نفس قواعد التطبيق: الامتدادات
+ * المسموحة، الحد الأقصى للحجم، وفحص التوقيع (Magic bytes). المعاينة افتراضية،
+ * ويُؤخذ نسخة `.bak` من القاعدة قبل أول كتابة. الملفات المربوطة مسبقًا
+ * تُتخطّى إلا مع `--overwrite`.
  */
 import fs from 'node:fs'
 import os from 'node:os'
@@ -67,6 +69,7 @@ function sanitizeSegment(value) {
     .slice(0, 80)
 }
 
+/** اسم التخزين في التطبيق: <كود>_<اسم الموظف>.<ext> (مثل 2086_أحمد مصطفى.pdf). */
 function buildStoredName(code, name, ext) {
   const codePart = sanitizeSegment(code) || 'employee'
   const namePart = sanitizeSegment(name) || 'employee'
@@ -82,6 +85,14 @@ function codeKey(value) {
     .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
     .replace(/[^0-9a-zA-Z]/g, '')
     .toLowerCase()
+}
+
+/** يستخرج كود الموظف من نهاية اسم الملف (مثل "حمدى محمد اليمانى  2086.pdf" → "2086"). */
+function extractCodeFromFileName(name) {
+  const base = path.basename(name, path.extname(name)).trim()
+  const match = base.match(/(\d+)\s*$/)
+  if (!match) return null
+  return codeKey(match[1]) || null
 }
 
 /* ------------------------------ فحص توقيع الملف ---------------------------- */
@@ -168,12 +179,11 @@ async function main() {
     const groups = new Map()
     for (const entry of entries) {
       const ext = path.extname(entry.name).toLowerCase()
-      const base = path.basename(entry.name, path.extname(entry.name))
-      if (!/^\d+$/.test(base.trim())) {
+      const key = extractCodeFromFileName(entry.name)
+      if (!key) {
         skipped.notCodeNamed.push({ file: entry.name })
         continue
       }
-      const key = codeKey(base)
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key).push({ entry, ext, full: path.join(sourceDir, entry.name) })
     }
@@ -238,7 +248,7 @@ async function main() {
     }
 
     const report = [
-      ['أسماء ليست رقم موظف', skipped.notCodeNamed],
+      ['لا يحتوي على رقم موظف في نهاية الاسم', skipped.notCodeNamed],
       ['رقم غير موجود بين الموظفين', skipped.unknownCode],
       ['أكثر من ملف لنفس الرقم', skipped.duplicateFile],
       ['رقم مكرر لعدة موظفين', skipped.ambiguousEmployee],
