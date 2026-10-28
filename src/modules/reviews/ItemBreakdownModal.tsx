@@ -103,7 +103,7 @@ export function ItemBreakdownModal({
                   <DataTableHeadCell dense>
                     {t('reviews.items.itemName')}
                   </DataTableHeadCell>
-                  <DataTableHeadCell dense align="end">
+                  <DataTableHeadCell dense align="center">
                     {t('reviews.items.value')}
                   </DataTableHeadCell>
                 </DataTableHeadRow>
@@ -126,7 +126,7 @@ export function ItemBreakdownModal({
               <DataTableFoot>
                 <DataTableFootRow className="text-xs">
                   <DataTableFootCell align="start">{t('reviews.items.total')}</DataTableFootCell>
-                  <DataTableFootCell className="tabular-nums" align="end" dir="ltr">
+                  <DataTableFootCell className="tabular-nums" align="center" dir="ltr">
                     {formatNumber(total)}
                   </DataTableFootCell>
                 </DataTableFootRow>

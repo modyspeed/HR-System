@@ -386,19 +386,19 @@ export function PayrollItemsMatrix() {
                 <DataTableHeadCell className="w-[190px]">
                     {t('reviews.items.departmentName')}
                 </DataTableHeadCell>
-                <DataTableHeadCell className="w-[190px] text-teal-300" align="end">
+                <DataTableHeadCell className="w-[190px] text-teal-300" align="center">
                     <span className="inline-flex items-center gap-1.5">
                       <ListTree className="size-3.5 opacity-70" />
                       {t('reviews.items.earningsTotal')}
                     </span>
                 </DataTableHeadCell>
-                <DataTableHeadCell className="w-[190px] text-rose-300" align="end">
+                <DataTableHeadCell className="w-[190px] text-rose-300" align="center">
                     <span className="inline-flex items-center gap-1.5">
                       <ListTree className="size-3.5 opacity-70" />
                       {t('reviews.items.deductionsTotal')}
                     </span>
                 </DataTableHeadCell>
-                <DataTableHeadCell className="w-[170px]" align="end">
+                <DataTableHeadCell className="w-[170px]" align="center">
                     {t('reviews.items.net')}
                 </DataTableHeadCell>
               </DataTableHeadRow>
@@ -461,17 +461,17 @@ export function PayrollItemsMatrix() {
                 </DataTableFootCell>
                 <DataTableFootCell align="start">{t('reviews.items.total')}</DataTableFootCell>
                 <DataTableFootCell />
-                <DataTableFootCell className="tabular-nums text-teal-300" align="end" dir="ltr">
+                <DataTableFootCell className="tabular-nums text-teal-300" align="center" dir="ltr">
                     {formatNumber(
                       matrix.rows.reduce((sum, row) => sum + row.earningsTotal, 0)
                     )}
                 </DataTableFootCell>
-                <DataTableFootCell className="tabular-nums text-rose-300" align="end" dir="ltr">
+                <DataTableFootCell className="tabular-nums text-rose-300" align="center" dir="ltr">
                     {formatNumber(
                       matrix.rows.reduce((sum, row) => sum + row.deductionsTotal, 0)
                     )}
                 </DataTableFootCell>
-                <DataTableFootCell className="tabular-nums" align="end" dir="ltr">
+                <DataTableFootCell className="tabular-nums" align="center" dir="ltr">
                     {formatNumber(
                       matrix.rows.reduce((sum, row) => sum + (row.netSalary ?? 0), 0)
                     )}

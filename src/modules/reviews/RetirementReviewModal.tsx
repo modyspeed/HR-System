@@ -289,7 +289,7 @@ export function RetirementReviewModal({
                   <DataTableHeadCell className="w-[115px]" align="center">
                     {t('reviews.retirements.review.actualDays')}
                   </DataTableHeadCell>
-                  <DataTableHeadCell className="w-[140px]" align="end">
+                  <DataTableHeadCell className="w-[140px]" align="center">
                     {t('reviews.retirements.review.basicSalary')}
                   </DataTableHeadCell>
                   <DataTableHeadCell className="w-[140px]" align="center">
@@ -577,13 +577,13 @@ function RetirementSlipDetail({
           <DataTableHead>
             <DataTableHeadRow>
               <DataTableHeadCell>{t('reviews.retirements.review.item')}</DataTableHeadCell>
-              <DataTableHeadCell className="w-[140px]" align="end">
+              <DataTableHeadCell className="w-[140px]" align="center">
                 {t('reviews.retirements.review.actual')}
               </DataTableHeadCell>
-              <DataTableHeadCell className="w-[140px]" align="end">
+              <DataTableHeadCell className="w-[140px]" align="center">
                 {t('reviews.retirements.review.expected')}
               </DataTableHeadCell>
-              <DataTableHeadCell className="w-[160px]" align="end">
+              <DataTableHeadCell className="w-[160px]" align="center">
                 {t('reviews.retirements.review.difference')}
               </DataTableHeadCell>
               <DataTableHeadCell className="w-[230px]">
@@ -679,15 +679,15 @@ function RetirementSlipDetail({
               <DataTableFootCell align="start">
                 {t('reviews.retirements.review.total')}
               </DataTableFootCell>
-              <DataTableFootCell className="tabular-nums" align="end" dir="ltr">
+              <DataTableFootCell className="tabular-nums" align="center" dir="ltr">
                 {formatNumber(slip.totals.actualNet)}
               </DataTableFootCell>
-              <DataTableFootCell className="tabular-nums" align="end" dir="ltr">
+              <DataTableFootCell className="tabular-nums" align="center" dir="ltr">
                 {formatNumber(slip.totals.expectedNet)}
               </DataTableFootCell>
               <DataTableFootCell
                 className={cn('tabular-nums', differenceTone(netDifference))}
-                align="end"
+                align="center"
                 dir="ltr"
               >
                 {formatDifference(netDifference)}
